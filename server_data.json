@@ -1,0 +1,27 @@
+{
+  "users": {},
+  "multiplayer_rooms": {
+    "default": {
+      "roomId": "default",
+      "mode": "MEGA",
+      "humanManagers": {},
+      "currentBidder": null,
+      "lastUpdated": "2026-11-17T22:01:21.829334"
+    },
+    "IPL-VIP": {
+      "roomId": "IPL-VIP",
+      "mode": "MEGA",
+      "pin": null,
+      "humanManagers": {},
+      "lastUpdated": "2026-11-17T22:55:12.205030"
+    },
+    "DEFAULT": {
+      "roomId": "DEFAULT",
+      "mode": "MEGA",
+      "pin": null,
+      "humanManagers": {},
+      "lastUpdated": "2026-11-17T23:23:23.387335"
+    }
+  },
+  "history": []
+}

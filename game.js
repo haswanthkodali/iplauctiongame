@@ -1,0 +1,1857 @@
+/**
+ * IPL AUCTION GAME - CORE GAME ENGINE (game.js)
+ * ============================================================================
+ * Production-ready simulation engine for the IPL Mega Auction Game.
+ * Loaded after data.js (which provides TEAMS, PLAYERS, BID_INCREMENTS, AUCTION_SETS).
+ *
+ * Capabilities:
+ * - Reactive Game State Management (home, teamSelect, auction, results)
+ * - Real-time countdown timer with variable speed (1x, 2x, 3x)
+ * - Complete IPL bid increment rules & currency rounding
+ * - Shuffled-within-sets Auction Pool generation (Marquee -> Uncapped)
+ * - Smart AI Bidding Engine with franchise personalities, role needs,
+ *   budget conservation, overseas constraints, and Playing XI impact
+ * - Flawless Pause & Resume with full state retention & AI re-evaluation
+ * - Playing XI Optimizer (1 WK, 4-5 Batsmen, 3-4 Bowlers, 1-2 All-Rounders, max 4 Overseas)
+ * - Multi-dimensional Squad Rating System (Batting, Bowling, Balance, Value, Letter Grade)
+ * - Event Dispatcher for UI bindings & reactive rendering
+ * ============================================================================
+ */
+
+(function (global) {
+  'use strict';
+
+  // ==========================================================================
+  // 1. DATA ACCESS & FALLBACKS
+  // ==========================================================================
+
+  function getGlobalData() {
+    const teams = (typeof TEAMS !== 'undefined' && Array.isArray(TEAMS)) ? TEAMS :
+      ((global && Array.isArray(global.TEAMS)) ? global.TEAMS : []);
+
+    const players = (typeof PLAYERS !== 'undefined' && Array.isArray(PLAYERS)) ? PLAYERS :
+      ((global && Array.isArray(global.PLAYERS)) ? global.PLAYERS : []);
+
+    const increments = (typeof BID_INCREMENTS !== 'undefined' && BID_INCREMENTS) ? BID_INCREMENTS :
+      ((global && global.BID_INCREMENTS) ? global.BID_INCREMENTS : {
+        upTo1: 0.05,
+        upTo2: 0.10,
+        upTo5: 0.15,
+        upTo10: 0.20,
+        above10: 0.25
+      });
+
+    const sets = (typeof AUCTION_SETS !== 'undefined' && Array.isArray(AUCTION_SETS)) ? AUCTION_SETS :
+      ((global && Array.isArray(global.AUCTION_SETS)) ? global.AUCTION_SETS : [
+        "Marquee Players",
+        "Capped Indian Batsmen",
+        "Capped Overseas Batsmen",
+        "Capped Indian All-Rounders",
+        "Capped Overseas All-Rounders",
+        "Capped Indian Wicket-Keepers",
+        "Capped Overseas Wicket-Keepers",
+        "Capped Indian Bowlers",
+        "Capped Overseas Bowlers",
+        "Emerging & Uncapped Talents"
+      ]);
+
+    return { teams, players, increments, sets };
+  }
+
+  // ==========================================================================
+  // 2. FRANCHISE PERSONALITY PROFILES
+  // ==========================================================================
+
+  const TEAM_PERSONALITIES = {
+    CSK: {
+      aggression: 0.95,
+      marqueePreference: 1.15,
+      riskTolerance: 0.85,
+      roleWeights: { 'All-Rounder': 1.30, 'Batsman': 1.10, 'Bowler': 1.05, 'Wicket-Keeper': 1.20 },
+      description: "Calculated & experienced; values clutch match-winners and multi-utility all-rounders."
+    },
+    MI: {
+      aggression: 1.25,
+      marqueePreference: 1.30,
+      riskTolerance: 1.15,
+      roleWeights: { 'Bowler': 1.25, 'Batsman': 1.20, 'All-Rounder': 1.10, 'Wicket-Keeper': 1.05 },
+      description: "Aggressive bidding powerhouse; prioritizes lethal fast bowling and explosive power-hitters."
+    },
+    RCB: {
+      aggression: 1.25,
+      marqueePreference: 1.35,
+      riskTolerance: 1.20,
+      roleWeights: { 'Batsman': 1.35, 'Bowler': 1.05, 'All-Rounder': 1.15, 'Wicket-Keeper': 1.10 },
+      description: "Star-chaser with massive marquee appetite; targets high-profile match-winning batsmen."
+    },
+    KKR: {
+      aggression: 1.15,
+      marqueePreference: 1.15,
+      riskTolerance: 1.10,
+      roleWeights: { 'All-Rounder': 1.35, 'Bowler': 1.20, 'Batsman': 1.00, 'Wicket-Keeper': 1.05 },
+      description: "Spin and all-rounder focused; high willingness to wage bidding wars for versatile disruptors."
+    },
+    DC: {
+      aggression: 1.00,
+      marqueePreference: 1.05,
+      riskTolerance: 0.95,
+      roleWeights: { 'Batsman': 1.10, 'Bowler': 1.10, 'All-Rounder': 1.05, 'Wicket-Keeper': 1.15 },
+      description: "Pragmatic, disciplined squad builder; focuses on solid Indian domestic core."
+    },
+    PBKS: {
+      aggression: 1.30,
+      marqueePreference: 1.25,
+      riskTolerance: 1.25,
+      roleWeights: { 'Batsman': 1.15, 'Bowler': 1.20, 'All-Rounder': 1.20, 'Wicket-Keeper': 1.05 },
+      description: "Fearless high-purse spender; ready to trigger intense bidding duels on star targets."
+    },
+    RR: {
+      aggression: 0.90,
+      marqueePreference: 1.00,
+      riskTolerance: 0.90,
+      roleWeights: { 'Bowler': 1.20, 'All-Rounder': 1.20, 'Batsman': 1.05, 'Wicket-Keeper': 1.20 },
+      description: "Data-driven and tactical; seeks high-value bargains, spin maestros, and elite glovemen."
+    },
+    SRH: {
+      aggression: 1.15,
+      marqueePreference: 1.10,
+      riskTolerance: 1.05,
+      roleWeights: { 'Bowler': 1.30, 'Batsman': 1.15, 'All-Rounder': 1.05, 'Wicket-Keeper': 1.00 },
+      description: "Bowling-first mentality; relentless on premier pacers and destructive foreign openers."
+    },
+    GT: {
+      aggression: 1.05,
+      marqueePreference: 1.10,
+      riskTolerance: 1.00,
+      roleWeights: { 'Bowler': 1.25, 'All-Rounder': 1.25, 'Batsman': 1.05, 'Wicket-Keeper': 1.05 },
+      description: "Strong emphasis on workhorse seamers, clutch finishers, and squad cohesion."
+    },
+    LSG: {
+      aggression: 1.05,
+      marqueePreference: 1.10,
+      riskTolerance: 1.00,
+      roleWeights: { 'All-Rounder': 1.25, 'Batsman': 1.15, 'Bowler': 1.10, 'Wicket-Keeper': 1.10 },
+      description: "Analytical and deep; prioritizes multi-dimensional all-rounders and anchor openers."
+    }
+  };
+
+  // ==========================================================================
+  // 3. CORE GAME STATE
+  // ==========================================================================
+
+  const GameState = {
+    phase: 'home',            // 'home', 'teamSelect', 'auction', 'results'
+    userTeamId: null,         // e.g. 'CSK', 'MI', etc.
+    teams: [],                // { ...team, players: [], spent: 0, overseas: 0 }
+    currentPlayerIndex: 0,
+    currentBid: 0,
+    currentBidder: null,      // teamId of highest current bidder
+    auctionPool: [],          // shuffled within sets
+    timer: null,              // interval id
+    timeLeft: 15,             // countdown seconds
+    isPaused: false,
+    isSold: false,
+    isUnsold: false,
+    auctionLog: [],
+    speed: 1                  // 1x, 2x, 3x
+  };
+
+  // Internal transition state helpers
+  let transitionTimeout = null;
+  let wasInTransition = false;
+
+  // ==========================================================================
+  // 4. EVENT EMITTER SYSTEM
+  // ==========================================================================
+
+  const listeners = {};
+
+  function on(event, callback) {
+    if (!listeners[event]) listeners[event] = [];
+    listeners[event].push(callback);
+    return () => off(event, callback);
+  }
+
+  function off(event, callback) {
+    if (!listeners[event]) return;
+    listeners[event] = listeners[event].filter(cb => cb !== callback);
+  }
+
+  function emit(event, data) {
+    if (listeners[event]) {
+      listeners[event].forEach(cb => {
+        try {
+          cb(data);
+        } catch (err) {
+          console.error(`[IPL Auction Game] Error in event listener "${event}":`, err);
+        }
+      });
+    }
+  }
+
+  function subscribe(callback) {
+    return on('stateChange', callback);
+  }
+
+  function addLog(entry) {
+    const logItem = {
+      id: Date.now() + Math.random().toString(36).substr(2, 5),
+      timestamp: new Date().toLocaleTimeString(),
+      ...entry
+    };
+    GameState.auctionLog.unshift(logItem);
+    if (GameState.auctionLog.length > 200) {
+      GameState.auctionLog.pop();
+    }
+    emit('log', logItem);
+    return logItem;
+  }
+
+  // ==========================================================================
+  // 5. HELPER UTILITIES
+  // ==========================================================================
+
+  function roundCr(amount) {
+    return Math.round((Number(amount) || 0) * 100) / 100;
+  }
+
+  function getCurrentPlayer() {
+    if (!GameState.auctionPool || GameState.auctionPool.length === 0) return null;
+    return GameState.auctionPool[GameState.currentPlayerIndex] || null;
+  }
+
+  function getTeam(teamId) {
+    return GameState.teams.find(t => t.id === teamId) || null;
+  }
+
+  function getTeams() {
+    return GameState.teams || [];
+  }
+
+  function getUserTeam() {
+    return getTeam(GameState.userTeamId);
+  }
+
+  function getSetName(setNum) {
+    const { sets } = getGlobalData();
+    const idx = (setNum || 1) - 1;
+    return sets[idx] || `Set ${setNum}`;
+  }
+
+  // ==========================================================================
+  // 6. BID INCREMENT CALCULATION
+  // ==========================================================================
+
+  /**
+   * getBidIncrement(currentPrice)
+   * Standard IPL Mega Auction Increments:
+   * - Under 1 Cr: 0.05 Cr (5 Lakhs)
+   * - 1 to 2 Cr:  0.10 Cr (10 Lakhs)
+   * - 2 to 5 Cr:  0.15 Cr (15 Lakhs)
+   * - 5 to 10 Cr: 0.20 Cr (20 Lakhs)
+   * - 10 Cr+:     0.25 Cr (25 Lakhs)
+   */
+  function getBidIncrement(currentPrice) {
+    const { increments } = getGlobalData();
+    const price = Number(currentPrice) || 0;
+
+    if (price < 1.0) return increments.upTo1 !== undefined ? increments.upTo1 : 0.05;
+    if (price < 2.0) return increments.upTo2 !== undefined ? increments.upTo2 : 0.10;
+    if (price < 5.0) return increments.upTo5 !== undefined ? increments.upTo5 : 0.15;
+    if (price < 10.0) return increments.upTo10 !== undefined ? increments.upTo10 : 0.20;
+    return increments.above10 !== undefined ? increments.above10 : 0.25;
+  }
+
+  /**
+   * Returns what the next bid amount will be for the current player.
+   */
+  function getNextBidAmount() {
+    const player = getCurrentPlayer();
+    if (!player) return 0;
+
+    // If no one has bid yet, the opening bid is the player's base price
+    if (GameState.currentBidder === null) {
+      return roundCr(player.basePrice);
+    }
+
+    const inc = getBidIncrement(GameState.currentBid);
+    return roundCr(GameState.currentBid + inc);
+  }
+
+  // ==========================================================================
+  // 7. POOL GENERATION (SHUFFLE WITHIN SETS)
+  // ==========================================================================
+
+  /**
+   * Generates the auction pool by grouping players into sets (1 to 10),
+   * shuffling players within each individual set, and preserving set order.
+   */
+  function generateAuctionPool(playersList) {
+    if (!playersList || playersList.length === 0) return [];
+
+    const setMap = new Map();
+    for (let s = 1; s <= 10; s++) {
+      setMap.set(s, []);
+    }
+
+    playersList.forEach(p => {
+      const setNum = p.set || 10;
+      if (!setMap.has(setNum)) {
+        setMap.set(setNum, []);
+      }
+      setMap.get(setNum).push({ ...p });
+    });
+
+    const pool = [];
+    const sortedSetKeys = Array.from(setMap.keys()).sort((a, b) => a - b);
+
+    for (const key of sortedSetKeys) {
+      const setPlayers = setMap.get(key);
+      // Fisher-Yates shuffle within this set
+      for (let i = setPlayers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = setPlayers[i];
+        setPlayers[i] = setPlayers[j];
+        setPlayers[j] = temp;
+      }
+      pool.push(...setPlayers);
+    }
+
+    return pool;
+  }
+
+  // ==========================================================================
+  // 8. INITIALIZATION & SQUAD MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * 1. initGame(config) - Initialize game state
+   */
+  function initGame(config = {}) {
+    // Clear any active timers
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+    if (transitionTimeout) {
+      clearTimeout(transitionTimeout);
+      transitionTimeout = null;
+    }
+    wasInTransition = false;
+
+    const { teams: rawTeams, players: rawPlayers } = getGlobalData();
+
+    // Reset GameState structure
+    GameState.phase = config.phase || 'home';
+    GameState.userTeamId = config.userTeamId || null;
+    GameState.currentPlayerIndex = 0;
+    GameState.currentBid = 0;
+    GameState.currentBidder = null;
+    GameState.timeLeft = 15;
+    GameState.isPaused = false;
+    GameState.isSold = false;
+    GameState.isUnsold = false;
+    GameState.auctionLog = [];
+    GameState.speed = Math.max(1, Math.min(3, config.speed || 1));
+    GameState.auctionMode = (config.auctionMode || 'MEGA').toUpperCase();
+
+    // Deep clone teams with tracking properties
+    GameState.teams = rawTeams.map(t => {
+      const purse = t.purse !== undefined ? t.purse : 120;
+      const maxPlayers = t.maxPlayers || 25;
+      const minPlayers = t.minPlayers || 18;
+      const maxOverseas = t.maxOverseas || 8;
+      const personality = TEAM_PERSONALITIES[t.id] || {
+        aggression: 1.0,
+        marqueePreference: 1.1,
+        riskTolerance: 1.0,
+        roleWeights: { 'Batsman': 1.0, 'Bowler': 1.0, 'All-Rounder': 1.0, 'Wicket-Keeper': 1.0 }
+      };
+
+      return {
+        ...t,
+        purse,
+        maxPlayers,
+        minPlayers,
+        maxOverseas,
+        players: [],
+        spent: 0,
+        overseas: 0,
+        personality
+      };
+    });
+
+    // Handle Mini Auction pre-retained rosters
+    const retainedPlayerNames = new Set();
+    if (GameState.auctionMode === 'MINI') {
+      const teamHistoryDB = (typeof TEAM_HISTORY !== 'undefined') ? TEAM_HISTORY :
+        ((typeof window !== 'undefined' && window.TEAM_HISTORY) ? window.TEAM_HISTORY : {});
+
+      // Retention cost slab: 1st=18, 2nd=14, 3rd=11, 4th=18, 5th=14, uncapped=4
+      const retentionSlabs = [18, 14, 11, 18, 14, 4];
+
+      GameState.teams.forEach(team => {
+        const history = teamHistoryDB[team.id] || {};
+        const retainedList = history.retentionHistory2024 || [];
+        let spentOnRetentions = 0;
+
+        retainedList.forEach((playerName, index) => {
+          const matchedPlayer = rawPlayers.find(p => p.name.toLowerCase() === playerName.toLowerCase());
+          const cost = retentionSlabs[index] || 10;
+          spentOnRetentions += cost;
+          retainedPlayerNames.add(playerName.toLowerCase());
+
+          const retainedObj = matchedPlayer ? {
+            ...matchedPlayer,
+            retained: true,
+            soldPrice: cost,
+            price: cost,
+            soldTo: team.id
+          } : {
+            id: 'ret-' + team.id + '-' + index,
+            name: playerName,
+            role: 'Batsman',
+            rating: 85,
+            retained: true,
+            soldPrice: cost,
+            price: cost,
+            soldTo: team.id,
+            overseas: false
+          };
+
+          team.players.push(retainedObj);
+          if (retainedObj.overseas) {
+            team.overseas = (team.overseas || 0) + 1;
+          }
+        });
+
+        team.spent = roundCr(spentOnRetentions);
+      });
+    }
+
+    // Filter available pool (in Mini Auction, exclude retained players)
+    let availablePlayers = GameState.auctionMode === 'MINI'
+      ? rawPlayers.filter(p => !retainedPlayerNames.has(p.name.toLowerCase()))
+      : rawPlayers;
+
+    if (config.poolSize === 'quick') {
+      // Quick mode: top marquee and star players (Sets 1-3 or high rating)
+      availablePlayers = availablePlayers.filter(p => (p.set && p.set <= 3) || p.rating >= 84);
+    }
+
+    // Build shuffled pool
+    GameState.auctionPool = generateAuctionPool(availablePlayers);
+
+    addLog({
+      type: 'init',
+      message: `${GameState.auctionMode} Auction Game ready. ${GameState.teams.length} teams participating across ${GameState.auctionPool.length} available auction players.`
+    });
+
+    emit('init', { state: GameState });
+    emit('stateChange', GameState);
+
+    return GameState;
+  }
+
+  /**
+   * 2. selectTeam(teamId) - User selects their franchise
+   */
+  function selectTeam(teamId) {
+    const team = getTeam(teamId);
+    if (!team) {
+      console.warn(`[IPL Auction] Team "${teamId}" does not exist.`);
+      return false;
+    }
+
+    GameState.userTeamId = teamId;
+    GameState.phase = 'teamSelect';
+
+    addLog({
+      type: 'teamSelect',
+      message: `User chose ${team.name} (${team.shortName}) with a purse of ₹${team.purse} Cr.`
+    });
+
+    emit('teamSelect', { teamId, team });
+    emit('stateChange', GameState);
+    return true;
+  }
+
+  /**
+   * 3. startAuction() - Begin the live auction
+   */
+  function startAuction() {
+    if (!GameState.auctionPool || GameState.auctionPool.length === 0) {
+      initGame();
+    }
+
+    if (!GameState.userTeamId && GameState.teams.length > 0) {
+      GameState.userTeamId = GameState.teams[0].id;
+    }
+
+    GameState.phase = 'auction';
+    GameState.currentPlayerIndex = 0;
+    GameState.isPaused = false;
+
+    addLog({
+      type: 'startAuction',
+      message: `Mega Auction started! First set: ${getSetName(1)}.`
+    });
+
+    emit('auctionStart', { state: GameState });
+    loadPlayer(0);
+    return true;
+  }
+
+  /**
+   * Loads a player from the pool onto the auction stage
+   */
+  function loadPlayer(index) {
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+    if (transitionTimeout) {
+      clearTimeout(transitionTimeout);
+      transitionTimeout = null;
+    }
+    wasInTransition = false;
+
+    if (index >= GameState.auctionPool.length) {
+      endAuction();
+      return;
+    }
+
+    // Check for Set Transition / Swap
+    if (index > 0) {
+      const prevPlayer = GameState.auctionPool[index - 1];
+      const nextP = GameState.auctionPool[index];
+      if (prevPlayer && nextP && prevPlayer.set !== nextP.set) {
+        // Swapping to a new set! Thoroughly and clearly shuffle all remaining players in this set
+        const currentSet = nextP.set;
+        const setIndices = [];
+        for (let k = index; k < GameState.auctionPool.length; k++) {
+          if (GameState.auctionPool[k].set === currentSet) {
+            setIndices.push(k);
+          } else {
+            break;
+          }
+        }
+
+        // Fisher-Yates random shuffle on all players in this new set
+        if (setIndices.length > 1) {
+          for (let i = setIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const idxA = setIndices[i];
+            const idxB = setIndices[j];
+            const temp = GameState.auctionPool[idxA];
+            GameState.auctionPool[idxA] = GameState.auctionPool[idxB];
+            GameState.auctionPool[idxB] = temp;
+          }
+        }
+
+        addLog({
+          type: 'setSwap',
+          message: `🔀 SET SWAP: Entering Set ${nextP.set} (${getSetName(nextP.set)})! All ${setIndices.length} players have been clearly randomized & shuffled.`
+        });
+
+        emit('setSwap', {
+          oldSet: prevPlayer.set,
+          newSet: nextP.set,
+          setName: getSetName(nextP.set),
+          totalInSet: setIndices.length,
+          firstPlayer: GameState.auctionPool[index]
+        });
+      }
+    }
+
+    GameState.currentPlayerIndex = index;
+    const player = GameState.auctionPool[index];
+
+    GameState.currentBid = roundCr(player.basePrice);
+    GameState.currentBidder = null;
+    GameState.isSold = false;
+    GameState.isUnsold = false;
+    GameState.timeLeft = 15;
+
+    addLog({
+      type: 'newPlayer',
+      message: `Up for Bid: ${player.name} (${player.country || 'Unknown'}, ${player.role}) | Base Price: ₹${(Number(player.basePrice) || 0).toFixed(2)} Cr [${getSetName(player.set)}]`,
+      player
+    });
+
+    emit('newPlayer', {
+      player,
+      index,
+      total: GameState.auctionPool.length
+    });
+    emit('stateChange', GameState);
+
+    if (!GameState.isPaused) {
+      startTimer(15);
+    }
+  }
+
+  /**
+   * Clearly shuffle all upcoming players in remaining sets
+   */
+  function shuffleUpcomingPool() {
+    const startIndex = GameState.currentPlayerIndex + 1;
+    if (startIndex >= GameState.auctionPool.length) return false;
+
+    const remaining = GameState.auctionPool.slice(startIndex);
+    const setGroups = new Map();
+    remaining.forEach(p => {
+      const s = p.set || 10;
+      if (!setGroups.has(s)) setGroups.set(s, []);
+      setGroups.get(s).push(p);
+    });
+
+    const shuffledRemaining = [];
+    const sortedSets = Array.from(setGroups.keys()).sort((a, b) => a - b);
+    for (const s of sortedSets) {
+      const list = setGroups.get(s);
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = list[i];
+        list[i] = list[j];
+        list[j] = temp;
+      }
+      shuffledRemaining.push(...list);
+    }
+
+    GameState.auctionPool.splice(startIndex, remaining.length, ...shuffledRemaining);
+
+    addLog({
+      type: 'shuffle',
+      message: `🔀 Upcoming players re-shuffled across all remaining auction sets!`
+    });
+
+    emit('poolShuffled', { remainingCount: shuffledRemaining.length });
+    emit('stateChange', GameState);
+    return true;
+  }
+
+  // ==========================================================================
+  // 9. TIMER & SPEED CONTROL
+  // ==========================================================================
+
+  /**
+   * 7. startTimer(seconds) - Start countdown timer with speed scaling
+   */
+  function startTimer(seconds) {
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+
+    if (typeof seconds === 'number') {
+      GameState.timeLeft = seconds;
+    } else if (typeof GameState.timeLeft !== 'number' || GameState.timeLeft <= 0) {
+      GameState.timeLeft = 15;
+    }
+
+    const intervalMs = Math.max(80, Math.floor(1000 / (GameState.speed || 1)));
+
+    GameState.timer = setInterval(() => {
+      timerTick();
+    }, intervalMs);
+  }
+
+  function timerTick() {
+    if (GameState.isPaused) return;
+
+    GameState.timeLeft--;
+    emit('timerTick', {
+      timeLeft: GameState.timeLeft,
+      player: getCurrentPlayer(),
+      currentBid: GameState.currentBid,
+      currentBidder: GameState.currentBidder
+    });
+
+    // Evaluate AI bidding opportunities during countdown
+    if (!GameState.isSold && !GameState.isUnsold) {
+      evaluateAIBidding();
+    }
+
+    // Timer elapsed
+    if (GameState.timeLeft <= 0) {
+      if (GameState.timer) {
+        clearInterval(GameState.timer);
+        GameState.timer = null;
+      }
+
+      if (GameState.currentBidder !== null) {
+        soldPlayer();
+      } else {
+        unsoldPlayer();
+      }
+    }
+  }
+
+  function setSpeed(speedMultiplier) {
+    GameState.speed = Math.max(1, Math.min(3, speedMultiplier));
+    if (GameState.timer && !GameState.isPaused) {
+      startTimer(GameState.timeLeft);
+    }
+    emit('speedChange', { speed: GameState.speed });
+    emit('stateChange', GameState);
+  }
+
+  // ==========================================================================
+  // 10. PAUSE / RESUME SYSTEM (PAUSE FIX)
+  // ==========================================================================
+
+  /**
+   * 8. pauseGame() - Pause game preserving full state
+   */
+  function pauseGame() {
+    if (GameState.isPaused) return;
+    GameState.isPaused = true;
+
+    // Clear interval timer
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+
+    // If an animation delay / post-sold timeout is pending, capture it
+    if (transitionTimeout) {
+      clearTimeout(transitionTimeout);
+      transitionTimeout = null;
+      wasInTransition = true;
+    }
+
+    const player = getCurrentPlayer();
+    addLog({
+      type: 'pause',
+      message: `Auction Paused. Player: ${player ? player.name : 'None'} | Bid: ₹${Number(GameState.currentBid || 0).toFixed(2)} Cr (${GameState.currentBidder || 'No Bidder'}) | Time Left: ${GameState.timeLeft}s`
+    });
+
+    emit('pause', { state: GameState });
+    emit('stateChange', GameState);
+  }
+
+  /**
+   * 8. resumeGame() - Resume from exact state and re-evaluate AI on current player
+   */
+  function resumeGame() {
+    if (!GameState.isPaused) return;
+    GameState.isPaused = false;
+
+    const player = getCurrentPlayer();
+    addLog({
+      type: 'resume',
+      message: `Auction Resumed. Continuing ${player ? player.name : ''} at ₹${Number(GameState.currentBid || 0).toFixed(2)} Cr with ${GameState.timeLeft}s remaining.`
+    });
+
+    emit('resume', { state: GameState });
+    emit('stateChange', GameState);
+
+    // If game was paused while transitioning to next player
+    if (GameState.isSold || GameState.isUnsold || wasInTransition) {
+      const delay = Math.max(200, Math.floor(1500 / (GameState.speed || 1)));
+      transitionTimeout = setTimeout(() => {
+        transitionTimeout = null;
+        wasInTransition = false;
+        nextPlayer();
+      }, delay);
+      return;
+    }
+
+    // Resume countdown from where it left off
+    startTimer(GameState.timeLeft);
+
+    // Natural human buffer on resume before AI evaluates
+    setTimeout(() => {
+      if (!GameState.isPaused && !GameState.isSold && !GameState.isUnsold) {
+        evaluateAIBidding();
+      }
+    }, Math.max(350, Math.floor(900 / (GameState.speed || 1))));
+  }
+
+  // ==========================================================================
+  // 11. BIDDING ENGINE & VALIDATIONS
+  // ==========================================================================
+
+  /**
+   * 5. placeBid(teamId) - Place a bid (user or AI)
+   */
+  function placeBid(teamId, customAmount) {
+    if (GameState.phase !== 'auction') return false;
+    if (GameState.isPaused) return false;
+    if (GameState.isSold || GameState.isUnsold) return false;
+
+    const player = getCurrentPlayer();
+    if (!player) return false;
+
+    const bidderId = teamId || GameState.userTeamId;
+    const team = getTeam(bidderId);
+    if (!team) return false;
+
+    // Cannot bid against self
+    if (GameState.currentBidder === bidderId) return false;
+
+    // Squad full check
+    const maxSquad = team.maxPlayers || 25;
+    if (team.players.length >= maxSquad) {
+      return false;
+    }
+
+    // Overseas limit check
+    const maxOverseas = team.maxOverseas || 8;
+    const currentOverseas = team.overseas || 0;
+    if (player.overseas && currentOverseas >= maxOverseas) {
+      return false;
+    }
+
+    const nextBid = customAmount ? roundCr(customAmount) : getNextBidAmount();
+
+    // Budget check including minimum squad reserve
+    const remainingPurse = roundCr((team.purse || 120) - (team.spent || 0));
+    const minSlots = team.minPlayers || 18;
+    const slotsNeeded = Math.max(0, minSlots - team.players.length);
+    const reserveNeeded = roundCr(Math.max(0, slotsNeeded - 1) * 0.25);
+
+    if (nextBid > roundCr(remainingPurse - reserveNeeded)) {
+      return false;
+    }
+
+    // Update auction state
+    GameState.currentBid = nextBid;
+    GameState.currentBidder = bidderId;
+
+    // Reset countdown to allow counter-bids
+    GameState.timeLeft = 10;
+
+    addLog({
+      type: 'bid',
+      message: `⚡ ${team.shortName || team.name} bids ₹${Number(nextBid || 0).toFixed(2)} Cr for ${player.name}`,
+      teamId: bidderId,
+      team,
+      bid: nextBid,
+      player
+    });
+
+    emit('bidPlaced', {
+      team,
+      teamId: bidderId,
+      amount: nextBid,
+      player,
+      timeLeft: GameState.timeLeft
+    });
+    emit('stateChange', GameState);
+
+    try {
+      if (typeof StorageEngine !== 'undefined' && StorageEngine.broadcastBid) {
+        StorageEngine.broadcastBid(bidderId, nextBid);
+      }
+    } catch (e) {}
+
+    return true;
+  }
+
+  /**
+   * Check if a specific team (or user's default team) is eligible to bid right now
+   */
+  function canTeamBid(targetTeamId) {
+    const tId = targetTeamId || GameState.userTeamId;
+    if (GameState.phase !== 'auction') return { canBid: false, reason: "Auction not active" };
+    if (GameState.isPaused) return { canBid: false, reason: "Auction is paused" };
+    if (GameState.isSold || GameState.isUnsold) return { canBid: false, reason: "Bidding concluded" };
+    if (!tId) return { canBid: false, reason: "No team selected" };
+
+    const player = getCurrentPlayer();
+    if (!player) return { canBid: false, reason: "No active player" };
+
+    const team = getTeam(tId);
+    if (!team) return { canBid: false, reason: "Team not found" };
+
+    if (GameState.currentBidder === team.id) {
+      return { canBid: false, reason: "Already highest bidder" };
+    }
+
+    if (team.players.length >= (team.maxPlayers || 25)) {
+      return { canBid: false, reason: "Squad limit reached (25)" };
+    }
+
+    if (player.overseas && (team.overseas || 0) >= (team.maxOverseas || 8)) {
+      return { canBid: false, reason: "Overseas limit reached (8)" };
+    }
+
+    const nextBid = getNextBidAmount();
+    const remainingPurse = roundCr((team.purse || 120) - (team.spent || 0));
+    const slotsNeeded = Math.max(0, (team.minPlayers || 18) - team.players.length);
+    const reserve = roundCr(Math.max(0, slotsNeeded - 1) * 0.25);
+
+    if (nextBid > roundCr(remainingPurse - reserve)) {
+      return { canBid: false, reason: `Insufficient budget (Need ₹${Number(nextBid || 0).toFixed(2)} Cr, Max ₹${Number(remainingPurse - reserve).toFixed(2)} Cr)` };
+    }
+
+    return { canBid: true, nextBid };
+  }
+
+  function canUserBid(optionalTeamId) {
+    return canTeamBid(optionalTeamId || GameState.userTeamId);
+  }
+
+  function userBid() {
+    return placeBid(GameState.userTeamId);
+  }
+
+  function powerJump(teamId) {
+    const tId = teamId || GameState.userTeamId;
+    const player = getCurrentPlayer();
+    if (!player) return false;
+    const base = GameState.currentBid > 0 ? GameState.currentBid : (player.basePrice || 0.20);
+    return placeBid(tId, roundCr(base + 1.00));
+  }
+
+  function finishFast(instant = false) {
+    if (GameState.phase !== 'auction') return;
+    if (!instant) {
+      GameState.speed = 3;
+      if (GameState.timeLeft > 1) {
+        GameState.timeLeft = 1;
+        emit('timerTick', { timeLeft: GameState.timeLeft, player: getCurrentPlayer() });
+      }
+      return;
+    }
+
+    // Instant fast-forward simulation through remaining pool
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+    while (GameState.currentPlayerIndex < GameState.auctionPool.length) {
+      const p = getCurrentPlayer();
+      if (!p) break;
+      const interestedTeams = GameState.teams.filter(t => (t.purse - t.spent) >= p.basePrice && t.players.length < t.maxPlayers && (!p.overseas || t.overseas < t.maxOverseas));
+      if (interestedTeams.length > 0 && Math.random() > 0.12) {
+        interestedTeams.sort((a, b) => ((b.purse - b.spent) * Math.random()) - ((a.purse - a.spent) * Math.random()));
+        const buyer = interestedTeams[0];
+        const premium = p.rating > 85 ? (2.0 + Math.random() * 3.5) : (1.0 + Math.random() * 1.5);
+        const finalPrice = roundCr(p.basePrice * premium);
+        p.soldPrice = Math.min(finalPrice, roundCr(buyer.purse - buyer.spent));
+        p.soldTo = buyer.id;
+        buyer.players.push(p);
+        buyer.spent = roundCr(buyer.spent + p.soldPrice);
+        if (p.overseas) buyer.overseas = (buyer.overseas || 0) + 1;
+      }
+      GameState.currentPlayerIndex++;
+    }
+    GameState.phase = 'ended';
+    addLog({ type: 'ended', message: '🏁 Auction successfully simulated to completion! Reviewing squad ratings.' });
+    emit('auctionComplete', { teams: GameState.teams });
+    emit('stateChange', GameState);
+  }
+
+  function passPlayer() {
+    // Accelerates countdown if user decides not to bid
+    if (GameState.phase === 'auction' && !GameState.isPaused && GameState.timeLeft > 3) {
+      GameState.timeLeft = 3;
+      emit('timerTick', { timeLeft: GameState.timeLeft, player: getCurrentPlayer() });
+    }
+  }
+
+  // ==========================================================================
+  // 12. SMART AI BIDDING SYSTEM
+  // ==========================================================================
+
+  /**
+   * Evaluates AI bidding across all non-highest-bidder AI teams during an auction tick.
+   */
+  function evaluateAIBidding() {
+    if (GameState.isPaused || GameState.isSold || GameState.isUnsold) return;
+
+    const player = getCurrentPlayer();
+    if (!player) return;
+
+    // AI candidates: Exclude current bidder and any human-managed teams (multiplayer support)
+    const humanTeamIds = new Set([
+      GameState.userTeamId,
+      ...Object.keys(GameState.humanTeams || {})
+    ]);
+
+    const candidates = GameState.teams.filter(t =>
+      t.id !== GameState.currentBidder &&
+      !humanTeamIds.has(t.id)
+    );
+
+    if (candidates.length === 0) return;
+
+    const nextBid = getNextBidAmount();
+    const interested = [];
+
+    for (const team of candidates) {
+      const decision = aiDecision(team, player);
+      if (decision.shouldBid && decision.maxBid >= nextBid) {
+        interested.push({ team, decision });
+      }
+    }
+
+    if (interested.length === 0) return;
+
+    // Natural auction pacing based on timer ticks
+    let shouldBidNow = false;
+
+    if (GameState.currentBidder === null) {
+      // Opening bid: prompt AI bid around 14s or 13s, or immediately if lower
+      if (GameState.timeLeft <= 14) {
+        shouldBidNow = true;
+      }
+    } else {
+      // Counter bid: pacing probability increases as time ticks down
+      const elapsed = 15 - GameState.timeLeft;
+      const urgency = Math.min(1.0, elapsed / 12);
+      const bidProbability = 0.35 + (urgency * 0.50);
+
+      if (Math.random() < bidProbability || GameState.timeLeft <= 3) {
+        shouldBidNow = true;
+      }
+    }
+
+    if (shouldBidNow) {
+      // Sort by valuation surplus over next bid (eagerness)
+      interested.sort((a, b) => (b.decision.maxBid - nextBid) - (a.decision.maxBid - nextBid));
+
+      // Choose most eager team, with slight randomization among top contenders
+      const chosenIndex = (interested.length > 1 && Math.random() < 0.25) ? 1 : 0;
+      const chosenTeam = interested[chosenIndex].team;
+
+      placeBid(chosenTeam.id);
+    }
+  }
+
+  /**
+   * aiDecision(team, player)
+   * Evaluates if an AI team should place a bid on a player and calculates their max bid ceiling.
+   *
+   * Considerations:
+   * 1. Player rating vs current bid value (non-linear market valuation)
+   * 2. Team's remaining budget
+   * 3. Team's current squad composition (need batsmen? bowlers? WKs?)
+   * 4. Overseas player limit (max 8)
+   * 5. How many slots left to fill (budget reserve for required minimum 18 players)
+   * 6. Playing XI balance - does team need this role?
+   * 7. Franchise personality variance (aggression, marquee affinity, risk)
+   * 8. Random unpredictability factor
+   *
+   * Returns: { shouldBid: boolean, maxBid: number, valuation: number, roleNeed: number }
+   */
+  function aiDecision(team, player) {
+    if (!team || !player) {
+      return { shouldBid: false, maxBid: 0, reason: "Missing parameters" };
+    }
+
+    // Already the highest bidder
+    if (GameState.currentBidder === team.id) {
+      return { shouldBid: false, maxBid: 0, reason: "Already highest bidder" };
+    }
+
+    // Squad limit (max 25)
+    const maxSquad = team.maxPlayers || 25;
+    if (team.players.length >= maxSquad) {
+      return { shouldBid: false, maxBid: 0, reason: "Squad limit reached" };
+    }
+
+    // Overseas limit (max 8)
+    const maxOverseas = team.maxOverseas || 8;
+    const currentOverseas = team.overseas || team.players.filter(p => p.overseas).length;
+    if (player.overseas && currentOverseas >= maxOverseas) {
+      return { shouldBid: false, maxBid: 0, reason: "Overseas cap reached" };
+    }
+
+    // Remaining purse & reserve calculations
+    const purse = team.purse || 120;
+    const spent = team.spent || 0;
+    const remainingPurse = roundCr(purse - spent);
+
+    const minPlayers = team.minPlayers || 18;
+    const slotsNeeded = Math.max(0, minPlayers - team.players.length);
+    // Reserve minimum 0.25 Cr for each remaining required squad slot
+    const reserveNeeded = roundCr(Math.max(0, slotsNeeded - 1) * 0.25);
+    const legalMaxSpend = roundCr(Math.max(0, remainingPurse - reserveNeeded));
+
+    if (legalMaxSpend < player.basePrice) {
+      return { shouldBid: false, maxBid: 0, reason: "Purse below base price" };
+    }
+
+    const nextBid = getNextBidAmount();
+    if (nextBid > legalMaxSpend) {
+      return { shouldBid: false, maxBid: legalMaxSpend, reason: "Next bid exceeds allowable budget" };
+    }
+
+    // Franchise Personality
+    const personality = team.personality || TEAM_PERSONALITIES[team.id] || {
+      aggression: 1.0,
+      marqueePreference: 1.1,
+      riskTolerance: 1.0,
+      roleWeights: { 'Batsman': 1.0, 'Bowler': 1.0, 'All-Rounder': 1.0, 'Wicket-Keeper': 1.0 }
+    };
+
+    // Squad Role Needs
+    const wks = team.players.filter(p => p.role === 'Wicket-Keeper').length;
+    const batsmen = team.players.filter(p => p.role === 'Batsman').length;
+    const bowlers = team.players.filter(p => p.role === 'Bowler').length;
+    const allRounders = team.players.filter(p => p.role === 'All-Rounder').length;
+
+    let needMultiplier = 1.0;
+    switch (player.role) {
+      case 'Wicket-Keeper':
+        if (wks === 0) needMultiplier = 1.75;      // Essential starting WK
+        else if (wks === 1) needMultiplier = 1.15; // Solid backup WK
+        else if (wks === 2) needMultiplier = 0.60;
+        else needMultiplier = 0.20;
+        break;
+      case 'Batsman':
+        if (batsmen < 3) needMultiplier = 1.55;
+        else if (batsmen < 5) needMultiplier = 1.25;
+        else if (batsmen < 7) needMultiplier = 1.00;
+        else needMultiplier = 0.55;
+        break;
+      case 'Bowler':
+        if (bowlers < 3) needMultiplier = 1.60;
+        else if (bowlers < 5) needMultiplier = 1.25;
+        else if (bowlers < 8) needMultiplier = 1.00;
+        else needMultiplier = 0.55;
+        break;
+      case 'All-Rounder':
+        if (allRounders < 2) needMultiplier = 1.50;
+        else if (allRounders < 4) needMultiplier = 1.20;
+        else if (allRounders < 6) needMultiplier = 0.95;
+        else needMultiplier = 0.50;
+        break;
+      default:
+        needMultiplier = 1.0;
+    }
+
+    // Overseas Roster Throttling
+    let overseasMultiplier = 1.0;
+    if (player.overseas) {
+      if (currentOverseas <= 3) overseasMultiplier = 1.10;
+      else if (currentOverseas <= 5) overseasMultiplier = 1.00;
+      else if (currentOverseas === 6) overseasMultiplier = 0.85;
+      else if (currentOverseas === 7) {
+        // Last overseas slot: save strictly for elite performers
+        if ((player.rating || 75) < 88) {
+          return { shouldBid: false, maxBid: 0, reason: "Reserving final overseas spot for 88+ rating player" };
+        }
+        overseasMultiplier = 0.70;
+      }
+    }
+
+    // Playing XI Upgrade Impact
+    let xiUpgradeMultiplier = 1.0;
+    if (team.players.length > 0) {
+      const currentXI = getBestPlayingXI(team.players);
+      const hypotheticalXI = getBestPlayingXI([...team.players, player]);
+      const delta = roundCr(hypotheticalXI.rating - currentXI.rating);
+      if (delta > 0) {
+        xiUpgradeMultiplier = 1.0 + Math.min(0.35, delta * 0.15);
+      } else {
+        xiUpgradeMultiplier = 0.85; // Squad depth player
+      }
+    } else {
+      xiUpgradeMultiplier = 1.20; // Foundational first pick
+    }
+
+    // Base Market Value Curve based on Player Rating (70 - 98)
+    const rating = player.rating || 75;
+    let fairBaseValue = 0;
+
+    if (rating >= 95) {
+      // 95-98: Franchise superstar (16.5 - 24.5 Cr)
+      fairBaseValue = 16.5 + (rating - 95) * 2.6;
+    } else if (rating >= 90) {
+      // 90-94: Premium marquee (10.0 - 16.0 Cr)
+      fairBaseValue = 10.0 + (rating - 90) * 1.3;
+    } else if (rating >= 85) {
+      // 85-89: Proven match-winner (5.5 - 9.5 Cr)
+      fairBaseValue = 5.5 + (rating - 85) * 0.85;
+    } else if (rating >= 80) {
+      // 80-84: Solid core starter (2.2 - 5.0 Cr)
+      fairBaseValue = 2.2 + (rating - 80) * 0.60;
+    } else {
+      // 70-79: Emerging / bench talent (0.3 - 2.0 Cr)
+      fairBaseValue = Math.max(player.basePrice, 0.30 + (rating - 70) * 0.15);
+    }
+
+    fairBaseValue = Math.max(player.basePrice, fairBaseValue);
+
+    // Marquee set multiplier
+    if (player.set === 1) {
+      fairBaseValue *= (personality.marqueePreference || 1.15);
+    }
+
+    // Franchise role preference
+    const rolePref = (personality.roleWeights && personality.roleWeights[player.role]) || 1.0;
+
+    // Combined Valuation
+    let valuation = fairBaseValue
+      * needMultiplier
+      * overseasMultiplier
+      * xiUpgradeMultiplier
+      * (personality.aggression || 1.0)
+      * rolePref;
+
+    // Budget Cap: Don't blow too much of remaining purse on one player
+    const purseShareRatio = (rating >= 94) ? 0.42 : (rating >= 88 ? 0.32 : 0.22);
+    const purseAllocationCap = Math.max(player.basePrice, roundCr(remainingPurse * purseShareRatio));
+
+    // Jitter / Unpredictability factor (+/- 8%)
+    const randomJitter = 0.92 + (Math.random() * 0.16);
+    valuation = valuation * randomJitter;
+
+    // Maximum bid ceiling
+    let maxBid = Math.min(valuation, purseAllocationCap, legalMaxSpend);
+    maxBid = roundCr(maxBid);
+
+    const shouldBid = (maxBid >= nextBid) && (nextBid <= legalMaxSpend);
+
+    return {
+      shouldBid: Boolean(shouldBid),
+      maxBid,
+      valuation: roundCr(valuation),
+      roleNeed: roundCr(needMultiplier)
+    };
+  }
+
+  // ==========================================================================
+  // 13. SOLD / UNSOLD & ADVANCEMENT
+  // ==========================================================================
+
+  /**
+   * 9. soldPlayer() - Finalize sale of current player
+   */
+  function soldPlayer() {
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+
+    GameState.isSold = true;
+    GameState.isUnsold = false;
+
+    const player = getCurrentPlayer();
+    const winner = getTeam(GameState.currentBidder);
+
+    if (player && winner) {
+      winner.spent = roundCr(winner.spent + GameState.currentBid);
+      if (player.overseas) {
+        winner.overseas = (winner.overseas || 0) + 1;
+      }
+
+      const boughtPlayer = {
+        ...player,
+        soldPrice: GameState.currentBid,
+        price: GameState.currentBid,
+        soldTo: winner.id
+      };
+      winner.players.push(boughtPlayer);
+
+      addLog({
+        type: 'sold',
+        message: `🔨 SOLD! ${player.name} sold to ${winner.name} for ₹${Number(GameState.currentBid || 0).toFixed(2)} Cr!`,
+        player: boughtPlayer,
+        team: winner,
+        amount: GameState.currentBid
+      });
+
+      emit('playerSold', {
+        player: boughtPlayer,
+        team: winner,
+        amount: GameState.currentBid
+      });
+    }
+
+    emit('stateChange', GameState);
+
+    // Advance to next player after brief celebration delay
+    const delay = Math.max(300, Math.floor(2500 / (GameState.speed || 1)));
+    transitionTimeout = setTimeout(() => {
+      transitionTimeout = null;
+      nextPlayer();
+    }, delay);
+  }
+
+  /**
+   * 10. unsoldPlayer() - Handle player passing without bids
+   */
+  function unsoldPlayer() {
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+
+    GameState.isSold = false;
+    GameState.isUnsold = true;
+
+    const player = getCurrentPlayer();
+    if (player) {
+      addLog({
+        type: 'unsold',
+        message: `❌ UNSOLD: ${player.name} goes unsold at base price ₹${Number(player.basePrice || 0).toFixed(2)} Cr.`,
+        player
+      });
+
+      emit('playerUnsold', { player });
+    }
+
+    emit('stateChange', GameState);
+
+    const delay = Math.max(300, Math.floor(1800 / (GameState.speed || 1)));
+    transitionTimeout = setTimeout(() => {
+      transitionTimeout = null;
+      nextPlayer();
+    }, delay);
+  }
+
+  /**
+   * 4. nextPlayer() - Move to next player in pool
+   */
+  function nextPlayer() {
+    if (transitionTimeout) {
+      clearTimeout(transitionTimeout);
+      transitionTimeout = null;
+    }
+    wasInTransition = false;
+
+    GameState.currentPlayerIndex++;
+
+    if (GameState.currentPlayerIndex >= GameState.auctionPool.length) {
+      endAuction();
+      return;
+    }
+
+    loadPlayer(GameState.currentPlayerIndex);
+  }
+
+  /**
+   * 11. endAuction() - Finalize auction and transition to results
+   */
+  function endAuction() {
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+    if (transitionTimeout) {
+      clearTimeout(transitionTimeout);
+      transitionTimeout = null;
+    }
+
+    GameState.phase = 'results';
+    GameState.isPaused = false;
+    GameState.isSold = false;
+    GameState.isUnsold = false;
+
+    let results = [];
+    if (typeof RatingEngine !== 'undefined' && typeof RatingEngine.rankTeams === 'function') {
+      const playerStatsDB = (typeof PLAYER_STATS !== 'undefined') ? PLAYER_STATS :
+        ((typeof window !== 'undefined' && window.PLAYER_STATS) ? window.PLAYER_STATS : {});
+      const rankedTeams = RatingEngine.rankTeams(GameState.teams, playerStatsDB, GameState.auctionMode || 'MEGA');
+      results = rankedTeams.map(r => ({
+        team: r.team,
+        squadRating: r.squadRating,
+        bestXI: r.bestXI,
+        backups: r.backups,
+        spent: r.moneySpent,
+        remaining: r.moneyRemaining,
+        playerCount: r.playersBought,
+        overseasCount: (r.team.players || []).filter(p => p.overseas).length,
+        overallScore: r.overallScore,
+        grade: r.grade,
+        rank: r.rank,
+        mvpPurchase: r.mvpPurchase,
+        worstPurchase: r.worstPurchase
+      }));
+    } else {
+      results = GameState.teams.map(team => {
+        const bestXI = getBestPlayingXI(team.players);
+        const squadRating = rateSquad(team);
+        return {
+          team,
+          squadRating,
+          bestXI,
+          spent: team.spent,
+          remaining: roundCr((team.purse || 120) - team.spent),
+          playerCount: team.players.length,
+          overseasCount: team.overseas || 0
+        };
+      });
+      results.sort((a, b) => b.bestXI.rating - a.bestXI.rating);
+    }
+
+    GameState.results = results;
+
+    addLog({
+      type: 'endAuction',
+      message: `${GameState.auctionMode || 'Mega'} Auction Concluded! Evaluated ${GameState.teams.length} teams with Strongest Playing 11 and Bench Depth.`
+    });
+
+    emit('auctionEnd', { results });
+    emit('stateChange', GameState);
+
+    return results;
+  }
+
+  // ==========================================================================
+  // 14. PLAYING XI ANALYZER
+  // ==========================================================================
+
+  /**
+   * Helper to generate all combinations of size k from an array
+   */
+  function getCombinations(arr, k) {
+    if (k === 0) return [[]];
+    if (k > arr.length) return [];
+    if (k === arr.length) return [arr];
+    const head = arr[0];
+    const withHead = getCombinations(arr.slice(1), k - 1).map(c => [head, ...c]);
+    const withoutHead = getCombinations(arr.slice(1), k);
+    return [...withHead, ...withoutHead];
+  }
+
+  /**
+   * getBestPlayingXI(teamPlayers)
+   * Selects best 11 from purchased squad:
+   * - Must have: 1 WK, 4-5 batsmen, 3-4 bowlers, 1-2 all-rounders
+   * - Max 4 overseas players
+   * - Maximizes total team rating
+   * Returns: { xi: [...players], rating: number, balance: string, roles: { ... } }
+   */
+  function getBestPlayingXI(teamPlayers) {
+    if (!teamPlayers || teamPlayers.length === 0) {
+      return { xi: [], rating: 0, balance: "No players in squad", roles: null };
+    }
+
+    // Squad with fewer than 11 players
+    if (teamPlayers.length < 11) {
+      const sorted = [...teamPlayers].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      const xi = [];
+      let overseasCount = 0;
+
+      for (const p of sorted) {
+        if (p.overseas && overseasCount >= 4) continue;
+        if (p.overseas) overseasCount++;
+        xi.push(p);
+      }
+
+      const totalRating = xi.reduce((sum, p) => sum + (p.rating || 0), 0);
+      const avgRating = xi.length > 0 ? roundCr(totalRating / xi.length) : 0;
+
+      return {
+        xi,
+        rating: avgRating,
+        balance: `Incomplete Squad (${xi.length}/11 selected, need ${11 - xi.length} more)`,
+        roles: null
+      };
+    }
+
+    // Full squad analysis (>= 11 players)
+    const wks = teamPlayers.filter(p => p.role === 'Wicket-Keeper').sort((a, b) => b.rating - a.rating);
+    const batsmen = teamPlayers.filter(p => p.role === 'Batsman').sort((a, b) => b.rating - a.rating);
+    const allRounders = teamPlayers.filter(p => p.role === 'All-Rounder').sort((a, b) => b.rating - a.rating);
+    const bowlers = teamPlayers.filter(p => p.role === 'Bowler').sort((a, b) => b.rating - a.rating);
+
+    // Target role compositions that sum to 11 players with 1 WK:
+    // 1 WK + (4-5 Batsmen) + (3-4 Bowlers) + (1-2 All-Rounders)
+    const targetCombos = [
+      { wk: 1, bat: 4, ar: 2, bowl: 4 }, // Standard Balanced (1+4+2+4 = 11)
+      { wk: 1, bat: 5, ar: 2, bowl: 3 }, // Batting Depth (1+5+2+3 = 11)
+      { wk: 1, bat: 5, ar: 1, bowl: 4 }, // Pure Batters + 4 Bowlers (1+5+1+4 = 11)
+      { wk: 1, bat: 4, ar: 1, bowl: 5 }, // Bowling Heavy (Fallback)
+      { wk: 1, bat: 4, ar: 3, bowl: 3 }  // All-Rounder Heavy (Fallback)
+    ];
+
+    let bestXI = null;
+    let bestScore = -1;
+    let bestCombo = null;
+
+    for (const combo of targetCombos) {
+      if (wks.length < combo.wk || batsmen.length < combo.bat ||
+        allRounders.length < combo.ar || bowlers.length < combo.bowl) {
+        continue;
+      }
+
+      // Slice top candidates to keep combinations fast
+      const wkCombos = getCombinations(wks.slice(0, combo.wk + 3), combo.wk);
+      const batCombos = getCombinations(batsmen.slice(0, combo.bat + 3), combo.bat);
+      const arCombos = getCombinations(allRounders.slice(0, combo.ar + 3), combo.ar);
+      const bowlCombos = getCombinations(bowlers.slice(0, combo.bowl + 3), combo.bowl);
+
+      for (const w of wkCombos) {
+        for (const b of batCombos) {
+          for (const a of arCombos) {
+            for (const bo of bowlCombos) {
+              const candidateTeam = [...w, ...b, ...a, ...bo];
+              const overseasCount = candidateTeam.filter(p => p.overseas).length;
+
+              if (overseasCount <= 4) {
+                const totalScore = candidateTeam.reduce((acc, p) => acc + (p.rating || 0), 0);
+                if (totalScore > bestScore) {
+                  bestScore = totalScore;
+                  bestXI = candidateTeam;
+                  bestCombo = { ...combo, overseas: overseasCount };
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Graceful Fallback if squad lacks specific required roles (e.g. 0 WKs or 1 Bowler)
+    if (!bestXI) {
+      const selected = [];
+      let overseasCount = 0;
+      const sortedPool = [...teamPlayers].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+      // Prioritize at least 1 WK if present
+      if (wks.length > 0) {
+        selected.push(wks[0]);
+        if (wks[0].overseas) overseasCount++;
+      }
+
+      for (const p of sortedPool) {
+        if (selected.some(s => s.id === p.id)) continue;
+        if (selected.length >= 11) break;
+        if (p.overseas && overseasCount >= 4) continue;
+        selected.push(p);
+        if (p.overseas) overseasCount++;
+      }
+
+      bestXI = selected;
+      const totalScore = selected.reduce((sum, p) => sum + (p.rating || 0), 0);
+      const avgRating = selected.length > 0 ? roundCr(totalScore / selected.length) : 0;
+
+      const issues = [];
+      if (wks.length === 0) issues.push("Missing WK");
+      if (batsmen.length < 4) issues.push("Short on Batsmen");
+      if (bowlers.length < 3) issues.push("Short on Bowlers");
+
+      return {
+        xi: bestXI,
+        rating: avgRating,
+        balance: issues.length > 0
+          ? `Imbalanced (${issues.join(', ')}) | ${overseasCount} Overseas`
+          : `Fallback Selection (${selected.length} Players | ${overseasCount} Overseas)`,
+        roles: { wk: selected.filter(p => p.role === 'Wicket-Keeper').length, bat: selected.filter(p => p.role === 'Batsman').length, ar: selected.filter(p => p.role === 'All-Rounder').length, bowl: selected.filter(p => p.role === 'Bowler').length, overseas: overseasCount }
+      };
+    }
+
+    // Quality metrics of selected Playing XI
+    const avgRating = roundCr(bestScore / 11);
+    const batContributors = bestXI.filter(p => p.role === 'Batsman' || p.role === 'Wicket-Keeper' || p.role === 'All-Rounder');
+    const bowlContributors = bestXI.filter(p => p.role === 'Bowler' || p.role === 'All-Rounder');
+
+    const batAvg = batContributors.length > 0
+      ? Math.round(batContributors.reduce((acc, p) => acc + (p.battingRating || p.rating || 0), 0) / batContributors.length)
+      : 0;
+
+    const bowlAvg = bowlContributors.length > 0
+      ? Math.round(bowlContributors.reduce((acc, p) => acc + (p.bowlingRating || p.rating || 0), 0) / bowlContributors.length)
+      : 0;
+
+    let balanceDesc = "";
+    if (batAvg >= 88 && bowlAvg >= 88) {
+      balanceDesc = `Elite Championship Tier (${bestCombo.wk} WK, ${bestCombo.bat} BAT, ${bestCombo.ar} AR, ${bestCombo.bowl} BOWL | ${bestCombo.overseas} Overseas)`;
+    } else if (batAvg >= 88) {
+      balanceDesc = `Powerhouse Batting Lineup (${bestCombo.wk} WK, ${bestCombo.bat} BAT, ${bestCombo.ar} AR, ${bestCombo.bowl} BOWL | ${bestCombo.overseas} Overseas)`;
+    } else if (bowlAvg >= 88) {
+      balanceDesc = `Formidable Bowling Attack (${bestCombo.wk} WK, ${bestCombo.bat} BAT, ${bestCombo.ar} AR, ${bestCombo.bowl} BOWL | ${bestCombo.overseas} Overseas)`;
+    } else {
+      balanceDesc = `Balanced Squad (${bestCombo.wk} WK, ${bestCombo.bat} BAT, ${bestCombo.ar} AR, ${bestCombo.bowl} BOWL | ${bestCombo.overseas} Overseas)`;
+    }
+
+    return {
+      xi: bestXI,
+      rating: avgRating,
+      balance: balanceDesc,
+      roles: bestCombo
+    };
+  }
+
+  // ==========================================================================
+  // 15. SQUAD RATING SYSTEM
+  // ==========================================================================
+
+  /**
+   * rateSquad(team)
+   * Evaluates team on:
+   * - Overall rating average & letter grade (A+, A, A-, B+, B, B-, C+, C, D)
+   * - Batting firepower (0-100)
+   * - Bowling firepower (0-100)
+   * - Balance & depth (0-100)
+   * - Budget efficiency / value (0-100)
+   * - Playing XI strength
+   * Returns: { overall: "A+", batting: 85, bowling: 78, balance: 90, value: 72, details: "..." }
+   */
+  function rateSquad(team) {
+    if (!team || !team.players || team.players.length === 0) {
+      return {
+        overall: "D",
+        batting: 0,
+        bowling: 0,
+        balance: 0,
+        value: 0,
+        details: "No players acquired yet."
+      };
+    }
+
+    const players = team.players;
+    const bestXIResult = getBestPlayingXI(players);
+    const xiRating = bestXIResult.rating;
+
+    // 1. Batting Rating (0 - 100)
+    const batPool = players.filter(p => p.role === 'Batsman' || p.role === 'Wicket-Keeper' || p.role === 'All-Rounder');
+    let battingScore = 0;
+    if (batPool.length > 0) {
+      const sortedBatters = [...batPool].sort((a, b) => (b.battingRating || b.rating || 0) - (a.battingRating || a.rating || 0));
+      const top6 = sortedBatters.slice(0, 6);
+      const avg = top6.reduce((acc, p) => acc + (p.battingRating || p.rating || 0), 0) / top6.length;
+      const depthBonus = Math.min(5, Math.max(0, batPool.length - 4) * 1.5);
+      battingScore = Math.min(99, Math.round(avg + depthBonus));
+    }
+
+    // 2. Bowling Rating (0 - 100)
+    const bowlPool = players.filter(p => p.role === 'Bowler' || p.role === 'All-Rounder');
+    let bowlingScore = 0;
+    if (bowlPool.length > 0) {
+      const sortedBowlers = [...bowlPool].sort((a, b) => (b.bowlingRating || b.rating || 0) - (a.bowlingRating || a.rating || 0));
+      const top5 = sortedBowlers.slice(0, 5);
+      const avg = top5.reduce((acc, p) => acc + (p.bowlingRating || p.rating || 0), 0) / top5.length;
+      const depthBonus = Math.min(5, Math.max(0, bowlPool.length - 5) * 1.5);
+      bowlingScore = Math.min(99, Math.round(avg + depthBonus));
+    }
+
+    // 3. Balance Rating (0 - 100)
+    let balanceScore = 45;
+    const wkCount = players.filter(p => p.role === 'Wicket-Keeper').length;
+    const batCount = players.filter(p => p.role === 'Batsman').length;
+    const bowlCount = players.filter(p => p.role === 'Bowler').length;
+    const arCount = players.filter(p => p.role === 'All-Rounder').length;
+    const overseasCount = team.overseas || players.filter(p => p.overseas).length;
+
+    if (wkCount >= 1) balanceScore += 12;
+    if (wkCount >= 2) balanceScore += 4;
+    if (batCount >= 4) balanceScore += 10;
+    if (batCount >= 6) balanceScore += 5;
+    if (bowlCount >= 4) balanceScore += 10;
+    if (bowlCount >= 6) balanceScore += 5;
+    if (arCount >= 2) balanceScore += 10;
+    if (arCount >= 4) balanceScore += 5;
+    if (overseasCount >= 4 && overseasCount <= 8) balanceScore += 5;
+    if (players.length >= 18) balanceScore += 5;
+    if (players.length >= 22) balanceScore += 3;
+    balanceScore = Math.min(99, Math.max(30, balanceScore));
+
+    // 4. Value / Budget Efficiency (0 - 100)
+    const totalSpent = team.spent || 0.1;
+    const totalRating = players.reduce((acc, p) => acc + (p.rating || 0), 0);
+    const ratingPerCr = totalRating / Math.max(1, totalSpent);
+
+    let valueScore = Math.round(Math.min(99, Math.max(40, (ratingPerCr / 13.0) * 80)));
+    const remainingPurse = (team.purse || 120) - totalSpent;
+    if (remainingPurse >= 1 && remainingPurse <= 10) valueScore += 5;
+    else if (remainingPurse > 25) valueScore -= 8;
+    valueScore = Math.min(99, Math.max(35, valueScore));
+
+    // 5. Composite Score & Overall Grade
+    const composite = Math.round(
+      (xiRating * 0.35) +
+      (balanceScore * 0.25) +
+      (battingScore * 0.20) +
+      (bowlingScore * 0.15) +
+      (valueScore * 0.05)
+    );
+
+    let overallGrade = "C";
+    if (composite >= 92) overallGrade = "A+";
+    else if (composite >= 87) overallGrade = "A";
+    else if (composite >= 82) overallGrade = "A-";
+    else if (composite >= 77) overallGrade = "B+";
+    else if (composite >= 72) overallGrade = "B";
+    else if (composite >= 67) overallGrade = "B-";
+    else if (composite >= 60) overallGrade = "C+";
+    else if (composite >= 50) overallGrade = "C";
+    else overallGrade = "D";
+
+    // 6. Detailed Narrative Summary
+    const marqueePicks = players.filter(p => (p.soldPrice && p.soldPrice >= 10.0) || (p.rating && p.rating >= 92));
+    const marqueeNames = marqueePicks.map(p => {
+      const price = typeof p.soldPrice === 'number' ? p.soldPrice : (typeof p.basePrice === 'number' ? p.basePrice : 0);
+      return `${p.name} (₹${price.toFixed(2)} Cr)`;
+    }).slice(0, 3).join(", ");
+
+    const strengths = [];
+    if (battingScore >= 85) strengths.push("Heavy-hitting batting core");
+    if (bowlingScore >= 85) strengths.push("Potent bowling attack");
+    if (arCount >= 3) strengths.push("Multi-utility all-round options");
+    if (valueScore >= 80) strengths.push("Exceptional purse efficiency");
+
+    const weaknesses = [];
+    if (wkCount === 0) weaknesses.push("Missing wicket-keeper");
+    if (batCount < 4) weaknesses.push("Thin batting reserves");
+    if (bowlCount < 4) weaknesses.push("Shallow bowling attack");
+    if (overseasCount > 8) weaknesses.push("Exceeded overseas player limit");
+    if (players.length < 18) weaknesses.push(`Only ${players.length} players (minimum 18 required)`);
+
+    const totalPurse = typeof team.purse === 'number' ? team.purse : 120;
+    let details = `${team.name || 'Team'} Squad Review: Grade ${overallGrade} (Playing XI Rating: ${xiRating}). `;
+    if (marqueeNames) details += `Star signings include ${marqueeNames}. `;
+    if (strengths.length > 0) details += `Strengths: ${strengths.join(", ")}. `;
+    if (weaknesses.length > 0) details += `Vulnerabilities: ${weaknesses.join(", ")}. `;
+    details += `Purse utilized: ₹${Number(totalSpent || 0).toFixed(2)} Cr of ₹${totalPurse} Cr (${players.length} players, ${overseasCount} overseas).`;
+
+    return {
+      overall: overallGrade,
+      batting: battingScore,
+      bowling: bowlingScore,
+      balance: balanceScore,
+      value: valueScore,
+      details
+    };
+  }
+
+  // ==========================================================================
+  // 16. LEADERBOARD & SUMMARY UTILITIES
+  // ==========================================================================
+
+  function getLeaderboard() {
+    return GameState.teams.map(team => {
+      const bestXI = getBestPlayingXI(team.players);
+      const rating = rateSquad(team);
+      return {
+        teamId: team.id,
+        name: team.name,
+        shortName: team.shortName,
+        logo: team.logo,
+        primaryColor: team.primaryColor,
+        spent: team.spent,
+        remaining: roundCr((team.purse || 120) - team.spent),
+        playerCount: team.players.length,
+        overseasCount: team.overseas || 0,
+        xiRating: bestXI.rating,
+        grade: rating.overall,
+        rating
+      };
+    }).sort((a, b) => b.xiRating - a.xiRating);
+  }
+
+  // ==========================================================================
+  // 17. PUBLIC API DEFINITION
+  // ==========================================================================
+
+  const Game = {
+    // State
+    GameState,
+    getState: () => GameState,
+
+    // Core Functions
+    initGame,
+    selectTeam,
+    startAuction,
+    nextPlayer,
+    placeBid,
+    getBidIncrement,
+    startTimer,
+    pauseGame,
+    resumeGame,
+    soldPlayer,
+    unsoldPlayer,
+    endAuction,
+
+    // Engines & Analyzers
+    aiDecision,
+    getBestPlayingXI,
+    rateSquad,
+
+    // Helpers & UI Getters
+    getCurrentPlayer,
+    getUserTeam,
+    getTeam,
+    getTeams,
+    getNextBidAmount,
+    canUserBid,
+    canTeamBid,
+    userBid,
+    powerJump,
+    finishFast,
+    passPlayer,
+    setSpeed,
+    shuffleUpcomingPool,
+    getLeaderboard,
+    getSetName,
+    TEAM_PERSONALITIES,
+
+    // Reactive Events
+    on,
+    off,
+    emit,
+    subscribe
+  };
+
+  // ==========================================================================
+  // 18. GLOBAL EXPOSURE & COMPATIBILITY
+  // ==========================================================================
+
+  // Attach to window (Browser)
+  if (typeof window !== 'undefined') {
+    window.Game = Game;
+    window.GameState = GameState;
+    window.initGame = initGame;
+    window.selectTeam = selectTeam;
+    window.getCurrentPlayer = getCurrentPlayer;
+    window.getUserTeam = getUserTeam;
+    window.getTeam = getTeam;
+    window.getTeams = getTeams;
+    window.startAuction = startAuction;
+    window.nextPlayer = nextPlayer;
+    window.placeBid = placeBid;
+    window.getBidIncrement = getBidIncrement;
+    window.startTimer = startTimer;
+    window.pauseGame = pauseGame;
+    window.resumeGame = resumeGame;
+    window.soldPlayer = soldPlayer;
+    window.unsoldPlayer = unsoldPlayer;
+    window.endAuction = endAuction;
+    window.aiDecision = aiDecision;
+    window.getBestPlayingXI = getBestPlayingXI;
+    window.rateSquad = rateSquad;
+    window.powerJump = powerJump;
+    window.finishFast = finishFast;
+    window.shuffleUpcomingPool = shuffleUpcomingPool;
+  }
+
+  // Attach to globalThis (Universal)
+  if (typeof globalThis !== 'undefined') {
+    globalThis.Game = Game;
+    globalThis.GameState = GameState;
+    globalThis.initGame = initGame;
+    globalThis.selectTeam = selectTeam;
+    globalThis.getTeam = getTeam;
+    globalThis.getTeams = getTeams;
+    globalThis.startAuction = startAuction;
+    globalThis.nextPlayer = nextPlayer;
+    globalThis.placeBid = placeBid;
+    globalThis.powerJump = powerJump;
+    globalThis.finishFast = finishFast;
+    globalThis.getBidIncrement = getBidIncrement;
+    globalThis.startTimer = startTimer;
+    globalThis.pauseGame = pauseGame;
+    globalThis.resumeGame = resumeGame;
+    globalThis.soldPlayer = soldPlayer;
+    globalThis.unsoldPlayer = unsoldPlayer;
+    globalThis.endAuction = endAuction;
+    globalThis.aiDecision = aiDecision;
+    globalThis.getBestPlayingXI = getBestPlayingXI;
+    globalThis.rateSquad = rateSquad;
+    globalThis.shuffleUpcomingPool = shuffleUpcomingPool;
+  }
+
+  // CommonJS / Node Module
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Game;
+  }
+
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

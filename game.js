@@ -270,8 +270,8 @@
     if (!player) return 0;
 
     // If no one has bid yet, the opening bid is the player's base price
-    if (GameState.currentBidder === null) {
-      return roundCr(player.basePrice);
+    if (!GameState.currentBidder || GameState.currentBid === 0) {
+      return roundCr(player.basePrice || 0.20);
     }
 
     const inc = getBidIncrement(GameState.currentBid);
@@ -354,6 +354,7 @@
     GameState.auctionLog = [];
     GameState.speed = Math.max(1, Math.min(3, config.speed || 1));
     GameState.auctionMode = (config.auctionMode || 'MEGA').toUpperCase();
+    GameState.aiBiddingEnabled = config.aiBidding === true; // AI bidding removed by default
 
     // Deep clone teams with tracking properties
     GameState.teams = rawTeams.map(t => {
@@ -477,10 +478,39 @@
   }
 
   /**
-   * 3. startAuction() - Begin the live auction
+   * 3. startAuction() - Begin the live auction (clears ALL previous state)
    */
   function startAuction() {
+    // ---- CLEAR ALL PREVIOUS AUCTION STATE ----
+    // Stop any running timer
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+
+    // Reset bid state
+    GameState.currentBid = 0;
+    GameState.currentBidder = null;
+    GameState.isSold = false;
+    GameState.isUnsold = false;
+    GameState.timeLeft = 15;
+    GameState.auctionLog = [];
+    GameState.results = null;
+
+    // Reset all team purchases and spending (keep purse, retentions handled by initGame)
+    if (GameState.teams && GameState.teams.length > 0) {
+      GameState.teams.forEach(team => {
+        team.players = [];
+        team.spent = 0;
+        team.overseas = 0;
+      });
+    }
+
+    // Re-initialize the auction pool
     if (!GameState.auctionPool || GameState.auctionPool.length === 0) {
+      initGame();
+    } else {
+      // Re-init to get a fresh pool and teams with proper retentions
       initGame();
     }
 
@@ -567,7 +597,7 @@
     GameState.currentPlayerIndex = index;
     const player = GameState.auctionPool[index];
 
-    GameState.currentBid = roundCr(player.basePrice);
+    GameState.currentBid = 0; // Starts at 0 before any bid is made
     GameState.currentBidder = null;
     GameState.isSold = false;
     GameState.isUnsold = false;
@@ -668,10 +698,7 @@
       currentBidder: GameState.currentBidder
     });
 
-    // Evaluate AI bidding opportunities during countdown
-    if (!GameState.isSold && !GameState.isUnsold) {
-      evaluateAIBidding();
-    }
+    // Auto-bidding removed: Only manual bids from human or multiplayer accepted
 
     // Timer elapsed
     if (GameState.timeLeft <= 0) {
@@ -761,12 +788,7 @@
     // Resume countdown from where it left off
     startTimer(GameState.timeLeft);
 
-    // Natural human buffer on resume before AI evaluates
-    setTimeout(() => {
-      if (!GameState.isPaused && !GameState.isSold && !GameState.isUnsold) {
-        evaluateAIBidding();
-      }
-    }, Math.max(350, Math.floor(900 / (GameState.speed || 1))));
+    // Auto-bidding removed
   }
 
   // ==========================================================================
@@ -788,8 +810,10 @@
     const team = getTeam(bidderId);
     if (!team) return false;
 
-    // Cannot bid against self
-    if (GameState.currentBidder === bidderId) return false;
+    // A franchise CANNOT bid against itself!
+    if (GameState.currentBidder === bidderId) {
+      return false;
+    }
 
     // Squad full check
     const maxSquad = team.maxPlayers || 25;
@@ -804,7 +828,14 @@
       return false;
     }
 
-    const nextBid = customAmount ? roundCr(customAmount) : getNextBidAmount();
+    let nextBid;
+    if (customAmount) {
+      nextBid = roundCr(customAmount);
+    } else if (!GameState.currentBidder || GameState.currentBid === 0) {
+      nextBid = roundCr(player.basePrice || 0.20);
+    } else {
+      nextBid = getNextBidAmount();
+    }
 
     // Budget check including minimum squad reserve
     const remainingPurse = roundCr((team.purse || 120) - (team.spent || 0));
@@ -900,6 +931,7 @@
 
   function powerJump(teamId) {
     const tId = teamId || GameState.userTeamId;
+    if (GameState.currentBidder === tId) return false; // Already leader
     const player = getCurrentPlayer();
     if (!player) return false;
     const base = GameState.currentBid > 0 ? GameState.currentBid : (player.basePrice || 0.20);
@@ -961,6 +993,8 @@
    * Evaluates AI bidding across all non-highest-bidder AI teams during an auction tick.
    */
   function evaluateAIBidding() {
+    // Completely removed auto-bidding: Only human & multiplayer bids allowed
+    return;
     if (GameState.isPaused || GameState.isSold || GameState.isUnsold) return;
 
     const player = getCurrentPlayer();
@@ -1223,6 +1257,16 @@
   /**
    * 9. soldPlayer() - Finalize sale of current player
    */
+  function finalizeSaleImmediately() {
+    if (GameState.currentBidder && GameState.currentBid > 0) {
+      soldPlayer();
+      return true;
+    } else {
+      unsoldPlayer();
+      return true;
+    }
+  }
+
   function soldPlayer() {
     if (GameState.timer) {
       clearInterval(GameState.timer);
@@ -1717,6 +1761,29 @@
   // 16. LEADERBOARD & SUMMARY UTILITIES
   // ==========================================================================
 
+    function getAllPurchasedPlayers() {
+    const list = [];
+    (GameState.teams || []).forEach(team => {
+      (team.players || []).forEach(p => {
+        if (p.soldPrice !== undefined || p.price !== undefined) {
+          list.push({
+            name: p.name,
+            teamId: team.id,
+            teamName: team.name,
+            teamShort: team.shortName || team.id,
+            teamLogo: team.logo || '🏏',
+            teamColor: team.primaryColor || '#1e293b',
+            price: Number(p.soldPrice !== undefined ? p.soldPrice : p.price),
+            role: p.role || 'Batsman',
+            rating: p.rating || 80,
+            overseas: !!p.overseas
+          });
+        }
+      });
+    });
+    return list;
+  }
+
   function getLeaderboard() {
     return GameState.teams.map(team => {
       const bestXI = getBestPlayingXI(team.players);
@@ -1758,13 +1825,16 @@
     pauseGame,
     resumeGame,
     soldPlayer,
+    finalizeSaleImmediately,
     unsoldPlayer,
+    finalizeSaleImmediately,
     endAuction,
 
     // Engines & Analyzers
     aiDecision,
     getBestPlayingXI,
     rateSquad,
+    setAiBidding: (enabled) => { GameState.aiBiddingEnabled = !!enabled; return GameState.aiBiddingEnabled; },
 
     // Helpers & UI Getters
     getCurrentPlayer,
@@ -1781,6 +1851,7 @@
     setSpeed,
     shuffleUpcomingPool,
     getLeaderboard,
+    getAllPurchasedPlayers,
     getSetName,
     TEAM_PERSONALITIES,
 

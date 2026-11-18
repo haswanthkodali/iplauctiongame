@@ -25,9 +25,9 @@ const RatingEngine = {
     XI_TEMPLATE: [
         { slot: 1,  label: "Opener 1",       idealRoles: ["BAT", "WK-BAT"], batting: true,  bowling: false, overseas: true,  wkPreferred: true  },
         { slot: 2,  label: "Opener 2",       idealRoles: ["BAT", "WK-BAT"], batting: true,  bowling: false, overseas: true,  wkPreferred: false },
-        { slot: 3,  label: "No.3 Anchor",    idealRoles: ["BAT"],           batting: true,  bowling: false, overseas: true,  wkPreferred: false },
-        { slot: 4,  label: "Middle Order 4",  idealRoles: ["BAT", "AR"],    batting: true,  bowling: false, overseas: true,  wkPreferred: false },
-        { slot: 5,  label: "Middle Order 5",  idealRoles: ["BAT", "AR"],    batting: true,  bowling: false, overseas: true,  wkPreferred: false },
+        { slot: 3,  label: "No.3 Anchor",    idealRoles: ["BAT", "WK-BAT"], batting: true,  bowling: false, overseas: true,  wkPreferred: false },
+        { slot: 4,  label: "Middle Order 4",  idealRoles: ["BAT", "WK-BAT", "AR"], batting: true,  bowling: false, overseas: true,  wkPreferred: false },
+        { slot: 5,  label: "Middle Order 5",  idealRoles: ["BAT", "WK-BAT", "AR"], batting: true,  bowling: false, overseas: true,  wkPreferred: false },
         { slot: 6,  label: "All-Rounder 6",   idealRoles: ["AR"],           batting: true,  bowling: true,  overseas: true,  wkPreferred: false },
         { slot: 7,  label: "All-Rounder 7",   idealRoles: ["AR", "BOWL"],   batting: true,  bowling: true,  overseas: true,  wkPreferred: false },
         { slot: 8,  label: "Bowler 8",        idealRoles: ["BOWL", "AR"],   batting: false, bowling: true,  overseas: true,  wkPreferred: false },
@@ -77,33 +77,71 @@ const RatingEngine = {
     // ========================================================================
 
     /**
+     * Parse recentForm which may be a string grade ("A+", "A", "B+", "B", "C")
+     * or a numeric 0-1 value. Returns a 0-1 float.
+     */
+    _parseForm(formValue) {
+        if (typeof formValue === 'number') return Math.max(0, Math.min(1, formValue));
+        if (typeof formValue === 'string') {
+            const f = formValue.trim().toUpperCase();
+            if (f === 'A+' || f === 'S') return 1.0;
+            if (f === 'A')  return 0.85;
+            if (f === 'B+') return 0.70;
+            if (f === 'B')  return 0.55;
+            if (f === 'C+') return 0.45;
+            if (f === 'C')  return 0.35;
+            if (f === 'D')  return 0.20;
+        }
+        return 0.5; // default
+    },
+
+    /**
      * Compute a 0-100 fit score for placing `player` in `slot` of the XI.
      * Higher = better fit.
+     * 
+     * CRITICAL RULES:
+     * - Pure batsmen/WK (bowlingRating < 50) get ZERO fit in specialist bowler slots (8-11)
+     * - Pure tailender bowlers (battingRating < 40) get ZERO fit in top-order batting slots (1-5)
+     * - WK-BAT players get bonus in batting slots 1-5 (they can bat anywhere in top/middle order)
      */
     _playerSlotFitScore(player, slotIndex, playerStatsDB) {
         const template = this.XI_TEMPLATE[slotIndex];
         const role     = this._normaliseRole(player.role);
         const stats    = (playerStatsDB && playerStatsDB[player.name]) || {};
 
+        const bowlRating = stats.bowlingRating || player.bowlingRating || 0;
+        const batRating  = stats.battingRating || player.battingRating || 0;
+
+        // ========== HARD GATES — prevent absurd placements ==========
+        const isBattingSlot  = slotIndex <= 4;                       // Slots 0-4: Openers, No.3, Middle Order
+        const isFinisherSlot = slotIndex === 5 || slotIndex === 6;   // Slots 5-6: All-Rounder / Finisher
+        const isBowlerSlot   = slotIndex >= 7;                       // Slots 7-10: Bowler 8, 9, 10, 11
+        const isPureBatter   = (role === "BAT" || role === "WK-BAT") && bowlRating < 50;
+        const isPureBowler   = role === "BOWL" && batRating < 40;
+
+        // Pure batsmen MUST NOT fill specialist bowling slots (8, 9, 10, 11)
+        if (isBowlerSlot && isPureBatter) return 0;
+        // Pure tailender bowlers MUST NOT fill top-order batting slots (1-5)
+        if (isBattingSlot && isPureBowler) return 0;
+
         let score = 0;
 
-        // ---- 1. Role Match (0-30) ----
+        // ---- 1. Role Match (0-35) ----
         if (template.idealRoles.includes(role)) {
-            score += 30;
+            score += 35;
         } else if (role === "AR") {
             // All-rounders are flexible; partial credit everywhere
-            score += 18;
-        } else if (role === "BAT" && template.batting) {
-            score += 12;
+            score += 20;
+        } else if ((role === "BAT" || role === "WK-BAT") && template.batting) {
+            score += 15;
         } else if (role === "BOWL" && template.bowling) {
-            score += 12;
+            score += 15;
         } else {
-            score += 4; // minimal credit
+            score += 2; // very low — wrong role for this slot
         }
 
         // ---- 2. Batting position fit (0-25) ----
         if (template.batting) {
-            const batRating = stats.battingRating || player.battingRating || 50;
             // Scale to 0-15
             score += Math.min(15, (batRating / 100) * 15);
 
@@ -136,7 +174,6 @@ const RatingEngine = {
 
         // ---- 3. Bowling ability (0-20) ----
         if (template.bowling) {
-            const bowlRating = stats.bowlingRating || player.bowlingRating || 0;
             score += Math.min(12, (bowlRating / 100) * 12);
 
             const econ = stats.economy || player.economy || 9;
@@ -154,9 +191,13 @@ const RatingEngine = {
         if (template.wkPreferred && this._isWicketKeeper(player)) {
             score += 10;
         }
+        // WK-BAT players also get a small bonus in any batting/middle-order slot
+        if (role === "WK-BAT" && (isBattingSlot || isFinisherSlot) && !template.wkPreferred) {
+            score += 3;
+        }
 
         // ---- 6. Recent form (0-5) ----
-        const form = stats.recentForm || player.form || 0.5; // 0-1 scale
+        const form = this._parseForm(stats.recentForm || player.form || 0.5);
         score += form * 5;
 
         return Math.max(0, Math.min(100, Math.round(score)));
@@ -205,12 +246,14 @@ const RatingEngine = {
         let overseasCount = 0;
         const assignment = new Array(slots).fill(null); // assignment[slot] = playerIndex
 
-        // Priority order: fill specialist slots first (WK, bowlers), then flexible
-        const slotPriority = [0, 9, 10, 8, 2, 6, 5, 7, 1, 3, 4];
+        // Priority order: top order, anchor, middle order, all-rounders, bowlers
+        const slotPriority = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
         for (const s of slotPriority) {
             for (const candidate of fitMatrix[s]) {
                 if (used.has(candidate.playerIdx)) continue;
+                // STRICT HARD-GATE: Never place player if fitScore <= 0 (e.g. pure batsman in bowler slot)
+                if (!candidate.fitScore || candidate.fitScore <= 0) continue;
 
                 const isOvs = this._isOverseas(candidate.player);
                 if (isOvs && overseasCount >= this.MAX_OVERSEAS_XI) continue;
@@ -222,6 +265,76 @@ const RatingEngine = {
             }
         }
         return assignment;
+    },
+
+    /**
+     * Backtracking improvement: attempt pairwise swaps to increase total fit.
+     * Enforces strict role hard-gates during swaps.
+     */
+    _backtrackImprove(assignment, fitMatrix, players, slots) {
+        const best = [...assignment];
+        let bestTotal = this._totalFit(best, fitMatrix);
+        let improved = true;
+        let iterations = 0;
+        const MAX_ITER = 100;
+
+        while (improved && iterations < MAX_ITER) {
+            improved = false;
+            iterations++;
+
+            for (let s1 = 0; s1 < slots; s1++) {
+                if (best[s1] === null) continue;
+                for (let s2 = s1 + 1; s2 < slots; s2++) {
+                    if (best[s2] === null) continue;
+
+                    const pIdx1 = best[s1];
+                    const pIdx2 = best[s2];
+
+                    // Check if swap respects role gates (fitScore > 0 for both new slots)
+                    const fit1New = fitMatrix[s2].find(c => c.playerIdx === pIdx1)?.fitScore || 0;
+                    const fit2New = fitMatrix[s1].find(c => c.playerIdx === pIdx2)?.fitScore || 0;
+                    if (fit1New <= 0 || fit2New <= 0) continue;
+
+                    // Try swapping players in slot s1 and s2
+                    const temp = [...best];
+                    temp[s1] = pIdx2;
+                    temp[s2] = pIdx1;
+
+                    // Check overseas constraint
+                    if (this._overseasValid(temp, players)) {
+                        const newTotal = this._totalFit(temp, fitMatrix);
+                        if (newTotal > bestTotal) {
+                            best[s1] = temp[s1];
+                            best[s2] = temp[s2];
+                            bestTotal = newTotal;
+                            improved = true;
+                        }
+                    }
+                }
+
+                // Try replacing slot s1 with an unused player
+                const usedSet = new Set(best.filter(x => x !== null));
+                for (let pIdx = 0; pIdx < players.length; pIdx++) {
+                    if (usedSet.has(pIdx)) continue;
+
+                    const fitNew = fitMatrix[s1].find(c => c.playerIdx === pIdx)?.fitScore || 0;
+                    if (fitNew <= 0) continue;
+
+                    const temp = [...best];
+                    temp[s1] = pIdx;
+
+                    if (this._overseasValid(temp, players)) {
+                        const newTotal = this._totalFit(temp, fitMatrix);
+                        if (newTotal > bestTotal) {
+                            best[s1] = pIdx;
+                            bestTotal = newTotal;
+                            improved = true;
+                        }
+                    }
+                }
+            }
+        }
+        return best;
     },
 
     /**
@@ -368,6 +481,136 @@ const RatingEngine = {
             overseasUsed,
             strengths,
             weaknesses,
+        };
+    },
+
+    /**
+     * Evaluates a custom user-built Playing 11 (array of up to 11 players).
+     * Computes Batting Depth, Bowling Depth, Player Skills, Overseas limit,
+     * Wicket-keeper check, and Final Composite Championship Rating.
+     */
+    evaluateUserXI(userXI, fullSquad, playerStatsDB) {
+        const db = playerStatsDB || {};
+        const xi = [];
+        let totalFitScore = 0;
+        let overseasUsed = 0;
+        let battingDepth = 0;
+        let bowlingOptions = 0;
+        let paceCount = 0;
+        let spinCount = 0;
+        let hasWK = false;
+        let totalBatRating = 0;
+        let totalBowlRating = 0;
+        let totalSkillRating = 0;
+        let filledCount = 0;
+
+        for (let s = 0; s < 11; s++) {
+            const player = userXI && userXI[s] ? userXI[s] : null;
+            if (!player) {
+                xi.push({ player: null, position: s + 1, role: "EMPTY", fitScore: 0 });
+                continue;
+            }
+
+            filledCount++;
+            const role = this._normaliseRole(player.role);
+            const stats = db[player.name] || {};
+            const fitScore = this._playerSlotFitScore(player, s, db);
+
+            xi.push({
+                player: player,
+                position: s + 1,
+                role: role,
+                fitScore: fitScore
+            });
+
+            totalFitScore += fitScore;
+            totalSkillRating += (player.rating || 80);
+
+            if (this._isOverseas(player)) overseasUsed++;
+            if (this._isWicketKeeper(player)) hasWK = true;
+
+            const batRating = stats.battingRating || player.battingRating || 0;
+            const bowlRating = stats.bowlingRating || player.bowlingRating || 0;
+            totalBatRating += batRating;
+            totalBowlRating += bowlRating;
+
+            if (batRating >= 35 || role === "BAT" || role === "WK-BAT" || role === "AR") {
+                battingDepth = s + 1;
+            }
+            if (bowlRating >= 30 || role === "BOWL" || role === "AR") {
+                bowlingOptions++;
+                const bowlType = (stats.bowlingType || player.bowlingType || player.speciality || "").toUpperCase();
+                if (bowlType.includes("SPIN") || bowlType.includes("LEG") || bowlType.includes("OFF")) {
+                    spinCount++;
+                } else {
+                    paceCount++;
+                }
+            }
+        }
+
+        // 1. Batting Depth Score (0-100)
+        let battingDepthScore = 0;
+        if (filledCount > 0) {
+            const avgBat = totalBatRating / Math.min(8, Math.max(1, battingDepth));
+            const depthFactor = Math.min(100, (battingDepth / 8) * 40 + (avgBat / 95) * 60);
+            battingDepthScore = Math.round(depthFactor);
+        }
+
+        // 2. Bowling Depth Score (0-100)
+        let bowlingDepthScore = 0;
+        if (filledCount > 0) {
+            const optionsFactor = Math.min(50, (bowlingOptions / 6) * 50); // 6 bowling options = 50 pts
+            const avgBowl = bowlingOptions > 0 ? (totalBowlRating / bowlingOptions) : 0;
+            const varietyBonus = (paceCount > 0 && spinCount > 0) ? 10 : 0;
+            bowlingDepthScore = Math.min(100, Math.round(optionsFactor + (avgBowl / 95) * 40 + varietyBonus));
+        }
+
+        // 3. Player Skill & Impact Score (0-100)
+        const avgOvr = filledCount > 0 ? (totalSkillRating / filledCount) : 0;
+        const skillScore = Math.round((avgOvr / 96) * 100);
+
+        // 4. Role Balance Score (0-100)
+        let balanceScore = 80;
+        if (hasWK) balanceScore += 10; else balanceScore -= 25;
+        if (overseasUsed > 4) balanceScore -= 30; // Illegal overseas
+        if (bowlingOptions < 5) balanceScore -= 20; // Need min 5 bowlers in T20
+        balanceScore = Math.max(0, Math.min(100, balanceScore));
+
+        // 5. Final Composite Score
+        const finalRating = Math.round(
+            (battingDepthScore * 0.35) +
+            (bowlingDepthScore * 0.35) +
+            (skillScore * 0.20) +
+            (balanceScore * 0.10)
+        );
+
+        const { strengths, weaknesses } = this._identifyStrengthsWeaknesses(xi, db, hasWK, battingDepth, bowlingOptions, overseasUsed);
+
+        let tier = "B-Tier Contender";
+        if (finalRating >= 90) tier = "🏆 S-Tier Championship Favorite";
+        else if (finalRating >= 84) tier = "⭐ A+ Playoff Contender";
+        else if (finalRating >= 78) tier = "🏏 A-Tier Competitive Squad";
+        else if (finalRating >= 70) tier = "⚡ B+ Emerging Contender";
+
+        return {
+            xi,
+            filledCount,
+            totalRating: finalRating,
+            battingDepthScore,
+            bowlingDepthScore,
+            skillScore,
+            balanceScore,
+            avgRating: Math.round(avgOvr),
+            battingDepth,
+            bowlingOptions,
+            paceCount,
+            spinCount,
+            overseasUsed,
+            hasWK,
+            isOverseasValid: overseasUsed <= 4,
+            tier,
+            strengths,
+            weaknesses
         };
     },
 
@@ -1048,7 +1291,7 @@ const RatingEngine = {
             const usableBudget = Math.max(0, remainingBudget - (minSlots * 0.20));
 
             // --- 5. Form multiplier (0.8 – 1.2) ---
-            const form = stats.recentForm || player.form || 0.5;
+            const form = RatingEngine._parseForm(stats.recentForm || player.form || 0.5);
             const formMult = 0.8 + (form * 0.4);
 
             // --- 6. Team personality multiplier ---

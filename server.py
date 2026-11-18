@@ -352,12 +352,13 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         self._send_json(404, {"error": "Not Found"})
 
-def run_server(port=8443, use_https=True):
+def run_server(port=8000, use_https=False):
     load_db()
     cert_path = os.path.join(BASE_DIR, 'cert.pem')
     key_path = os.path.join(BASE_DIR, 'key.pem')
 
     lan_ip = get_lan_ip()
+    socketserver.TCPServer.allow_reuse_address = True
     httpd = socketserver.TCPServer(("", port), IPLAuctionRequestHandler)
 
     if use_https and os.path.exists(cert_path) and os.path.exists(key_path):
@@ -366,20 +367,27 @@ def run_server(port=8443, use_https=True):
         context.load_cert_chain(certfile=cert_path, keyfile=key_path)
         httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
         print(f"============================================================")
-        print(f"IPL AUCTION GAME SECURE SERVER ACTIVE (HTTPS)")
-        print(f"Localhost Link:      https://localhost:{port}")
-        print(f"Local IP Link:       https://127.0.0.1:{port}")
-        print(f"Private Network Link: https://{lan_ip}:{port}")
-        print(f"Server Data File:    {DATA_FILE}")
+        print(f"🏆 IPL AUCTION GAME SECURE SERVER (HTTPS)")
+        print(f"👉 Localhost Link:      https://localhost:{port}")
+        print(f"👉 Local IP Link:       https://127.0.0.1:{port}")
+        print(f"👉 Private Network Link: https://{lan_ip}:{port}")
         print(f"============================================================", flush=True)
     else:
-        print(f"IPL Auction Game Server running at http://localhost:{port}", flush=True)
+        print(f"============================================================")
+        print(f"🏆 IPL AUCTION GAME SERVER ACTIVE (HTTP)")
+        print(f"👉 Open in your browser: http://localhost:{port}")
+        print(f"👉 Network link:         http://{lan_ip}:{port}")
+        print(f"============================================================", flush=True)
 
     httpd.serve_forever()
 
 if __name__ == '__main__':
     import sys
-    port = 8443
-    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+    port = 8000
+    use_https = False
+    if '--https' in sys.argv or '8443' in sys.argv:
+        port = 8443
+        use_https = True
+    elif len(sys.argv) > 1 and sys.argv[1].isdigit():
         port = int(sys.argv[1])
-    run_server(port=port, use_https=True)
+    run_server(port=port, use_https=use_https)

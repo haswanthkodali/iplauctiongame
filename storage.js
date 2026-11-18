@@ -85,6 +85,11 @@
       if (this.currentUser) {
         await this.syncUserData(this.currentUser.userId);
       }
+
+      // 4. Initialize Supabase if config or localStorage keys exist
+      try {
+        this.initSupabase();
+      } catch (e) {}
     }
 
     /**

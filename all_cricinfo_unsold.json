@@ -1,0 +1,4738 @@
+[
+  {
+    "player": {
+      "id": 120347,
+      "objectId": 1489146,
+      "name": "RS Ambrish",
+      "longName": "RS Ambrish",
+      "mobileName": "Ambrish",
+      "indexName": "Ambrish, RS",
+      "battingName": "RS Ambrish",
+      "fieldingName": "Ambrish",
+      "slug": "rs-ambrish",
+      "imageUrl": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2007,
+        "month": 5,
+        "date": 28
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 412649,
+        "objectId": 1521590,
+        "slug": "rs-ambrish-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+        "width": 160,
+        "height": 130,
+        "caption": "RS Ambrish, player portrait",
+        "longCaption": "RS Ambrish, player portrait",
+        "credit": "ICC/Getty Images",
+        "photographer": "Johan Rynners",
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 446,
+    "auctionedOrder": 864,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96337,
+      "objectId": 1076722,
+      "name": "W Sutherland",
+      "longName": "Will Sutherland",
+      "mobileName": "Sutherland",
+      "indexName": "Sutherland, W",
+      "battingName": "W Sutherland",
+      "fieldingName": "Sutherland",
+      "slug": "will-sutherland",
+      "imageUrl": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1999,
+        "month": 10,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 387525,
+        "objectId": 1451200,
+        "slug": "will-sutherland-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Will Sutherland, player portrait",
+        "longCaption": "Will Sutherland, player portrait",
+        "credit": "Cricket Australia/Getty Images",
+        "photographer": "Darrian Traynor",
+        "peerUrls": null
+      },
+      "countryTeamId": 2,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 333,
+    "auctionedOrder": 862,
+    "basePrice": 10000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 116087,
+      "objectId": 1403198,
+      "name": "SS Chikara",
+      "longName": "Swastik Chikara",
+      "mobileName": "Chikara",
+      "indexName": "Chikara, SS",
+      "battingName": "SS Chikara",
+      "fieldingName": "Chikara",
+      "slug": "swastik-chikara",
+      "imageUrl": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 4,
+        "date": 3
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 399251,
+        "objectId": 1481173,
+        "slug": "swastik-chikara-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Swastik Chikara, player portrait",
+        "longCaption": "Swastik Chikara, player portrait",
+        "credit": "Royal Challengers Bangalore",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        8
+      ],
+      "playingRoles": [
+        "batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 530,
+    "auctionedOrder": 859,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 70434,
+      "objectId": 604616,
+      "name": "CV Milind",
+      "longName": "Chama Milind",
+      "mobileName": "Milind",
+      "indexName": "Milind, CV",
+      "battingName": "CV Milind",
+      "fieldingName": "Milind",
+      "slug": "chama-milind",
+      "imageUrl": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/340300/340312.png",
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 9,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "left-arm medium"
+      ],
+      "image": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/340300/340312.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 526,
+    "auctionedOrder": 858,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121257,
+      "objectId": 1512088,
+      "name": "Ritik Tada",
+      "longName": "Ritik Tada",
+      "mobileName": "Ritik Tada",
+      "indexName": "Ritik Tada",
+      "battingName": "Ritik Tada",
+      "fieldingName": "Ritik Tada",
+      "slug": "ritik-tada",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2002,
+        "month": 10,
+        "date": 10
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 512,
+    "auctionedOrder": 856,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 110978,
+      "objectId": 1292499,
+      "name": "Siddarth Yadav",
+      "longName": "Siddarth Yadav",
+      "mobileName": "",
+      "indexName": "Siddarth Yadav",
+      "battingName": "Siddarth Yadav",
+      "fieldingName": "Siddarth Yadav",
+      "slug": "siddarth-yadav",
+      "imageUrl": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/345000/345096.png",
+      "dateOfBirth": {
+        "year": 2003,
+        "month": 8,
+        "date": 13
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/345000/345096.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 454,
+    "auctionedOrder": 854,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 112908,
+      "objectId": 1327725,
+      "name": "MH Noronha",
+      "longName": "Macneil Noronha",
+      "mobileName": "Noronha",
+      "indexName": "Noronha,MH",
+      "battingName": "MH Noronha",
+      "fieldingName": "Noronha",
+      "slug": "macneil-noronha",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2001,
+        "month": 9,
+        "date": 23
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 449,
+    "auctionedOrder": 853,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 114304,
+      "objectId": 1350777,
+      "name": "MS Grewal",
+      "longName": "Money Grewal",
+      "mobileName": "Grewal",
+      "indexName": "Grewal, MS",
+      "battingName": "MS Grewal",
+      "fieldingName": "Grewal",
+      "slug": "money-grewal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 371,
+    "auctionedOrder": 852,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 87569,
+      "objectId": 942367,
+      "name": "MJ Dagar",
+      "longName": "Mayank Dagar",
+      "mobileName": "Dagar",
+      "indexName": "Dagar, MJ",
+      "battingName": "MJ Dagar",
+      "fieldingName": "Dagar",
+      "slug": "mayank-dagar",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 11,
+        "date": 11
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "sla"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "slow left-arm orthodox"
+      ],
+      "image": {
+        "id": 356822,
+        "objectId": 1365039,
+        "slug": "mayank-dagar-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+        "width": 160,
+        "height": 215,
+        "caption": "Mayank Dagar player portrait",
+        "longCaption": "Mayank Dagar player portrait",
+        "credit": "Unknown",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 353,
+    "auctionedOrder": 851,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 66358,
+      "objectId": 532856,
+      "name": "M Vohra",
+      "longName": "Manan Vohra",
+      "mobileName": "Vohra",
+      "indexName": "Vohra, M",
+      "battingName": "M Vohra",
+      "fieldingName": "Vohra",
+      "slug": "manan-vohra",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 7,
+        "date": 18
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 356788,
+        "objectId": 1364993,
+        "slug": "manan-vohra-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Manan Vohra, player portrait",
+        "longCaption": "Manan Vohra, player portrait",
+        "credit": "Google",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        1
+      ],
+      "playingRoles": [
+        "opening batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 289,
+    "auctionedOrder": 848,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 59283,
+      "objectId": 390730,
+      "name": "MB Murasingh",
+      "longName": "Manisankar  Murasingh",
+      "mobileName": "Murasingh",
+      "indexName": "Murasingh, MB",
+      "battingName": "MB Murasingh",
+      "fieldingName": "Murasingh",
+      "slug": "manisankar-murasingh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 1,
+        "date": 1
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 524,
+    "auctionedOrder": 846,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121485,
+      "objectId": 1515184,
+      "name": "I Sawariya",
+      "longName": "Izaz Sawariya",
+      "mobileName": "Sawariya",
+      "indexName": "Sawariya, I",
+      "battingName": "I Sawariya",
+      "fieldingName": "Sawariya",
+      "slug": "izaz-sawariya",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 7,
+        "date": 6
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "lbg"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak googly"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 438,
+    "auctionedOrder": 842,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121483,
+      "objectId": 1515182,
+      "name": "Jikku Bright",
+      "longName": "Jikku Bright",
+      "mobileName": "",
+      "indexName": "Jikku Bright",
+      "battingName": "Jikku Bright",
+      "fieldingName": "Jikku Bright",
+      "slug": "jikku-bright",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1997,
+        "month": 1,
+        "date": 16
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 432,
+    "auctionedOrder": 841,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 118946,
+      "objectId": 1460382,
+      "name": "A Vartak",
+      "longName": "Ayush Vartak",
+      "mobileName": "Vartak",
+      "indexName": "Vartak, A",
+      "battingName": "A Vartak",
+      "fieldingName": "Vartak",
+      "slug": "ayush-vartak",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2004,
+        "month": 10,
+        "date": 29
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 420,
+    "auctionedOrder": 839,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96614,
+      "objectId": 1081437,
+      "name": "Utkarsh Singh",
+      "longName": "Utkarsh Singh",
+      "mobileName": "",
+      "indexName": "Utkarsh Singh",
+      "battingName": "Utkarsh Singh",
+      "fieldingName": "Utkarsh Singh",
+      "slug": "utkarsh-singh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 5,
+        "date": 7
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 419,
+    "auctionedOrder": 838,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 104824,
+      "objectId": 1175495,
+      "name": "Karan Lal",
+      "longName": "Karan Lal",
+      "mobileName": "Karan Lal",
+      "indexName": "Karan Lal",
+      "battingName": "Karan Lal",
+      "fieldingName": "Karan Lal",
+      "slug": "karan-lal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 19
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 414,
+    "auctionedOrder": 837,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 117868,
+      "objectId": 1442945,
+      "name": "DH Lategan",
+      "longName": "Daniel Lategan",
+      "mobileName": "Lategan",
+      "indexName": "Lategan, DH",
+      "battingName": "DH Lategan",
+      "fieldingName": "Lategan",
+      "slug": "daniel-lategan",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2006,
+        "month": 5,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 3,
+      "playerRoleTypeIds": [
+        2
+      ],
+      "playingRoles": [
+        "top-order batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 409,
+    "auctionedOrder": 835,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 89109,
+      "objectId": 959771,
+      "name": "NG Smith",
+      "longName": "Nathan Smith",
+      "mobileName": "Smith",
+      "indexName": "Smith, NG",
+      "battingName": "NG Smith",
+      "fieldingName": "Smith",
+      "slug": "nathan-smith",
+      "imageUrl": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 7,
+        "date": 15
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 390607,
+        "objectId": 1458878,
+        "slug": "nathan-smith-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Nathan Smith, player portrait",
+        "longCaption": "Nathan Smith, player portrait",
+        "credit": "Getty Images",
+        "photographer": "Ryan Hiscott",
+        "peerUrls": null
+      },
+      "countryTeamId": 5,
+      "playerRoleTypeIds": [
+        11
+      ],
+      "playingRoles": [
+        "bowling allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 395,
+    "auctionedOrder": 834,
+    "basePrice": 7500000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 108532,
+      "objectId": 1246531,
+      "name": "CH Gandhi",
+      "longName": "Chintal Gandhi",
+      "mobileName": "Gandhi",
+      "indexName": "Gandhi,CH",
+      "battingName": "CH Gandhi",
+      "fieldingName": "Gandhi",
+      "slug": "chintal-gandhi",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 8,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lb"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 382,
+    "auctionedOrder": 831,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 119535,
+      "objectId": 1472101,
+      "name": "Irfan Umair",
+      "longName": "Irfan Umair",
+      "mobileName": "",
+      "indexName": "Irfan Umair",
+      "battingName": "Irfan Umair",
+      "fieldingName": "Irfan Umair",
+      "slug": "irfan-umair",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 7,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [],
+      "bowlingStyles": [],
+      "longBattingStyles": [],
+      "longBowlingStyles": [],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 377,
+    "auctionedOrder": 830,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 120347,
+      "objectId": 1489146,
+      "name": "RS Ambrish",
+      "longName": "RS Ambrish",
+      "mobileName": "Ambrish",
+      "indexName": "Ambrish, RS",
+      "battingName": "RS Ambrish",
+      "fieldingName": "Ambrish",
+      "slug": "rs-ambrish",
+      "imageUrl": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2007,
+        "month": 5,
+        "date": 28
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 412649,
+        "objectId": 1521590,
+        "slug": "rs-ambrish-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+        "width": 160,
+        "height": 130,
+        "caption": "RS Ambrish, player portrait",
+        "longCaption": "RS Ambrish, player portrait",
+        "credit": "ICC/Getty Images",
+        "photographer": "Johan Rynners",
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 446,
+    "auctionedOrder": 864,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96337,
+      "objectId": 1076722,
+      "name": "W Sutherland",
+      "longName": "Will Sutherland",
+      "mobileName": "Sutherland",
+      "indexName": "Sutherland, W",
+      "battingName": "W Sutherland",
+      "fieldingName": "Sutherland",
+      "slug": "will-sutherland",
+      "imageUrl": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1999,
+        "month": 10,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 387525,
+        "objectId": 1451200,
+        "slug": "will-sutherland-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Will Sutherland, player portrait",
+        "longCaption": "Will Sutherland, player portrait",
+        "credit": "Cricket Australia/Getty Images",
+        "photographer": "Darrian Traynor",
+        "peerUrls": null
+      },
+      "countryTeamId": 2,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 333,
+    "auctionedOrder": 862,
+    "basePrice": 10000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 116087,
+      "objectId": 1403198,
+      "name": "SS Chikara",
+      "longName": "Swastik Chikara",
+      "mobileName": "Chikara",
+      "indexName": "Chikara, SS",
+      "battingName": "SS Chikara",
+      "fieldingName": "Chikara",
+      "slug": "swastik-chikara",
+      "imageUrl": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 4,
+        "date": 3
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 399251,
+        "objectId": 1481173,
+        "slug": "swastik-chikara-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Swastik Chikara, player portrait",
+        "longCaption": "Swastik Chikara, player portrait",
+        "credit": "Royal Challengers Bangalore",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        8
+      ],
+      "playingRoles": [
+        "batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 530,
+    "auctionedOrder": 859,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 70434,
+      "objectId": 604616,
+      "name": "CV Milind",
+      "longName": "Chama Milind",
+      "mobileName": "Milind",
+      "indexName": "Milind, CV",
+      "battingName": "CV Milind",
+      "fieldingName": "Milind",
+      "slug": "chama-milind",
+      "imageUrl": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/340300/340312.png",
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 9,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "left-arm medium"
+      ],
+      "image": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/340300/340312.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 526,
+    "auctionedOrder": 858,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121257,
+      "objectId": 1512088,
+      "name": "Ritik Tada",
+      "longName": "Ritik Tada",
+      "mobileName": "Ritik Tada",
+      "indexName": "Ritik Tada",
+      "battingName": "Ritik Tada",
+      "fieldingName": "Ritik Tada",
+      "slug": "ritik-tada",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2002,
+        "month": 10,
+        "date": 10
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 512,
+    "auctionedOrder": 856,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 110978,
+      "objectId": 1292499,
+      "name": "Siddarth Yadav",
+      "longName": "Siddarth Yadav",
+      "mobileName": "",
+      "indexName": "Siddarth Yadav",
+      "battingName": "Siddarth Yadav",
+      "fieldingName": "Siddarth Yadav",
+      "slug": "siddarth-yadav",
+      "imageUrl": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/345000/345096.png",
+      "dateOfBirth": {
+        "year": 2003,
+        "month": 8,
+        "date": 13
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/345000/345096.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 454,
+    "auctionedOrder": 854,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 112908,
+      "objectId": 1327725,
+      "name": "MH Noronha",
+      "longName": "Macneil Noronha",
+      "mobileName": "Noronha",
+      "indexName": "Noronha,MH",
+      "battingName": "MH Noronha",
+      "fieldingName": "Noronha",
+      "slug": "macneil-noronha",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2001,
+        "month": 9,
+        "date": 23
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 449,
+    "auctionedOrder": 853,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 114304,
+      "objectId": 1350777,
+      "name": "MS Grewal",
+      "longName": "Money Grewal",
+      "mobileName": "Grewal",
+      "indexName": "Grewal, MS",
+      "battingName": "MS Grewal",
+      "fieldingName": "Grewal",
+      "slug": "money-grewal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 371,
+    "auctionedOrder": 852,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 87569,
+      "objectId": 942367,
+      "name": "MJ Dagar",
+      "longName": "Mayank Dagar",
+      "mobileName": "Dagar",
+      "indexName": "Dagar, MJ",
+      "battingName": "MJ Dagar",
+      "fieldingName": "Dagar",
+      "slug": "mayank-dagar",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 11,
+        "date": 11
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "sla"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "slow left-arm orthodox"
+      ],
+      "image": {
+        "id": 356822,
+        "objectId": 1365039,
+        "slug": "mayank-dagar-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+        "width": 160,
+        "height": 215,
+        "caption": "Mayank Dagar player portrait",
+        "longCaption": "Mayank Dagar player portrait",
+        "credit": "Unknown",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 353,
+    "auctionedOrder": 851,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 66358,
+      "objectId": 532856,
+      "name": "M Vohra",
+      "longName": "Manan Vohra",
+      "mobileName": "Vohra",
+      "indexName": "Vohra, M",
+      "battingName": "M Vohra",
+      "fieldingName": "Vohra",
+      "slug": "manan-vohra",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 7,
+        "date": 18
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 356788,
+        "objectId": 1364993,
+        "slug": "manan-vohra-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Manan Vohra, player portrait",
+        "longCaption": "Manan Vohra, player portrait",
+        "credit": "Google",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        1
+      ],
+      "playingRoles": [
+        "opening batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 289,
+    "auctionedOrder": 848,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 59283,
+      "objectId": 390730,
+      "name": "MB Murasingh",
+      "longName": "Manisankar  Murasingh",
+      "mobileName": "Murasingh",
+      "indexName": "Murasingh, MB",
+      "battingName": "MB Murasingh",
+      "fieldingName": "Murasingh",
+      "slug": "manisankar-murasingh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 1,
+        "date": 1
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 524,
+    "auctionedOrder": 846,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121485,
+      "objectId": 1515184,
+      "name": "I Sawariya",
+      "longName": "Izaz Sawariya",
+      "mobileName": "Sawariya",
+      "indexName": "Sawariya, I",
+      "battingName": "I Sawariya",
+      "fieldingName": "Sawariya",
+      "slug": "izaz-sawariya",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 7,
+        "date": 6
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "lbg"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak googly"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 438,
+    "auctionedOrder": 842,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121483,
+      "objectId": 1515182,
+      "name": "Jikku Bright",
+      "longName": "Jikku Bright",
+      "mobileName": "",
+      "indexName": "Jikku Bright",
+      "battingName": "Jikku Bright",
+      "fieldingName": "Jikku Bright",
+      "slug": "jikku-bright",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1997,
+        "month": 1,
+        "date": 16
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 432,
+    "auctionedOrder": 841,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 118946,
+      "objectId": 1460382,
+      "name": "A Vartak",
+      "longName": "Ayush Vartak",
+      "mobileName": "Vartak",
+      "indexName": "Vartak, A",
+      "battingName": "A Vartak",
+      "fieldingName": "Vartak",
+      "slug": "ayush-vartak",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2004,
+        "month": 10,
+        "date": 29
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 420,
+    "auctionedOrder": 839,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96614,
+      "objectId": 1081437,
+      "name": "Utkarsh Singh",
+      "longName": "Utkarsh Singh",
+      "mobileName": "",
+      "indexName": "Utkarsh Singh",
+      "battingName": "Utkarsh Singh",
+      "fieldingName": "Utkarsh Singh",
+      "slug": "utkarsh-singh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 5,
+        "date": 7
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 419,
+    "auctionedOrder": 838,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 104824,
+      "objectId": 1175495,
+      "name": "Karan Lal",
+      "longName": "Karan Lal",
+      "mobileName": "Karan Lal",
+      "indexName": "Karan Lal",
+      "battingName": "Karan Lal",
+      "fieldingName": "Karan Lal",
+      "slug": "karan-lal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 19
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 414,
+    "auctionedOrder": 837,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 117868,
+      "objectId": 1442945,
+      "name": "DH Lategan",
+      "longName": "Daniel Lategan",
+      "mobileName": "Lategan",
+      "indexName": "Lategan, DH",
+      "battingName": "DH Lategan",
+      "fieldingName": "Lategan",
+      "slug": "daniel-lategan",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2006,
+        "month": 5,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 3,
+      "playerRoleTypeIds": [
+        2
+      ],
+      "playingRoles": [
+        "top-order batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 409,
+    "auctionedOrder": 835,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 89109,
+      "objectId": 959771,
+      "name": "NG Smith",
+      "longName": "Nathan Smith",
+      "mobileName": "Smith",
+      "indexName": "Smith, NG",
+      "battingName": "NG Smith",
+      "fieldingName": "Smith",
+      "slug": "nathan-smith",
+      "imageUrl": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 7,
+        "date": 15
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 390607,
+        "objectId": 1458878,
+        "slug": "nathan-smith-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Nathan Smith, player portrait",
+        "longCaption": "Nathan Smith, player portrait",
+        "credit": "Getty Images",
+        "photographer": "Ryan Hiscott",
+        "peerUrls": null
+      },
+      "countryTeamId": 5,
+      "playerRoleTypeIds": [
+        11
+      ],
+      "playingRoles": [
+        "bowling allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 395,
+    "auctionedOrder": 834,
+    "basePrice": 7500000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 108532,
+      "objectId": 1246531,
+      "name": "CH Gandhi",
+      "longName": "Chintal Gandhi",
+      "mobileName": "Gandhi",
+      "indexName": "Gandhi,CH",
+      "battingName": "CH Gandhi",
+      "fieldingName": "Gandhi",
+      "slug": "chintal-gandhi",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 8,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lb"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 382,
+    "auctionedOrder": 831,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 119535,
+      "objectId": 1472101,
+      "name": "Irfan Umair",
+      "longName": "Irfan Umair",
+      "mobileName": "",
+      "indexName": "Irfan Umair",
+      "battingName": "Irfan Umair",
+      "fieldingName": "Irfan Umair",
+      "slug": "irfan-umair",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 7,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [],
+      "bowlingStyles": [],
+      "longBattingStyles": [],
+      "longBowlingStyles": [],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 377,
+    "auctionedOrder": 830,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 120347,
+      "objectId": 1489146,
+      "name": "RS Ambrish",
+      "longName": "RS Ambrish",
+      "mobileName": "Ambrish",
+      "indexName": "Ambrish, RS",
+      "battingName": "RS Ambrish",
+      "fieldingName": "Ambrish",
+      "slug": "rs-ambrish",
+      "imageUrl": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2007,
+        "month": 5,
+        "date": 28
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 412649,
+        "objectId": 1521590,
+        "slug": "rs-ambrish-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+        "width": 160,
+        "height": 130,
+        "caption": "RS Ambrish, player portrait",
+        "longCaption": "RS Ambrish, player portrait",
+        "credit": "ICC/Getty Images",
+        "photographer": "Johan Rynners",
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 446,
+    "auctionedOrder": 864,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96337,
+      "objectId": 1076722,
+      "name": "W Sutherland",
+      "longName": "Will Sutherland",
+      "mobileName": "Sutherland",
+      "indexName": "Sutherland, W",
+      "battingName": "W Sutherland",
+      "fieldingName": "Sutherland",
+      "slug": "will-sutherland",
+      "imageUrl": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1999,
+        "month": 10,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 387525,
+        "objectId": 1451200,
+        "slug": "will-sutherland-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Will Sutherland, player portrait",
+        "longCaption": "Will Sutherland, player portrait",
+        "credit": "Cricket Australia/Getty Images",
+        "photographer": "Darrian Traynor",
+        "peerUrls": null
+      },
+      "countryTeamId": 2,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 333,
+    "auctionedOrder": 862,
+    "basePrice": 10000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 116087,
+      "objectId": 1403198,
+      "name": "SS Chikara",
+      "longName": "Swastik Chikara",
+      "mobileName": "Chikara",
+      "indexName": "Chikara, SS",
+      "battingName": "SS Chikara",
+      "fieldingName": "Chikara",
+      "slug": "swastik-chikara",
+      "imageUrl": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 4,
+        "date": 3
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 399251,
+        "objectId": 1481173,
+        "slug": "swastik-chikara-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Swastik Chikara, player portrait",
+        "longCaption": "Swastik Chikara, player portrait",
+        "credit": "Royal Challengers Bangalore",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        8
+      ],
+      "playingRoles": [
+        "batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 530,
+    "auctionedOrder": 859,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 70434,
+      "objectId": 604616,
+      "name": "CV Milind",
+      "longName": "Chama Milind",
+      "mobileName": "Milind",
+      "indexName": "Milind, CV",
+      "battingName": "CV Milind",
+      "fieldingName": "Milind",
+      "slug": "chama-milind",
+      "imageUrl": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/340300/340312.png",
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 9,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "left-arm medium"
+      ],
+      "image": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/340300/340312.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 526,
+    "auctionedOrder": 858,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121257,
+      "objectId": 1512088,
+      "name": "Ritik Tada",
+      "longName": "Ritik Tada",
+      "mobileName": "Ritik Tada",
+      "indexName": "Ritik Tada",
+      "battingName": "Ritik Tada",
+      "fieldingName": "Ritik Tada",
+      "slug": "ritik-tada",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2002,
+        "month": 10,
+        "date": 10
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 512,
+    "auctionedOrder": 856,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 110978,
+      "objectId": 1292499,
+      "name": "Siddarth Yadav",
+      "longName": "Siddarth Yadav",
+      "mobileName": "",
+      "indexName": "Siddarth Yadav",
+      "battingName": "Siddarth Yadav",
+      "fieldingName": "Siddarth Yadav",
+      "slug": "siddarth-yadav",
+      "imageUrl": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/345000/345096.png",
+      "dateOfBirth": {
+        "year": 2003,
+        "month": 8,
+        "date": 13
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/345000/345096.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 454,
+    "auctionedOrder": 854,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 112908,
+      "objectId": 1327725,
+      "name": "MH Noronha",
+      "longName": "Macneil Noronha",
+      "mobileName": "Noronha",
+      "indexName": "Noronha,MH",
+      "battingName": "MH Noronha",
+      "fieldingName": "Noronha",
+      "slug": "macneil-noronha",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2001,
+        "month": 9,
+        "date": 23
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 449,
+    "auctionedOrder": 853,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 114304,
+      "objectId": 1350777,
+      "name": "MS Grewal",
+      "longName": "Money Grewal",
+      "mobileName": "Grewal",
+      "indexName": "Grewal, MS",
+      "battingName": "MS Grewal",
+      "fieldingName": "Grewal",
+      "slug": "money-grewal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 371,
+    "auctionedOrder": 852,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 87569,
+      "objectId": 942367,
+      "name": "MJ Dagar",
+      "longName": "Mayank Dagar",
+      "mobileName": "Dagar",
+      "indexName": "Dagar, MJ",
+      "battingName": "MJ Dagar",
+      "fieldingName": "Dagar",
+      "slug": "mayank-dagar",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 11,
+        "date": 11
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "sla"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "slow left-arm orthodox"
+      ],
+      "image": {
+        "id": 356822,
+        "objectId": 1365039,
+        "slug": "mayank-dagar-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+        "width": 160,
+        "height": 215,
+        "caption": "Mayank Dagar player portrait",
+        "longCaption": "Mayank Dagar player portrait",
+        "credit": "Unknown",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 353,
+    "auctionedOrder": 851,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 66358,
+      "objectId": 532856,
+      "name": "M Vohra",
+      "longName": "Manan Vohra",
+      "mobileName": "Vohra",
+      "indexName": "Vohra, M",
+      "battingName": "M Vohra",
+      "fieldingName": "Vohra",
+      "slug": "manan-vohra",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 7,
+        "date": 18
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 356788,
+        "objectId": 1364993,
+        "slug": "manan-vohra-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Manan Vohra, player portrait",
+        "longCaption": "Manan Vohra, player portrait",
+        "credit": "Google",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        1
+      ],
+      "playingRoles": [
+        "opening batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 289,
+    "auctionedOrder": 848,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 59283,
+      "objectId": 390730,
+      "name": "MB Murasingh",
+      "longName": "Manisankar  Murasingh",
+      "mobileName": "Murasingh",
+      "indexName": "Murasingh, MB",
+      "battingName": "MB Murasingh",
+      "fieldingName": "Murasingh",
+      "slug": "manisankar-murasingh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 1,
+        "date": 1
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 524,
+    "auctionedOrder": 846,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121485,
+      "objectId": 1515184,
+      "name": "I Sawariya",
+      "longName": "Izaz Sawariya",
+      "mobileName": "Sawariya",
+      "indexName": "Sawariya, I",
+      "battingName": "I Sawariya",
+      "fieldingName": "Sawariya",
+      "slug": "izaz-sawariya",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 7,
+        "date": 6
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "lbg"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak googly"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 438,
+    "auctionedOrder": 842,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121483,
+      "objectId": 1515182,
+      "name": "Jikku Bright",
+      "longName": "Jikku Bright",
+      "mobileName": "",
+      "indexName": "Jikku Bright",
+      "battingName": "Jikku Bright",
+      "fieldingName": "Jikku Bright",
+      "slug": "jikku-bright",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1997,
+        "month": 1,
+        "date": 16
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 432,
+    "auctionedOrder": 841,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 118946,
+      "objectId": 1460382,
+      "name": "A Vartak",
+      "longName": "Ayush Vartak",
+      "mobileName": "Vartak",
+      "indexName": "Vartak, A",
+      "battingName": "A Vartak",
+      "fieldingName": "Vartak",
+      "slug": "ayush-vartak",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2004,
+        "month": 10,
+        "date": 29
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 420,
+    "auctionedOrder": 839,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96614,
+      "objectId": 1081437,
+      "name": "Utkarsh Singh",
+      "longName": "Utkarsh Singh",
+      "mobileName": "",
+      "indexName": "Utkarsh Singh",
+      "battingName": "Utkarsh Singh",
+      "fieldingName": "Utkarsh Singh",
+      "slug": "utkarsh-singh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 5,
+        "date": 7
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 419,
+    "auctionedOrder": 838,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 104824,
+      "objectId": 1175495,
+      "name": "Karan Lal",
+      "longName": "Karan Lal",
+      "mobileName": "Karan Lal",
+      "indexName": "Karan Lal",
+      "battingName": "Karan Lal",
+      "fieldingName": "Karan Lal",
+      "slug": "karan-lal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 19
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 414,
+    "auctionedOrder": 837,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 117868,
+      "objectId": 1442945,
+      "name": "DH Lategan",
+      "longName": "Daniel Lategan",
+      "mobileName": "Lategan",
+      "indexName": "Lategan, DH",
+      "battingName": "DH Lategan",
+      "fieldingName": "Lategan",
+      "slug": "daniel-lategan",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2006,
+        "month": 5,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 3,
+      "playerRoleTypeIds": [
+        2
+      ],
+      "playingRoles": [
+        "top-order batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 409,
+    "auctionedOrder": 835,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 89109,
+      "objectId": 959771,
+      "name": "NG Smith",
+      "longName": "Nathan Smith",
+      "mobileName": "Smith",
+      "indexName": "Smith, NG",
+      "battingName": "NG Smith",
+      "fieldingName": "Smith",
+      "slug": "nathan-smith",
+      "imageUrl": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 7,
+        "date": 15
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 390607,
+        "objectId": 1458878,
+        "slug": "nathan-smith-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Nathan Smith, player portrait",
+        "longCaption": "Nathan Smith, player portrait",
+        "credit": "Getty Images",
+        "photographer": "Ryan Hiscott",
+        "peerUrls": null
+      },
+      "countryTeamId": 5,
+      "playerRoleTypeIds": [
+        11
+      ],
+      "playingRoles": [
+        "bowling allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 395,
+    "auctionedOrder": 834,
+    "basePrice": 7500000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 108532,
+      "objectId": 1246531,
+      "name": "CH Gandhi",
+      "longName": "Chintal Gandhi",
+      "mobileName": "Gandhi",
+      "indexName": "Gandhi,CH",
+      "battingName": "CH Gandhi",
+      "fieldingName": "Gandhi",
+      "slug": "chintal-gandhi",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 8,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lb"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 382,
+    "auctionedOrder": 831,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 119535,
+      "objectId": 1472101,
+      "name": "Irfan Umair",
+      "longName": "Irfan Umair",
+      "mobileName": "",
+      "indexName": "Irfan Umair",
+      "battingName": "Irfan Umair",
+      "fieldingName": "Irfan Umair",
+      "slug": "irfan-umair",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 7,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [],
+      "bowlingStyles": [],
+      "longBattingStyles": [],
+      "longBowlingStyles": [],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 377,
+    "auctionedOrder": 830,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 120347,
+      "objectId": 1489146,
+      "name": "RS Ambrish",
+      "longName": "RS Ambrish",
+      "mobileName": "Ambrish",
+      "indexName": "Ambrish, RS",
+      "battingName": "RS Ambrish",
+      "fieldingName": "Ambrish",
+      "slug": "rs-ambrish",
+      "imageUrl": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2007,
+        "month": 5,
+        "date": 28
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 412649,
+        "objectId": 1521590,
+        "slug": "rs-ambrish-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/412600/412649.5.png",
+        "width": 160,
+        "height": 130,
+        "caption": "RS Ambrish, player portrait",
+        "longCaption": "RS Ambrish, player portrait",
+        "credit": "ICC/Getty Images",
+        "photographer": "Johan Rynners",
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 446,
+    "auctionedOrder": 864,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96337,
+      "objectId": 1076722,
+      "name": "W Sutherland",
+      "longName": "Will Sutherland",
+      "mobileName": "Sutherland",
+      "indexName": "Sutherland, W",
+      "battingName": "W Sutherland",
+      "fieldingName": "Sutherland",
+      "slug": "will-sutherland",
+      "imageUrl": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1999,
+        "month": 10,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 387525,
+        "objectId": 1451200,
+        "slug": "will-sutherland-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/387500/387525.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Will Sutherland, player portrait",
+        "longCaption": "Will Sutherland, player portrait",
+        "credit": "Cricket Australia/Getty Images",
+        "photographer": "Darrian Traynor",
+        "peerUrls": null
+      },
+      "countryTeamId": 2,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 333,
+    "auctionedOrder": 862,
+    "basePrice": 10000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 116087,
+      "objectId": 1403198,
+      "name": "SS Chikara",
+      "longName": "Swastik Chikara",
+      "mobileName": "Chikara",
+      "indexName": "Chikara, SS",
+      "battingName": "SS Chikara",
+      "fieldingName": "Chikara",
+      "slug": "swastik-chikara",
+      "imageUrl": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 4,
+        "date": 3
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 399251,
+        "objectId": 1481173,
+        "slug": "swastik-chikara-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/399200/399251.2.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Swastik Chikara, player portrait",
+        "longCaption": "Swastik Chikara, player portrait",
+        "credit": "Royal Challengers Bangalore",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        8
+      ],
+      "playingRoles": [
+        "batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 530,
+    "auctionedOrder": 859,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 70434,
+      "objectId": 604616,
+      "name": "CV Milind",
+      "longName": "Chama Milind",
+      "mobileName": "Milind",
+      "indexName": "Milind, CV",
+      "battingName": "CV Milind",
+      "fieldingName": "Milind",
+      "slug": "chama-milind",
+      "imageUrl": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/340300/340312.png",
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 9,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "left-arm medium"
+      ],
+      "image": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": {
+        "id": 340312,
+        "objectId": 1318032,
+        "slug": "chama-milind-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/340300/340312.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Chama Milind, player page headshot cutout 2022",
+        "longCaption": "Chama Milind, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/340300/340312.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 526,
+    "auctionedOrder": 858,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121257,
+      "objectId": 1512088,
+      "name": "Ritik Tada",
+      "longName": "Ritik Tada",
+      "mobileName": "Ritik Tada",
+      "indexName": "Ritik Tada",
+      "battingName": "Ritik Tada",
+      "fieldingName": "Ritik Tada",
+      "slug": "ritik-tada",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2002,
+        "month": 10,
+        "date": 10
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 512,
+    "auctionedOrder": 856,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 110978,
+      "objectId": 1292499,
+      "name": "Siddarth Yadav",
+      "longName": "Siddarth Yadav",
+      "mobileName": "",
+      "indexName": "Siddarth Yadav",
+      "battingName": "Siddarth Yadav",
+      "fieldingName": "Siddarth Yadav",
+      "slug": "siddarth-yadav",
+      "imageUrl": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+      "headshotImageUrl": "/lsci/db/PICTURES/CMS/345000/345096.png",
+      "dateOfBirth": {
+        "year": 2003,
+        "month": 8,
+        "date": 13
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.1.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": {
+        "id": 345096,
+        "objectId": 1331727,
+        "slug": "siddarth-yadav-player-page-headshot-cutout-2022",
+        "url": "/lsci/db/PICTURES/CMS/345000/345096.png",
+        "width": 600,
+        "height": 436,
+        "caption": "Siddarth Yadav, player page headshot cutout 2022",
+        "longCaption": "Siddarth Yadav, player page headshot cutout 2022",
+        "credit": null,
+        "photographer": null,
+        "peerUrls": {
+          "FILM": null,
+          "WIDE": null,
+          "SQUARE": "/lsci/db/PICTURES/CMS/345000/345096.square.png"
+        }
+      }
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 454,
+    "auctionedOrder": 854,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 112908,
+      "objectId": 1327725,
+      "name": "MH Noronha",
+      "longName": "Macneil Noronha",
+      "mobileName": "Noronha",
+      "indexName": "Noronha,MH",
+      "battingName": "MH Noronha",
+      "fieldingName": "Noronha",
+      "slug": "macneil-noronha",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2001,
+        "month": 9,
+        "date": 23
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 449,
+    "auctionedOrder": 853,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 114304,
+      "objectId": 1350777,
+      "name": "MS Grewal",
+      "longName": "Money Grewal",
+      "mobileName": "Grewal",
+      "indexName": "Grewal, MS",
+      "battingName": "MS Grewal",
+      "fieldingName": "Grewal",
+      "slug": "money-grewal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 4
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 371,
+    "auctionedOrder": 852,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 87569,
+      "objectId": 942367,
+      "name": "MJ Dagar",
+      "longName": "Mayank Dagar",
+      "mobileName": "Dagar",
+      "indexName": "Dagar, MJ",
+      "battingName": "MJ Dagar",
+      "fieldingName": "Dagar",
+      "slug": "mayank-dagar",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 11,
+        "date": 11
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "sla"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "slow left-arm orthodox"
+      ],
+      "image": {
+        "id": 356822,
+        "objectId": 1365039,
+        "slug": "mayank-dagar-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356800/356822.1.png",
+        "width": 160,
+        "height": 215,
+        "caption": "Mayank Dagar player portrait",
+        "longCaption": "Mayank Dagar player portrait",
+        "credit": "Unknown",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        4
+      ],
+      "playingRoles": [
+        "bowler"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 353,
+    "auctionedOrder": 851,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 66358,
+      "objectId": 532856,
+      "name": "M Vohra",
+      "longName": "Manan Vohra",
+      "mobileName": "Vohra",
+      "indexName": "Vohra, M",
+      "battingName": "M Vohra",
+      "fieldingName": "Vohra",
+      "slug": "manan-vohra",
+      "imageUrl": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 7,
+        "date": 18
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": {
+        "id": 356788,
+        "objectId": 1364993,
+        "slug": "manan-vohra-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/356700/356788.4.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Manan Vohra, player portrait",
+        "longCaption": "Manan Vohra, player portrait",
+        "credit": "Google",
+        "photographer": null,
+        "peerUrls": null
+      },
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        1
+      ],
+      "playingRoles": [
+        "opening batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 289,
+    "auctionedOrder": 848,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 59283,
+      "objectId": 390730,
+      "name": "MB Murasingh",
+      "longName": "Manisankar  Murasingh",
+      "mobileName": "Murasingh",
+      "indexName": "Murasingh, MB",
+      "battingName": "MB Murasingh",
+      "fieldingName": "Murasingh",
+      "slug": "manisankar-murasingh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1993,
+        "month": 1,
+        "date": 1
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "rm"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 524,
+    "auctionedOrder": 846,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121485,
+      "objectId": 1515184,
+      "name": "I Sawariya",
+      "longName": "Izaz Sawariya",
+      "mobileName": "Sawariya",
+      "indexName": "Sawariya, I",
+      "battingName": "I Sawariya",
+      "fieldingName": "Sawariya",
+      "slug": "izaz-sawariya",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2005,
+        "month": 7,
+        "date": 6
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "lbg"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak googly"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 438,
+    "auctionedOrder": 842,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 121483,
+      "objectId": 1515182,
+      "name": "Jikku Bright",
+      "longName": "Jikku Bright",
+      "mobileName": "",
+      "indexName": "Jikku Bright",
+      "battingName": "Jikku Bright",
+      "fieldingName": "Jikku Bright",
+      "slug": "jikku-bright",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1997,
+        "month": 1,
+        "date": 16
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 432,
+    "auctionedOrder": 841,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 118946,
+      "objectId": 1460382,
+      "name": "A Vartak",
+      "longName": "Ayush Vartak",
+      "mobileName": "Vartak",
+      "indexName": "Vartak, A",
+      "battingName": "A Vartak",
+      "fieldingName": "Vartak",
+      "slug": "ayush-vartak",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2004,
+        "month": 10,
+        "date": 29
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 420,
+    "auctionedOrder": 839,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 96614,
+      "objectId": 1081437,
+      "name": "Utkarsh Singh",
+      "longName": "Utkarsh Singh",
+      "mobileName": "",
+      "indexName": "Utkarsh Singh",
+      "battingName": "Utkarsh Singh",
+      "fieldingName": "Utkarsh Singh",
+      "slug": "utkarsh-singh",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 5,
+        "date": 7
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [
+        5
+      ],
+      "playingRoles": [
+        "allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 419,
+    "auctionedOrder": 838,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 104824,
+      "objectId": 1175495,
+      "name": "Karan Lal",
+      "longName": "Karan Lal",
+      "mobileName": "Karan Lal",
+      "indexName": "Karan Lal",
+      "battingName": "Karan Lal",
+      "fieldingName": "Karan Lal",
+      "slug": "karan-lal",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2000,
+        "month": 10,
+        "date": 19
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 414,
+    "auctionedOrder": 837,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 117868,
+      "objectId": 1442945,
+      "name": "DH Lategan",
+      "longName": "Daniel Lategan",
+      "mobileName": "Lategan",
+      "indexName": "Lategan, DH",
+      "battingName": "DH Lategan",
+      "fieldingName": "Lategan",
+      "slug": "daniel-lategan",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 2006,
+        "month": 5,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "ob"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm offbreak"
+      ],
+      "image": null,
+      "countryTeamId": 3,
+      "playerRoleTypeIds": [
+        2
+      ],
+      "playingRoles": [
+        "top-order batter"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "BATTER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 409,
+    "auctionedOrder": 835,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 89109,
+      "objectId": 959771,
+      "name": "NG Smith",
+      "longName": "Nathan Smith",
+      "mobileName": "Smith",
+      "indexName": "Smith, NG",
+      "battingName": "NG Smith",
+      "fieldingName": "Smith",
+      "slug": "nathan-smith",
+      "imageUrl": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1998,
+        "month": 7,
+        "date": 15
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "rhb"
+      ],
+      "bowlingStyles": [
+        "rmf"
+      ],
+      "longBattingStyles": [
+        "right-hand bat"
+      ],
+      "longBowlingStyles": [
+        "right-arm medium-fast"
+      ],
+      "image": {
+        "id": 390607,
+        "objectId": 1458878,
+        "slug": "nathan-smith-player-portrait",
+        "url": "/lsci/db/PICTURES/CMS/390600/390607.5.png",
+        "width": 160,
+        "height": 136,
+        "caption": "Nathan Smith, player portrait",
+        "longCaption": "Nathan Smith, player portrait",
+        "credit": "Getty Images",
+        "photographer": "Ryan Hiscott",
+        "peerUrls": null
+      },
+      "countryTeamId": 5,
+      "playerRoleTypeIds": [
+        11
+      ],
+      "playingRoles": [
+        "bowling allrounder"
+      ],
+      "headshotImage": null
+    },
+    "playerRoleType": "ALL_ROUNDER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 395,
+    "auctionedOrder": 834,
+    "basePrice": 7500000,
+    "soldPrice": null,
+    "isOverseas": true,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 108532,
+      "objectId": 1246531,
+      "name": "CH Gandhi",
+      "longName": "Chintal Gandhi",
+      "mobileName": "Gandhi",
+      "indexName": "Gandhi,CH",
+      "battingName": "CH Gandhi",
+      "fieldingName": "Gandhi",
+      "slug": "chintal-gandhi",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1994,
+        "month": 8,
+        "date": 25
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [
+        "lhb"
+      ],
+      "bowlingStyles": [
+        "lb"
+      ],
+      "longBattingStyles": [
+        "left-hand bat"
+      ],
+      "longBowlingStyles": [
+        "legbreak"
+      ],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 382,
+    "auctionedOrder": 831,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  },
+  {
+    "player": {
+      "id": 119535,
+      "objectId": 1472101,
+      "name": "Irfan Umair",
+      "longName": "Irfan Umair",
+      "mobileName": "",
+      "indexName": "Irfan Umair",
+      "battingName": "Irfan Umair",
+      "fieldingName": "Irfan Umair",
+      "slug": "irfan-umair",
+      "imageUrl": null,
+      "headshotImageUrl": null,
+      "dateOfBirth": {
+        "year": 1996,
+        "month": 7,
+        "date": 27
+      },
+      "dateOfDeath": null,
+      "gender": "M",
+      "battingStyles": [],
+      "bowlingStyles": [],
+      "longBattingStyles": [],
+      "longBowlingStyles": [],
+      "image": null,
+      "countryTeamId": 6,
+      "playerRoleTypeIds": [],
+      "playingRoles": [],
+      "headshotImage": null
+    },
+    "playerRoleType": "BOWLER",
+    "stateType": "UNSOLD",
+    "teamId": null,
+    "teamAbbr": null,
+    "priorityOrder": 377,
+    "auctionedOrder": 830,
+    "basePrice": 3000000,
+    "soldPrice": null,
+    "isOverseas": false,
+    "isRetained": false,
+    "isMtc": false,
+    "isTransferred": false
+  }
+]

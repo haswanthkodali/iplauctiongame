@@ -1550,6 +1550,8 @@
           return;
         }
 
+        const oldName = localStorage.getItem('ipl_user_name') || (StorageEngine?.currentUser?.userName) || '';
+
         // Save to localStorage
         localStorage.setItem('ipl_user_name', newName);
         localStorage.setItem('ipl_manager_name', newName);
@@ -1558,7 +1560,9 @@
         if (typeof StorageEngine !== 'undefined') {
           if (StorageEngine.currentUser) {
             StorageEngine.currentUser.userName = newName;
-            if (typeof StorageEngine.saveCurrentUser === 'function') StorageEngine.saveCurrentUser();
+            if (typeof StorageEngine.persistLocalUser === 'function') {
+              StorageEngine.persistLocalUser(StorageEngine.currentUser);
+            }
           }
           if (typeof StorageEngine.updateUserName === 'function') {
             await StorageEngine.updateUserName(newName);
@@ -1568,13 +1572,13 @@
         // Update active CurrentRoom if present
         if (window.CurrentRoom) {
           const myUserId = StorageEngine?.currentUser?.userId;
-          if (window.CurrentRoom.hostId === myUserId || !window.CurrentRoom.hostId) {
+          if (window.CurrentRoom.hostId === myUserId || !window.CurrentRoom.hostId || (oldName && window.CurrentRoom.hostName === oldName)) {
             window.CurrentRoom.hostName = newName;
           }
           if (window.CurrentRoom.players) {
             for (const t of Object.keys(window.CurrentRoom.players)) {
               const p = window.CurrentRoom.players[t];
-              if (p && (p.userId === myUserId || p.isHost)) {
+              if (p && (p.userId === myUserId || p.isHost || (oldName && p.userName === oldName) || t === AppState.userTeamId)) {
                 p.userName = newName;
               }
             }
@@ -1582,12 +1586,19 @@
           if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
             StorageEngine.saveRoom(window.CurrentRoom);
           }
+          if (typeof renderLobbyTeamsGrid === 'function') renderLobbyTeamsGrid(window.CurrentRoom);
+          if (typeof renderLobbyPlayersList === 'function') renderLobbyPlayersList(window.CurrentRoom);
         }
 
         // Update all UI displays
         const curUser = (StorageEngine && StorageEngine.currentUser) || { userName: newName };
         curUser.userName = newName;
         updateUserDisplay(curUser);
+        const headerName = document.getElementById('headerUserName');
+        if (headerName) headerName.textContent = newName;
+        const headerAvatar = document.getElementById('userAvatarLetter');
+        if (headerAvatar) headerAvatar.textContent = newName.charAt(0).toUpperCase();
+
         if (typeof updateTopBar === 'function') updateTopBar();
 
         // Sound & Visual Button Feedback
@@ -1603,6 +1614,8 @@
             btn.classList.add('bg-slate-800', 'text-amber-300');
           }, 2000);
         }
+
+        alert(`✅ Manager name updated to "${newName}"!`);
       };
     }
 
@@ -2011,14 +2024,21 @@
 
   function updateUserDisplay(user) {
     if (!user) return;
-    if (DOM.headerUserName) DOM.headerUserName.textContent = user.userName;
-    if (DOM.userAvatarLetter) DOM.userAvatarLetter.textContent = user.userName.charAt(0).toUpperCase();
-    if (DOM.modalUserName) DOM.modalUserName.textContent = user.userName;
-    if (DOM.modalUserAvatar) DOM.modalUserAvatar.textContent = user.userName.charAt(0).toUpperCase();
-    if (DOM.inputEditUserName) DOM.inputEditUserName.value = user.userName;
-    if (DOM.inputManagerPageName && (!DOM.inputManagerPageName.value || DOM.inputManagerPageName.value === 'Manager')) {
-      DOM.inputManagerPageName.value = user.userName;
-    }
+    const name = user.userName || 'Manager';
+    const firstLetter = name.charAt(0).toUpperCase() || 'M';
+
+    if (DOM.headerUserName) DOM.headerUserName.textContent = name;
+    const directHeader = document.getElementById('headerUserName');
+    if (directHeader) directHeader.textContent = name;
+
+    if (DOM.userAvatarLetter) DOM.userAvatarLetter.textContent = firstLetter;
+    const directAvatar = document.getElementById('userAvatarLetter');
+    if (directAvatar) directAvatar.textContent = firstLetter;
+
+    if (DOM.modalUserName) DOM.modalUserName.textContent = name;
+    if (DOM.modalUserAvatar) DOM.modalUserAvatar.textContent = firstLetter;
+    if (DOM.inputEditUserName) DOM.inputEditUserName.value = name;
+    if (DOM.inputManagerPageName) DOM.inputManagerPageName.value = name;
   }
 
   async function handleRename() {
@@ -2026,7 +2046,13 @@
     if (!newName) return;
     const res = await StorageEngine.updateUserName(newName);
     if (res.success) {
+      localStorage.setItem('ipl_user_name', newName);
+      localStorage.setItem('ipl_manager_name', newName);
       updateUserDisplay(res.user);
+      if (window.CurrentRoom) {
+        if (typeof renderLobbyTeamsGrid === 'function') renderLobbyTeamsGrid(window.CurrentRoom);
+        if (typeof renderLobbyPlayersList === 'function') renderLobbyPlayersList(window.CurrentRoom);
+      }
       AuctionAudio.playBidPaddle();
       alert(`Name successfully updated to "${newName}"!`);
       renderLeaderboard();
@@ -4517,9 +4543,29 @@
   }
 
   // Handle Joining Specific Room via Link or Code
-  function handleJoinSpecificRoom(roomId) {
+  async function handleJoinSpecificRoom(roomId) {
+    if (!roomId) return;
+    let cleanId = decodeURIComponent(String(roomId)).trim().toUpperCase();
+    if (cleanId.includes('?ROOMID=')) {
+      cleanId = cleanId.split('?ROOMID=')[1].split('&')[0];
+    } else if (cleanId.includes('?ROOM=')) {
+      cleanId = cleanId.split('?ROOM=')[1].split('&')[0];
+    }
+    if (/^\d{3,5}$/.test(cleanId)) {
+      cleanId = 'IPL-' + cleanId;
+    }
+
+    // 1. Fetch latest room state from cloud / server (vital for cross-device links!)
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.fetchRoomFromServer === 'function') {
+      try {
+        await StorageEngine.fetchRoomFromServer(cleanId);
+      } catch (err) {
+        console.warn('Could not fetch room from server:', err);
+      }
+    }
+
     const user = StorageEngine.currentUser || { userId: 'user_' + Date.now(), userName: localStorage.getItem('ipl_user_name') || 'Manager' };
-    const res = StorageEngine.joinRoom(roomId, AppState.userTeamId, user.userId, user.userName);
+    const res = StorageEngine.joinRoom(cleanId, AppState.userTeamId, user.userId, user.userName);
 
     if (!res.success) {
       if (res.reason === 'banned') {
@@ -4595,6 +4641,10 @@
     if (btnLeave) {
       btnLeave.onclick = () => {
         if (confirm('Are you sure you want to leave this auction room? Your franchise will be freed up for other players.')) {
+          if (window._lobbySyncInterval) {
+            clearInterval(window._lobbySyncInterval);
+            window._lobbySyncInterval = null;
+          }
           const myId = StorageEngine?.currentUser?.userId || 'me';
           if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.leaveRoom === 'function') {
             StorageEngine.leaveRoom(room.roomId, myId);
@@ -4620,9 +4670,21 @@
     const visBadge = document.getElementById('lobbyVisibilityBadge');
     if (visBadge) visBadge.textContent = room.visibility === 'PUBLIC' ? 'Public Room' : 'Private Room';
 
-    // Share link
+    // Share link (dynamic for both local Wi-Fi and online devices)
     const linkInput = document.getElementById('inputLobbyShareLink');
-    const joinUrl = `https://iplauctiongamehaswanthkodali88.workers.dev/?roomId=${room.roomId}`;
+    let joinUrl = '';
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.getPrivateRoomLink === 'function') {
+      joinUrl = StorageEngine.getPrivateRoomLink(room.roomId);
+    } else {
+      const host = window.location.hostname;
+      const isLocalhost = (!host || host === 'localhost' || host === '127.0.0.1' || host === '::1');
+      let baseOrigin = window.location.origin;
+      if (isLocalhost && StorageEngine?.networkInfo?.lan_ip) {
+        const port = window.location.port ? `:${window.location.port}` : (window.location.protocol === 'https:' ? ':8443' : ':8000');
+        baseOrigin = `${window.location.protocol}//${StorageEngine.networkInfo.lan_ip}${port}`;
+      }
+      joinUrl = `${baseOrigin}${window.location.pathname || '/'}?roomId=${encodeURIComponent(room.roomId)}`;
+    }
     if (linkInput) linkInput.value = joinUrl;
 
     const copyBtn = document.getElementById('btnCopyLobbyLink');
@@ -4690,6 +4752,99 @@
       if (waitingNotice) waitingNotice.classList.remove('hidden');
       if (editSettingsBtn) editSettingsBtn.classList.add('hidden');
     }
+
+    // Real-time synchronization interval for lobby (syncs players and detects auction start)
+    if (window._lobbySyncInterval) {
+      clearInterval(window._lobbySyncInterval);
+      window._lobbySyncInterval = null;
+    }
+
+    window._lobbySyncInterval = setInterval(async () => {
+      if (!window.CurrentRoom || !window.CurrentRoom.roomId) {
+        if (window._lobbySyncInterval) { clearInterval(window._lobbySyncInterval); window._lobbySyncInterval = null; }
+        return;
+      }
+      const curLobby = document.getElementById('roomLobbySection');
+      if (!curLobby || curLobby.classList.contains('hidden')) {
+        if (window._lobbySyncInterval) { clearInterval(window._lobbySyncInterval); window._lobbySyncInterval = null; }
+        return;
+      }
+
+      if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.fetchRoomFromServer === 'function') {
+        try {
+          const freshRoom = await StorageEngine.fetchRoomFromServer(window.CurrentRoom.roomId);
+          if (freshRoom) {
+            // Check if user was banned by host
+            const myUserId = StorageEngine?.currentUser?.userId;
+            if (freshRoom.banned && myUserId && freshRoom.banned.includes(myUserId)) {
+              if (window._lobbySyncInterval) { clearInterval(window._lobbySyncInterval); window._lobbySyncInterval = null; }
+              alert('🚫 You have been banned from this room by the host.');
+              window.CurrentRoom = null;
+              curLobby.classList.add('hidden');
+              window.switchTab('home');
+              return;
+            }
+
+            // Check if auction started by host
+            if (freshRoom.status === 'started' && !window.AuctionStarted) {
+              window.AuctionStarted = true;
+              window.CurrentRoom = freshRoom;
+              window.RoomRules = freshRoom.rules || window.RoomRules;
+              if (window._lobbySyncInterval) { clearInterval(window._lobbySyncInterval); window._lobbySyncInterval = null; }
+              window._lobbySyncInterval = null;
+
+              // Synchronize user team
+              const currentUser = StorageEngine?.currentUser;
+              const myId = currentUser?.userId;
+              const myUserName = (currentUser?.userName || localStorage.getItem('ipl_user_name') || '').trim().toLowerCase();
+              let myAssignedTeam = AppState.userTeamId;
+              if (freshRoom.players) {
+                for (const t of Object.keys(freshRoom.players)) {
+                  const p = freshRoom.players[t];
+                  const pName = (p && p.userName ? p.userName.trim().toLowerCase() : '');
+                  if (p && ((myId && p.userId === myId) || (myUserName && pName === myUserName))) {
+                    myAssignedTeam = t;
+                    break;
+                  }
+                }
+              }
+              AppState.userTeamId = myAssignedTeam;
+              AppState.selectedLandingTeamId = myAssignedTeam;
+              AppState.selectedPlaying11TeamId = myAssignedTeam;
+              AppState.selectedReviewTeamId = myAssignedTeam;
+              if (typeof Game !== 'undefined') {
+                if (typeof setAuctionMode === 'function') setAuctionMode(freshRoom.mode || 'MINI');
+                if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(myAssignedTeam);
+                else if (typeof Game.selectTeam === 'function') Game.selectTeam(myAssignedTeam);
+                if (Game.setBidDuration) Game.setBidDuration(window.RoomRules.timer || 10);
+                Game.startAuction();
+              }
+              if (typeof updateTopBar === 'function') updateTopBar();
+              window.switchTab('auction');
+              switchArenaTab('bidding');
+              AuctionAudio.playHammerHit();
+              return;
+            }
+
+            // Update local room reference & re-render lobby teams and players
+            window.CurrentRoom = freshRoom;
+            renderLobbyTeamsGrid(freshRoom);
+            renderLobbyPlayersList(freshRoom);
+
+            // Automatic Heartbeat: Keep current player active in cloud room every 7 seconds
+            if (!window._lastHeartbeat || (Date.now() - window._lastHeartbeat > 7000)) {
+              window._lastHeartbeat = Date.now();
+              const myUserId = StorageEngine?.currentUser?.userId;
+              if (myUserId && typeof StorageEngine.updatePlayerHeartbeat === 'function') {
+                StorageEngine.updatePlayerHeartbeat(freshRoom.roomId, myUserId);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[Lobby Sync] Fetch error:', e);
+        }
+      }
+    }, 2500);
   }
 
   // =========================================================================
@@ -4925,7 +5080,10 @@
 
     playerKeys.forEach(tId => {
       const p = players[tId];
-      const isOnline = p.isOnline !== false;
+      const now = Date.now();
+      const lastSeenTime = p.lastSeen ? (typeof p.lastSeen === 'number' ? p.lastSeen : new Date(p.lastSeen).getTime()) : 0;
+      const isStale = lastSeenTime > 0 && (now - lastSeenTime > 25000);
+      const isOnline = (p.isOnline !== false) && !isStale;
       const isHost = p.isHost || p.userId === room.hostId;
 
       const card = document.createElement('div');
@@ -4939,9 +5097,7 @@
               ${isHost ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-extrabold border border-amber-500/40">HOST</span>' : ''}
             </div>
             <div class="text-[10px] text-slate-400">Team: <strong class="text-amber-400">${tId}</strong> • 
-              <button class="btn-toggle-online cursor-pointer underline hover:text-white" title="Click to toggle Online/Offline status">
-                <span class="${isOnline ? 'text-emerald-400' : 'text-red-400'}">${isOnline ? '🟢 Online' : '🔴 Offline'}</span>
-              </button>
+              <span class="${isOnline ? 'text-emerald-400' : 'text-red-400'} font-medium">${isOnline ? '🟢 Online' : '🔴 Offline'}</span>
             </div>
           </div>
         </div>
@@ -4958,21 +5114,6 @@
           ` : ''}
         </div>
       `;
-
-      // Allow clicking the status to toggle online/offline for testing
-      const toggleBtn = card.querySelector('.btn-toggle-online');
-      if (toggleBtn) {
-        toggleBtn.onclick = () => {
-          const newStatus = !isOnline;
-          if (typeof StorageEngine.setPlayerOnlineStatus === 'function') {
-            const res = StorageEngine.setPlayerOnlineStatus(room.roomId, p.userId, newStatus);
-            if (res.success) {
-              window.CurrentRoom = res.room;
-              renderLobbyPlayersList(res.room);
-            }
-          }
-        };
-      }
 
       // Kick offline player handler -> frees up team back to available
       const kickBtn = card.querySelector('.btn-kick-offline');
@@ -5032,6 +5173,10 @@
 
     if (btnStart) {
       btnStart.onclick = () => {
+        if (!room.players || Object.keys(room.players).length < 2) {
+          alert('At least 2 players must join before the auction can start.');
+          return;
+        }
         // Ensure user's team in Game matches room team!
         let activeTeam = room.hostTeam;
         const myId = StorageEngine?.currentUser?.userId;
@@ -5065,6 +5210,12 @@
 
           if (Game.setBidDuration) Game.setBidDuration(window.RoomRules.timer || 10);
           Game.startAuction();
+        }
+
+        // Stop lobby sync interval as auction has now begun
+        if (window._lobbySyncInterval) {
+          clearInterval(window._lobbySyncInterval);
+          window._lobbySyncInterval = null;
         }
 
         // ── LOCK SETTINGS: Hide settings editor after auction starts ──
@@ -5212,7 +5363,7 @@
     // Confirm Create Room
     const btnConfirm = document.getElementById('btnConfirmCreateRoom');
     if (btnConfirm) {
-      btnConfirm.onclick = () => {
+      btnConfirm.onclick = async () => {
         createConfig.maxBidAmount = Number(document.getElementById('selectMaxBidAmount')?.value) || 25;
         createConfig.exceedThreshold = Number(document.getElementById('selectExceedAmount')?.value) || 15;
         createConfig.exceedMaxPlayers = Number(document.getElementById('selectExceedPlayersCount')?.value) || 3;
@@ -5236,7 +5387,7 @@
           StorageEngine.updateUserTeam(chosenTeam);
         }
 
-        const room = StorageEngine.createAuctionRoom(createConfig);
+        const room = await StorageEngine.createAuctionRoom(createConfig);
         if (modalCreate) modalCreate.classList.add('hidden');
 
         window.CurrentRoom = room;
@@ -5262,7 +5413,7 @@
       btnCloseJoin.onclick = () => modalJoin.classList.add('hidden');
     }
     if (btnConfirmJoin && inputJoinCode) {
-      btnConfirmJoin.onclick = () => {
+      btnConfirmJoin.onclick = async () => {
         let code = inputJoinCode.value.trim();
         if (!code) {
           alert('Please enter a room code or link.');
@@ -5273,8 +5424,20 @@
         } else if (code.includes('?room=')) {
           code = code.split('?room=')[1].split('&')[0];
         }
-        if (modalJoin) modalJoin.classList.add('hidden');
-        handleJoinSpecificRoom(code);
+        code = decodeURIComponent(code).trim().toUpperCase();
+        if (/^\d{3,5}$/.test(code)) {
+          code = 'IPL-' + code;
+        }
+        const prevText = btnConfirmJoin.textContent;
+        btnConfirmJoin.textContent = 'Joining...';
+        btnConfirmJoin.disabled = true;
+        try {
+          await handleJoinSpecificRoom(code);
+          if (modalJoin) modalJoin.classList.add('hidden');
+        } finally {
+          btnConfirmJoin.textContent = prevText;
+          btnConfirmJoin.disabled = false;
+        }
       };
     }
 
@@ -5322,9 +5485,17 @@
   }
 
   // Render Public Rooms List
-  function renderPublicRoomsList() {
+  async function renderPublicRoomsList() {
     const grid = document.getElementById('publicRoomsGrid');
     if (!grid) return;
+
+    // Fetch latest active public rooms from server for cross-device visibility
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.fetchPublicRoomsFromServer === 'function') {
+      try {
+        await StorageEngine.fetchPublicRoomsFromServer();
+      } catch (e) {}
+    }
+
     grid.innerHTML = '';
 
     const rooms = StorageEngine.getPublicRooms();
@@ -5357,8 +5528,17 @@
         </div>
       `;
 
-      card.querySelector('.btn-join-public-room').onclick = () => {
-        handleJoinSpecificRoom(room.roomId);
+      card.querySelector('.btn-join-public-room').onclick = async (e) => {
+        const btn = e.currentTarget;
+        const prevText = btn.textContent;
+        btn.textContent = 'Joining...';
+        btn.disabled = true;
+        try {
+          await handleJoinSpecificRoom(room.roomId);
+        } finally {
+          btn.textContent = prevText;
+          btn.disabled = false;
+        }
       };
 
       grid.appendChild(card);
@@ -6209,5 +6389,14 @@
     }
   }
 
+
+  // When player leaves or closes tab, mark them offline in room
+  window.addEventListener('beforeunload', () => {
+    try {
+      if (window.CurrentRoom && StorageEngine?.currentUser?.userId) {
+        StorageEngine.setPlayerOnlineStatus(window.CurrentRoom.roomId, StorageEngine.currentUser.userId, false);
+      }
+    } catch (e) {}
+  });
 
 })();

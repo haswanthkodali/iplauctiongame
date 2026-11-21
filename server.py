@@ -36,7 +36,7 @@ def get_lan_ip():
         s.close()
         return ip
     except Exception:
-        return "10.33.5.86"
+        return "10.226.78.86"
 
 # Initialize persistent data structure
 def load_db():
@@ -141,9 +141,12 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(200, {
                 "success": True,
                 "lanIp": lan_ip,
-                "port": 8443,
-                "localhostUrl": "https://localhost:8443",
-                "privateLanUrl": f"https://{lan_ip}:8443"
+                "lan_ip": lan_ip,
+                "port": 8000,
+                "https_port": 8443,
+                "localhostUrl": "http://localhost:8000",
+                "privateLanUrl": f"http://{lan_ip}:8000",
+                "securePrivateLanUrl": f"https://{lan_ip}:8443"
             })
             return
 
@@ -153,16 +156,10 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
             query = urllib.parse.parse_qs(parsed.query)
             room_id = query.get('roomId', ['default'])[0].strip().upper()
             rooms = db.setdefault("multiplayer_rooms", {})
-            if room_id not in rooms:
-                rooms[room_id] = {
-                    "roomId": room_id,
-                    "mode": "MEGA",
-                    "pin": None,
-                    "humanManagers": {},
-                    "lastUpdated": datetime.now().isoformat()
-                }
-                save_db(db)
-            self._send_json(200, {"success": True, "room": rooms[room_id]})
+            if room_id in rooms:
+                self._send_json(200, {"success": True, "room": rooms[room_id]})
+            else:
+                self._send_json(404, {"success": False, "error": "Room not found", "roomId": room_id})
             return
 
         # Fallback to static files (support /auction rewrite)
@@ -252,23 +249,31 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(200, {"success": True, "user": user})
             return
 
-        # API: Multiplayer - Create Private Room
-        if path == '/api/multiplayer/room/create':
-            raw_id = (body.get('roomId') or f"ROOM_{int(datetime.now().timestamp()) % 100000}").strip().upper()
+        # API: Multiplayer - Create or Save Room State
+        if path in ['/api/multiplayer/room/create', '/api/multiplayer/room/save']:
+            raw_id = (body.get('roomId') or f"IPL_{int(datetime.now().timestamp()) % 100000}").strip().upper()
             pin = (body.get('pin') or '').strip()
             db = load_db()
             rooms = db.setdefault("multiplayer_rooms", {})
+            existing = rooms.get(raw_id, {})
             rooms[raw_id] = {
                 "roomId": raw_id,
-                "roomName": body.get('roomName', f"Private Room {raw_id}"),
-                "pin": pin if pin else None,
-                "mode": body.get('mode', 'MEGA'),
-                "humanManagers": {},
-                "createdAt": datetime.now().isoformat(),
+                "roomName": body.get('roomName', existing.get('roomName', f"Auction Room {raw_id}")),
+                "pin": pin if pin else existing.get('pin', None),
+                "mode": body.get('mode', existing.get('mode', 'MINI')),
+                "visibility": body.get('visibility', existing.get('visibility', 'PUBLIC')),
+                "hostId": body.get('hostId', existing.get('hostId')),
+                "hostName": body.get('hostName', existing.get('hostName')),
+                "hostTeam": body.get('hostTeam', existing.get('hostTeam')),
+                "rules": body.get('rules', existing.get('rules', {})),
+                "players": body.get('players', existing.get('players', {})),
+                "banned": body.get('banned', existing.get('banned', [])),
+                "status": body.get('status', existing.get('status', 'waiting')),
+                "createdAt": existing.get('createdAt', body.get('createdAt', datetime.now().isoformat())),
                 "lastUpdated": datetime.now().isoformat()
             }
             save_db(db)
-            self._send_json(201, {"success": True, "room": rooms[raw_id]})
+            self._send_json(200, {"success": True, "room": rooms[raw_id]})
             return
 
         # API: Multiplayer - Assign human manager to team

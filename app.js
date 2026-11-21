@@ -251,6 +251,16 @@
     DOM.btnProceedToPlaying11Turf = document.getElementById('btnProceedToPlaying11Turf');
     DOM.btnViewFinalLeaderboard = document.getElementById('btnViewFinalLeaderboard');
 
+    // Manager & Team Page Elements
+    DOM.inputManagerPageName = document.getElementById('inputManagerPageName');
+    DOM.btnSaveManagerPageNameOnly = document.getElementById('btnSaveManagerPageNameOnly');
+    DOM.managerPageTeamsGrid = document.getElementById('managerPageTeamsGrid');
+    DOM.managerPageSelectedLogo = document.getElementById('managerPageSelectedLogo');
+    DOM.managerPageSelectedTeamName = document.getElementById('managerPageSelectedTeamName');
+    DOM.managerPageSelectedPurse = document.getElementById('managerPageSelectedPurse');
+    DOM.btnSaveManagerSetupAll = document.getElementById('btnSaveManagerSetupAll');
+    DOM.btnSaveAndEnterAuction = document.getElementById('btnSaveAndEnterAuction');
+
     // Interactive Playing 11 Builder Elements
     DOM.btnAutoFillXI = document.getElementById('btnAutoFillXI');
     DOM.btnClearUserXI = document.getElementById('btnClearUserXI');
@@ -281,7 +291,62 @@
     DOM.chatBadgeCount = document.getElementById('chatBadgeCount');
     DOM.chatTabBadge = document.getElementById('chatTabBadge');
     DOM.purchasedTabBadge = document.getElementById('purchasedTabBadge');
-    DOM.floatingChatBadge = document.getElementById('floatingChatBadge');
+        DOM.floatingChatBadge = document.getElementById('floatingChatBadge');
+
+    // AI Bidding Select & Team Squad Export Elements
+    DOM.selectAiBiddingMode = document.getElementById('selectAiBiddingMode');
+    DOM.aiBiddingModeHint = document.getElementById('aiBiddingModeHint');
+    DOM.btnOpenExportRoster = document.getElementById('btnOpenExportRoster');
+    DOM.btnShareRoomWhatsApp = document.getElementById('btnShareRoomWhatsApp');
+    DOM.btnShareRoomNative = document.getElementById('btnShareRoomNative');
+
+    DOM.teamSquadExportModal = document.getElementById('teamSquadExportModal');
+    DOM.exportModalTeamLogo = document.getElementById('exportModalTeamLogo');
+    DOM.exportModalTeamName = document.getElementById('exportModalTeamName');
+    DOM.exportModalManagerBadge = document.getElementById('exportModalManagerBadge');
+    DOM.btnCloseExportModal = document.getElementById('btnCloseExportModal');
+    DOM.exportModalTeamTabs = document.getElementById('exportModalTeamTabs');
+    DOM.exportModalTotalSpent = document.getElementById('exportModalTotalSpent');
+    DOM.exportModalRemainingPurse = document.getElementById('exportModalRemainingPurse');
+    DOM.exportModalSquadCount = document.getElementById('exportModalSquadCount');
+    DOM.exportModalOverseasCount = document.getElementById('exportModalOverseasCount');
+    DOM.exportModalCategoriesContainer = document.getElementById('exportModalCategoriesContainer');
+
+    DOM.btnDownloadSquadCSV = document.getElementById('btnDownloadSquadCSV');
+    DOM.btnDownloadSquadTXT = document.getElementById('btnDownloadSquadTXT');
+    DOM.btnShareSquadWhatsApp = document.getElementById('btnShareSquadWhatsApp');
+    DOM.btnCopySquadText = document.getElementById('btnCopySquadText');
+    DOM.btnShareSquadNative = document.getElementById('btnShareSquadNative');
+  }
+
+  // =========================================================================
+  // PERSISTENCE HELPERS (Full App State & Chat Sync)
+  // =========================================================================
+  function saveAppState() {
+    try {
+      const snap = {
+        currentTab: AppState.currentTab || 'home',
+        ratingMode: AppState.ratingMode || 'normal',
+        selectedPlaying11TeamId: AppState.selectedPlaying11TeamId || (typeof Game !== 'undefined' && Game.getState ? Game.getState().userTeamId : 'RCB'),
+        selectedReviewTeamId: AppState.selectedReviewTeamId || (typeof Game !== 'undefined' && Game.getState ? Game.getState().userTeamId : 'RCB'),
+        selectedLandingTeamId: AppState.selectedLandingTeamId || 'RCB',
+        auctionMode: AppState.auctionMode || 'MINI',
+        poolSize: AppState.poolSize || 'quick',
+        userTeamRatings: AppState.userTeamRatings || {},
+        userPlayingXI: AppState.userPlayingXI || {},
+        savedAt: Date.now()
+      };
+      localStorage.setItem('ipl_auction_app_state', JSON.stringify(snap));
+    } catch (e) {}
+  }
+
+  function saveChatMessages() {
+    try {
+      if (typeof ChatState !== 'undefined' && Array.isArray(ChatState.messages)) {
+        const recent = ChatState.messages.slice(-50);
+        localStorage.setItem('ipl_auction_chat_msgs', JSON.stringify(recent));
+      }
+    } catch (e) {}
   }
 
   // =========================================================================
@@ -292,6 +357,58 @@
     cacheDOMElements();
     setupEventListeners();
 
+    // ---- TRY RESTORE SAVED AUCTION SESSION ----
+    const savedState = Game.getSavedState();
+    if (savedState && savedState.phase && savedState.phase !== 'home') {
+      const restored = Game.restoreGameState();
+      if (restored) {
+        // Restore AppState from localStorage
+        try {
+          const savedAppState = localStorage.getItem('ipl_auction_app_state');
+          if (savedAppState) {
+            const snap = JSON.parse(savedAppState);
+            AppState.currentTab = snap.currentTab || 'auction';
+            AppState.ratingMode = snap.ratingMode || 'normal';
+            AppState.selectedPlaying11TeamId = snap.selectedPlaying11TeamId || Game.getState().userTeamId || 'RCB';
+            AppState.selectedReviewTeamId = snap.selectedReviewTeamId || Game.getState().userTeamId || 'RCB';
+            AppState.selectedLandingTeamId = snap.selectedLandingTeamId || Game.getState().userTeamId || 'RCB';
+            AppState.auctionMode = snap.auctionMode || Game.getState().auctionMode || 'MINI';
+            AppState.poolSize = snap.poolSize || 'quick';
+            AppState.userTeamRatings = snap.userTeamRatings || {};
+            if (snap.userPlayingXI) AppState.userPlayingXI = snap.userPlayingXI;
+          }
+        } catch (e) {}
+
+        // Restore chat messages
+        try {
+          const savedChat = localStorage.getItem('ipl_auction_chat_msgs');
+          if (savedChat && typeof ChatState !== 'undefined') {
+            ChatState.messages = JSON.parse(savedChat) || [];
+          }
+        } catch (e) {}
+
+        populateTeamSelects();
+        populateCatalogSetFilter();
+        initUserSession();
+        renderLandingPage();
+        renderAllViews();
+        wireNewFeatures();
+        renderMultiplayerPaddles();
+        if (typeof renderManagerPageView === 'function') renderManagerPageView();
+
+        // Switch to saved tab (auction or results)
+        switchTab(AppState.currentTab);
+
+        // Show restore banner
+        if (DOM.auctioneerCommentary) {
+          DOM.auctioneerCommentary.textContent = '🔄 Session restored! Click Resume ▶️ to continue your auction.';
+        }
+        console.log('[IPL Auction] ✅ Session restored from save');
+        return;
+      }
+    }
+
+    // ---- FRESH START (no saved session) ----
     // Initialize game with default MINI mode and RCB
     Game.initGame({
       auctionMode: AppState.auctionMode,
@@ -306,11 +423,14 @@
     // Initialize user session & persistent server data
     initUserSession();
 
-    // Initial render
+    // Initial render & restore past history
     renderLandingPage();
     renderAllViews();
     wireNewFeatures();
     renderMultiplayerPaddles();
+    if (typeof renderHomeAuctionHistory === 'function') renderHomeAuctionHistory();
+    if (typeof renderPublicRoomsList === 'function') renderPublicRoomsList();
+    if (typeof renderManagerPageView === 'function') renderManagerPageView();
 
     // Ensure mode badge reflects Mini mode initially
     if (DOM.auctionModeBadge) {
@@ -356,79 +476,101 @@
     });
 
     // Audio Toggle
-    DOM.btnAudioToggle.addEventListener('click', () => {
-      const isMuted = AuctionAudio.toggleMute();
-      DOM.audioIcon.textContent = isMuted ? '🔇' : '🔊';
-      if (!isMuted) AuctionAudio.playBidPaddle();
-    });
+    if (DOM.btnAudioToggle) {
+      DOM.btnAudioToggle.addEventListener('click', () => {
+        const isMuted = AuctionAudio.toggleMute();
+        DOM.audioIcon.textContent = isMuted ? '🔇' : '🔊';
+        if (!isMuted) AuctionAudio.playBidPaddle();
+      });
+    }
 
     // Pause / Resume Toggle
-    DOM.btnPauseResume.addEventListener('click', () => {
-      const state = Game.getState();
-      if (state.isPaused) {
-        Game.resumeGame();
-        AuctionAudio.playBidPaddle();
-      } else {
-        Game.pauseGame();
-        AuctionAudio.playHammerStrike(0.6);
-        openScoutModal();
-      }
-    });
+    if (DOM.btnPauseResume) {
+      DOM.btnPauseResume.addEventListener('click', () => {
+        const state = Game.getState();
+        if (state.isPaused) {
+          Game.resumeGame();
+          AuctionAudio.playBidPaddle();
+        } else {
+          Game.pauseGame();
+          AuctionAudio.playHammerStrike(0.6);
+          openScoutModal();
+        }
+      });
+    }
 
     // Open Scout Modal Button
-    DOM.btnOpenScoutModal.addEventListener('click', () => {
-      Game.pauseGame();
-      openScoutModal();
-    });
+    if (DOM.btnOpenScoutModal) {
+      DOM.btnOpenScoutModal.addEventListener('click', () => {
+        Game.pauseGame();
+        openScoutModal();
+      });
+    }
 
-    DOM.btnCloseScoutModal.addEventListener('click', () => {
-      DOM.scoutModal.classList.add('hidden');
-    });
+    if (DOM.btnCloseScoutModal) {
+      DOM.btnCloseScoutModal.addEventListener('click', () => {
+        DOM.scoutModal.classList.add('hidden');
+      });
+    }
 
-    DOM.btnModalResumeAuction.addEventListener('click', () => {
-      DOM.scoutModal.classList.add('hidden');
-      Game.resumeGame();
-    });
+    if (DOM.btnModalResumeAuction) {
+      DOM.btnModalResumeAuction.addEventListener('click', () => {
+        DOM.scoutModal.classList.add('hidden');
+        Game.resumeGame();
+      });
+    }
 
     // Mode Toggle Button
-    DOM.btnModeToggle.addEventListener('click', () => {
-      Game.pauseGame();
-      DOM.modeSelectModal.classList.remove('hidden');
-    });
+    if (DOM.btnModeToggle) {
+      DOM.btnModeToggle.addEventListener('click', () => {
+        Game.pauseGame();
+        if (DOM.modeSelectModal) DOM.modeSelectModal.classList.remove('hidden');
+      });
+    }
 
-    DOM.btnCloseModeModal.addEventListener('click', () => {
-      DOM.modeSelectModal.classList.add('hidden');
-      Game.resumeGame();
-    });
+    if (DOM.btnCloseModeModal) {
+      DOM.btnCloseModeModal.addEventListener('click', () => {
+        if (DOM.modeSelectModal) DOM.modeSelectModal.classList.add('hidden');
+        Game.resumeGame();
+      });
+    }
 
-    DOM.btnChooseMega.addEventListener('click', () => {
-      switchAuctionMode('MEGA');
-    });
+    if (DOM.btnChooseMega) {
+      DOM.btnChooseMega.addEventListener('click', () => {
+        switchAuctionMode('MEGA');
+      });
+    }
 
-    DOM.btnChooseMini.addEventListener('click', () => {
-      switchAuctionMode('MINI');
-    });
+    if (DOM.btnChooseMini) {
+      DOM.btnChooseMini.addEventListener('click', () => {
+        switchAuctionMode('MINI');
+      });
+    }
 
     // Bidding Action Buttons
-    DOM.btnUserBid.addEventListener('click', () => {
-      const state = Game.getState();
-      if (state.phase !== 'auction' || state.isPaused) return;
+    if (DOM.btnUserBid) {
+      DOM.btnUserBid.addEventListener('click', () => {
+        const state = Game.getState();
+        if (state.phase !== 'auction' || state.isPaused) return;
 
-      const userTeam = Game.getUserTeam();
-      if (userTeam) {
-        const success = Game.placeBid(userTeam.id);
-        if (success) {
-          triggerBidEffects(userTeam.id);
-          updateTopBar();
-          updateAuctionArena();
+        const userTeam = Game.getUserTeam();
+        if (userTeam) {
+          const success = Game.placeBid(userTeam.id);
+          if (success) {
+            triggerBidEffects(userTeam.id);
+            updateTopBar();
+            updateAuctionArena();
+          }
         }
-      }
-    });
+      });
+    }
 
-    DOM.btnPassPlayer.addEventListener('click', () => {
-      AuctionAudio.playHammerStrike(0.5);
-      Game.passPlayer();
-    });
+    if (DOM.btnPassPlayer) {
+      DOM.btnPassPlayer.addEventListener('click', () => {
+        AuctionAudio.playHammerStrike(0.5);
+        Game.passPlayer();
+      });
+    }
 
     // Quick Raise Buttons (+1 Cr, +0.5 Cr, etc.)
     DOM.quickRaiseButtons.forEach(btn => {
@@ -452,38 +594,48 @@
 
     // Auto-Bid Toggle (Guarded)
     if (DOM.chkAutoBid) {
-      DOM.chkAutoBid.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          AuctionAudio.playBidPaddle();
-        }
-      });
+      if (DOM.chkAutoBid) {
+        DOM.chkAutoBid.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            AuctionAudio.playBidPaddle();
+          }
+        });
+      }
     }
 
     // Playing 11 Team Select
-    DOM.selectPlaying11Team.addEventListener('change', (e) => {
-      AppState.selectedPlaying11TeamId = e.target.value;
-      renderPlaying11View();
-    });
+    if (DOM.selectPlaying11Team) {
+      DOM.selectPlaying11Team.addEventListener('change', (e) => {
+        AppState.selectedPlaying11TeamId = e.target.value;
+        renderPlaying11View();
+      });
+    }
 
     // User Review Team Select
-    DOM.userReviewTeamSelect.addEventListener('change', (e) => {
-      AppState.selectedReviewTeamId = e.target.value;
-      renderUserReviewCard();
-    });
+    if (DOM.userReviewTeamSelect) {
+      DOM.userReviewTeamSelect.addEventListener('change', (e) => {
+        AppState.selectedReviewTeamId = e.target.value;
+        renderUserReviewCard();
+      });
+    }
 
     // Ratings Mode Switcher
-    DOM.btnRatingModeNormal.addEventListener('click', () => {
-      setRatingMode('normal');
-    });
-    DOM.btnRatingModeUser.addEventListener('click', () => {
-      setRatingMode('user');
-    });
+    if (DOM.btnRatingModeNormal) {
+      DOM.btnRatingModeNormal.addEventListener('click', () => {
+        setRatingMode('normal');
+      });
+    }
+    if (DOM.btnRatingModeUser) {
+      DOM.btnRatingModeUser.addEventListener('click', () => {
+        setRatingMode('user');
+      });
+    }
 
     // Catalog Filters
-    DOM.catalogSearchInput.addEventListener('input', renderCatalogGrid);
-    DOM.catalogSetFilter.addEventListener('change', renderCatalogGrid);
-    DOM.catalogRoleFilter.addEventListener('change', renderCatalogGrid);
-    DOM.catalogOverseasFilter.addEventListener('change', renderCatalogGrid);
+    if (DOM.catalogSearchInput) DOM.catalogSearchInput.addEventListener('input', renderCatalogGrid);
+    if (DOM.catalogSetFilter) DOM.catalogSetFilter.addEventListener('change', renderCatalogGrid);
+    if (DOM.catalogRoleFilter) DOM.catalogRoleFilter.addEventListener('change', renderCatalogGrid);
+    if (DOM.catalogOverseasFilter) DOM.catalogOverseasFilter.addEventListener('change', renderCatalogGrid);
 
     // Reshuffle Pool Button
     if (DOM.btnShufflePool) {
@@ -494,41 +646,55 @@
 
     // Landing Page Mode Selectors
     if (DOM.cardModeMini && DOM.cardModeMega) {
-      DOM.cardModeMini.addEventListener('click', () => {
-        setAuctionMode('MINI');
-      });
-      DOM.cardModeMega.addEventListener('click', () => {
-        setAuctionMode('MEGA');
-      });
+      if (DOM.cardModeMini) {
+        DOM.cardModeMini.addEventListener('click', () => {
+          setAuctionMode('MINI');
+        });
+      }
+      if (DOM.cardModeMega) {
+        DOM.cardModeMega.addEventListener('click', () => {
+          setAuctionMode('MEGA');
+        });
+      }
     }
 
     // Landing Pool Size Selectors
     if (DOM.btnPoolQuick && DOM.btnPoolFull) {
-      DOM.btnPoolQuick.addEventListener('click', () => {
-        setPoolSize('quick');
-      });
-      DOM.btnPoolFull.addEventListener('click', () => {
-        setPoolSize('full');
-      });
+      if (DOM.btnPoolQuick) {
+        DOM.btnPoolQuick.addEventListener('click', () => {
+          setPoolSize('quick');
+        });
+      }
+      if (DOM.btnPoolFull) {
+        DOM.btnPoolFull.addEventListener('click', () => {
+          setPoolSize('full');
+        });
+      }
     }
 
     // Random Team Pick
     if (DOM.btnRandomTeamLanding) {
-      DOM.btnRandomTeamLanding.addEventListener('click', () => {
-        pickRandomLandingTeam();
-      });
+      if (DOM.btnRandomTeamLanding) {
+        DOM.btnRandomTeamLanding.addEventListener('click', () => {
+          pickRandomLandingTeam();
+        });
+      }
     }
 
     // Launch Auction from Landing Page
     if (DOM.btnEnterAuctionRoom) {
-      DOM.btnEnterAuctionRoom.addEventListener('click', () => {
-        startAuctionFromLanding();
-      });
+      if (DOM.btnEnterAuctionRoom) {
+        DOM.btnEnterAuctionRoom.addEventListener('click', () => {
+          startAuctionFromLanding();
+        });
+      }
     }
     if (DOM.btnStartAuctionHero) {
-      DOM.btnStartAuctionHero.addEventListener('click', () => {
-        startAuctionFromLanding();
-      });
+      if (DOM.btnStartAuctionHero) {
+        DOM.btnStartAuctionHero.addEventListener('click', () => {
+          startAuctionFromLanding();
+        });
+      }
     }
 
     // Power Jump Button (+1.0 Cr jump bid)
@@ -592,29 +758,39 @@
 
     // Supabase Cloud Configuration Modal
     if (DOM.btnOpenSupabaseModal) {
-      DOM.btnOpenSupabaseModal.addEventListener('click', () => {
-        openSupabaseConfigModal();
-      });
+      if (DOM.btnOpenSupabaseModal) {
+        DOM.btnOpenSupabaseModal.addEventListener('click', () => {
+          openSupabaseConfigModal();
+        });
+      }
     }
     if (DOM.btnCloseSupabaseModal) {
-      DOM.btnCloseSupabaseModal.addEventListener('click', () => {
-        DOM.supabaseConfigModal.classList.add('hidden');
-      });
+      if (DOM.btnCloseSupabaseModal) {
+        DOM.btnCloseSupabaseModal.addEventListener('click', () => {
+          if (DOM.supabaseConfigModal) DOM.supabaseConfigModal.classList.add('hidden');
+        });
+      }
     }
     if (DOM.btnCloseSupabaseModal2) {
-      DOM.btnCloseSupabaseModal2.addEventListener('click', () => {
-        DOM.supabaseConfigModal.classList.add('hidden');
-      });
+      if (DOM.btnCloseSupabaseModal2) {
+        DOM.btnCloseSupabaseModal2.addEventListener('click', () => {
+          if (DOM.supabaseConfigModal) DOM.supabaseConfigModal.classList.add('hidden');
+        });
+      }
     }
     if (DOM.btnSaveSupabaseConfig) {
-      DOM.btnSaveSupabaseConfig.addEventListener('click', () => {
-        saveSupabaseConfig();
-      });
+      if (DOM.btnSaveSupabaseConfig) {
+        DOM.btnSaveSupabaseConfig.addEventListener('click', () => {
+          saveSupabaseConfig();
+        });
+      }
     }
     if (DOM.btnClearSupabaseConfig) {
-      DOM.btnClearSupabaseConfig.addEventListener('click', () => {
-        clearSupabaseConfig();
-      });
+      if (DOM.btnClearSupabaseConfig) {
+        DOM.btnClearSupabaseConfig.addEventListener('click', () => {
+          clearSupabaseConfig();
+        });
+      }
     }
 
     // User Profile & Relogin Modal Controls
@@ -631,9 +807,11 @@
     }
 
     if (DOM.btnExecuteRelogin) {
-      DOM.btnExecuteRelogin.addEventListener('click', () => {
-        handleRelogin();
-      });
+      if (DOM.btnExecuteRelogin) {
+        DOM.btnExecuteRelogin.addEventListener('click', () => {
+          handleRelogin();
+        });
+      }
     }
 
     if (DOM.btnCloseProfileModal) {
@@ -665,45 +843,58 @@
 
     // Multiplayer Lobby Modal Controls
     if (DOM.btnMultiplayerLobby) {
-      DOM.btnMultiplayerLobby.addEventListener('click', () => {
-        openMultiplayerModal();
-      });
+      if (DOM.btnMultiplayerLobby) {
+        DOM.btnMultiplayerLobby.addEventListener('click', () => {
+          openMultiplayerModal();
+        });
+      }
     }
 
     if (DOM.btnPrivateLinkHeader) {
-      DOM.btnPrivateLinkHeader.addEventListener('click', () => {
-        openMultiplayerModal();
-      });
+      if (DOM.btnPrivateLinkHeader) {
+        DOM.btnPrivateLinkHeader.addEventListener('click', () => {
+          openMultiplayerModal();
+        });
+      }
     }
 
     if (DOM.btnCopyPrivateLink) {
-      DOM.btnCopyPrivateLink.addEventListener('click', () => {
-        copyPrivateLinkToClipboard();
-      });
+      if (DOM.btnCopyPrivateLink) {
+        DOM.btnCopyPrivateLink.addEventListener('click', () => {
+          copyPrivateLinkToClipboard();
+        });
+      }
     }
 
     if (DOM.btnCreateNewRoom) {
-      DOM.btnCreateNewRoom.addEventListener('click', () => {
-        handleCreateNewRoom();
-      });
+      if (DOM.btnCreateNewRoom) {
+        DOM.btnCreateNewRoom.addEventListener('click', () => {
+          handleCreateNewRoom();
+        });
+      }
     }
 
     if (DOM.btnCloseMultiplayerModal) {
-      DOM.btnCloseMultiplayerModal.addEventListener('click', () => {
-        DOM.multiplayerModal.classList.add('hidden');
-      });
+      if (DOM.btnCloseMultiplayerModal) {
+        DOM.btnCloseMultiplayerModal.addEventListener('click', () => {
+          if (DOM.multiplayerModal) DOM.multiplayerModal.classList.add('hidden');
+        });
+      }
     }
 
     if (DOM.btnSaveMultiplayerRoom) {
-      DOM.btnSaveMultiplayerRoom.addEventListener('click', () => {
-        saveMultiplayerRoom();
-      });
+      if (DOM.btnSaveMultiplayerRoom) {
+        DOM.btnSaveMultiplayerRoom.addEventListener('click', () => {
+          saveMultiplayerRoom();
+        });
+      }
     }
 
     // GAME ENGINE REACTIVE EVENT SUBSCRIPTIONS
     Game.on('stateChange', () => {
       updateTopBar();
       updateAuctionArena();
+      saveAppState();
     });
 
     Game.on('timerTick', ({ timeLeft }) => {
@@ -756,9 +947,37 @@
           },
           AppState.userTeamRatings[userTeam.id] || null
         );
+
+        AppState.selectedPlaying11TeamId = userTeam.id;
+        AppState.selectedReviewTeamId = userTeam.id;
+        if (DOM.selectPlaying11Team) DOM.selectPlaying11Team.value = userTeam.id;
+        if (DOM.userReviewTeamSelect) DOM.userReviewTeamSelect.value = userTeam.id;
+
+        // Auto-fill XI if empty
+        const xi = getUserXIForTeam(userTeam.id);
+        if (xi.every(slot => slot === null) && userTeam.players && userTeam.players.length > 0) {
+          const playerStatsDB = window.PLAYER_STATS || {};
+          const bestXI = RatingEngine.selectBestXI(userTeam.players, playerStatsDB);
+          if (bestXI && bestXI.xi) {
+            bestXI.xi.forEach((slot, idx) => {
+              if (slot.player) xi[idx] = slot.player;
+            });
+          }
+        }
       }
-      switchTab('ratings');
+
+      saveAppState();
+
+      // Switch to playing 11 and open evaluation modal so user can pick players
+      switchTab('playing11');
+      if (DOM.endAuctionModal) {
+        renderEndAuctionEvaluation();
+        DOM.endAuctionModal.classList.remove('hidden');
+      }
     });
+
+    // Manager & Team Page Listeners
+    setupManagerPageEventListeners();
   }
 
   // =========================================================================
@@ -788,22 +1007,24 @@
     });
 
     // Render corresponding view
+    if (tabKey === 'manager') renderManagerPageView();
     if (tabKey === 'playing11') renderPlaying11View();
     if (tabKey === 'franchises') renderFranchisesView();
     if (tabKey === 'catalog') renderCatalogGrid();
     if (tabKey === 'ratings') renderRatingsView();
+    saveAppState();
   }
 
   function switchAuctionMode(mode) {
     AppState.auctionMode = mode;
-    DOM.modeSelectModal.classList.add('hidden');
+    if (DOM.modeSelectModal) if (DOM.modeSelectModal) DOM.modeSelectModal.classList.add('hidden');
 
-    DOM.auctionModeBadge.textContent = mode === 'MINI' ? 'MINI AUCTION (40/60)' : 'MEGA AUCTION';
+    if (DOM.auctionModeBadge) DOM.auctionModeBadge.textContent = mode === 'MINI' ? 'MINI AUCTION (40/60)' : 'MEGA AUCTION';
     DOM.auctionModeBadge.className = mode === 'MINI'
       ? 'text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-purple-900/60 text-purple-300 border border-purple-700/50'
       : 'text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-blue-900/60 text-blue-300 border border-blue-700/50';
 
-    DOM.modeLabel.textContent = `Mode: ${mode === 'MINI' ? 'Mini' : 'Mega'}`;
+    if (DOM.modeLabel) if (DOM.modeLabel) DOM.modeLabel.textContent = `Mode: ${mode === 'MINI' ? 'Mini' : 'Mega'}`;
 
     // Reset Game with new mode
     Game.initGame({
@@ -1243,6 +1464,207 @@
   }
 
   // =========================================================================
+  // TAB 1: MANAGER & TEAM REGISTRATION VIEW
+  // =========================================================================
+  let managerPageSelectedTeam = null;
+
+  function renderManagerPageView() {
+    // Current user name
+    const currentName = localStorage.getItem('ipl_user_name') || localStorage.getItem('ipl_manager_name') || (StorageEngine && StorageEngine.currentUser ? StorageEngine.currentUser.userName : '') || 'Manager';
+    if (DOM.inputManagerPageName && (!DOM.inputManagerPageName.value || DOM.inputManagerPageName.value === 'Manager')) {
+      DOM.inputManagerPageName.value = currentName;
+    }
+
+    // Current user team
+    const currentTeamId = managerPageSelectedTeam || AppState.userTeamId || (typeof Game !== 'undefined' && Game.getState ? Game.getState().userTeamId : 'RCB') || 'RCB';
+    managerPageSelectedTeam = currentTeamId;
+
+    const allTeams = (typeof TEAMS !== 'undefined' ? TEAMS : (typeof Game !== 'undefined' && Game.getTeams ? Game.getTeams() : []));
+
+    // Render 10 Franchise Selection Cards
+    if (DOM.managerPageTeamsGrid) {
+      DOM.managerPageTeamsGrid.innerHTML = '';
+      allTeams.forEach(t => {
+        const isSelected = (t.id === managerPageSelectedTeam);
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-2xl border-2 transition relative flex flex-col justify-between cursor-pointer ${
+          isSelected
+            ? 'bg-amber-950/60 border-amber-400 shadow-xl ring-2 ring-amber-400/40 scale-102'
+            : 'bg-slate-950/90 border-slate-800 hover:border-slate-600 hover:bg-slate-900 shadow-md'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold border" style="background-color: ${t.primaryColor}22; border-color: ${t.primaryColor}88;">
+              ${t.logo || '🏏'}
+            </div>
+            ${isSelected ? '<span class="px-2 py-0.5 rounded text-[9px] font-black bg-amber-500 text-slate-950 uppercase tracking-wider">SELECTED</span>' : '<span class="px-2 py-0.5 rounded text-[9px] font-bold text-slate-500 bg-slate-900">SELECT</span>'}
+          </div>
+          <div class="mt-3">
+            <h4 class="font-extrabold text-sm text-white">${t.shortName || t.id}</h4>
+            <p class="text-[11px] text-slate-400 truncate">${t.name}</p>
+          </div>
+          <div class="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">Purse</span>
+            <span class="font-bold text-amber-300">₹${(t.purse || 120).toFixed(2)} Cr</span>
+          </div>
+        `;
+        card.onclick = () => {
+          managerPageSelectedTeam = t.id;
+          updateManagerPageFooter(t);
+          renderManagerPageView();
+          try { AuctionAudio.playBidPaddle(); } catch(e) {}
+        };
+        DOM.managerPageTeamsGrid.appendChild(card);
+      });
+    }
+
+    // Update bottom sticky bar preview
+    const selectedTeamObj = allTeams.find(t => t.id === managerPageSelectedTeam) || allTeams[0];
+    updateManagerPageFooter(selectedTeamObj);
+  }
+
+  function updateManagerPageFooter(team) {
+    if (!team) return;
+    if (DOM.managerPageSelectedLogo) {
+      DOM.managerPageSelectedLogo.textContent = team.logo || '👑';
+      DOM.managerPageSelectedLogo.style.backgroundColor = team.primaryColor || '#991b1b';
+      DOM.managerPageSelectedLogo.style.borderColor = team.secondaryColor || '#dc2626';
+    }
+    if (DOM.managerPageSelectedTeamName) {
+      DOM.managerPageSelectedTeamName.textContent = `${team.name} (${team.shortName || team.id})`;
+    }
+    if (DOM.managerPageSelectedPurse) {
+      DOM.managerPageSelectedPurse.textContent = `Purse: ₹${(team.purse || 120).toFixed(2)} Cr`;
+    }
+  }
+
+  function setupManagerPageEventListeners() {
+    // 1. Button: Save Name Only
+    if (DOM.btnSaveManagerPageNameOnly) {
+      DOM.btnSaveManagerPageNameOnly.onclick = async () => {
+        const inp = DOM.inputManagerPageName || document.getElementById('inputManagerPageName');
+        const btn = DOM.btnSaveManagerPageNameOnly;
+        const newName = (inp ? inp.value.trim() : '');
+        if (!newName) {
+          alert('Please enter a valid manager name.');
+          return;
+        }
+
+        // Save to localStorage
+        localStorage.setItem('ipl_user_name', newName);
+        localStorage.setItem('ipl_manager_name', newName);
+
+        // Update StorageEngine
+        if (typeof StorageEngine !== 'undefined') {
+          if (StorageEngine.currentUser) {
+            StorageEngine.currentUser.userName = newName;
+            if (typeof StorageEngine.saveCurrentUser === 'function') StorageEngine.saveCurrentUser();
+          }
+          if (typeof StorageEngine.updateUserName === 'function') {
+            await StorageEngine.updateUserName(newName);
+          }
+        }
+
+        // Update active CurrentRoom if present
+        if (window.CurrentRoom) {
+          const myUserId = StorageEngine?.currentUser?.userId;
+          if (window.CurrentRoom.hostId === myUserId || !window.CurrentRoom.hostId) {
+            window.CurrentRoom.hostName = newName;
+          }
+          if (window.CurrentRoom.players) {
+            for (const t of Object.keys(window.CurrentRoom.players)) {
+              const p = window.CurrentRoom.players[t];
+              if (p && (p.userId === myUserId || p.isHost)) {
+                p.userName = newName;
+              }
+            }
+          }
+          if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
+            StorageEngine.saveRoom(window.CurrentRoom);
+          }
+        }
+
+        // Update all UI displays
+        const curUser = (StorageEngine && StorageEngine.currentUser) || { userName: newName };
+        curUser.userName = newName;
+        updateUserDisplay(curUser);
+        if (typeof updateTopBar === 'function') updateTopBar();
+
+        // Sound & Visual Button Feedback
+        try { AuctionAudio.playBidPaddle(); } catch(e) {}
+        if (btn) {
+          const oldHtml = btn.innerHTML;
+          btn.innerHTML = '<span>✅</span> <span>Saved!</span>';
+          btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-500');
+          btn.classList.remove('bg-slate-800', 'text-amber-300');
+          setTimeout(() => {
+            btn.innerHTML = oldHtml;
+            btn.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-500');
+            btn.classList.add('bg-slate-800', 'text-amber-300');
+          }, 2000);
+        }
+      };
+    }
+
+    // Helper: Save full setup (Name + Franchise)
+    const saveManagerFullSetup = async () => {
+      const inp = DOM.inputManagerPageName || document.getElementById('inputManagerPageName');
+      const newName = (inp ? inp.value.trim() : '') || localStorage.getItem('ipl_user_name') || 'Manager';
+      if (newName) {
+        localStorage.setItem('ipl_user_name', newName);
+        localStorage.setItem('ipl_manager_name', newName);
+        if (typeof StorageEngine !== 'undefined') {
+          if (StorageEngine.currentUser) {
+            StorageEngine.currentUser.userName = newName;
+          }
+          if (typeof StorageEngine.updateUserName === 'function') {
+            await StorageEngine.updateUserName(newName);
+          }
+        }
+      }
+
+      const chosenTeam = managerPageSelectedTeam || AppState.userTeamId || 'MI';
+      if (typeof executeLiveTeamChange === 'function') {
+        executeLiveTeamChange(chosenTeam);
+      } else {
+        AppState.userTeamId = chosenTeam;
+        if (typeof Game !== 'undefined' && Game.changeUserTeam) Game.changeUserTeam(chosenTeam);
+        if (typeof StorageEngine !== 'undefined' && StorageEngine.updateUserTeam) StorageEngine.updateUserTeam(chosenTeam);
+      }
+
+      const curUser = (StorageEngine && StorageEngine.currentUser) || { userName: newName };
+      curUser.userName = newName;
+      updateUserDisplay(curUser);
+      if (typeof updateTopBar === 'function') updateTopBar();
+      renderManagerPageView();
+    };
+
+    // 2. Button: Save Manager Setup All
+    if (DOM.btnSaveManagerSetupAll) {
+      DOM.btnSaveManagerSetupAll.onclick = async () => {
+        await saveManagerFullSetup();
+        try { AuctionAudio.playSoldFanfare(); } catch(e) {}
+        const btn = DOM.btnSaveManagerSetupAll;
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<span>✅ Setup Saved!</span>';
+        btn.classList.add('bg-emerald-600', 'text-white');
+        setTimeout(() => {
+          btn.innerHTML = oldHtml;
+          btn.classList.remove('bg-emerald-600', 'text-white');
+        }, 2000);
+      };
+    }
+
+    // 3. Button: Save & Enter Auction
+    if (DOM.btnSaveAndEnterAuction) {
+      DOM.btnSaveAndEnterAuction.onclick = async () => {
+        await saveManagerFullSetup();
+        switchTab('auction');
+      };
+    }
+  }
+
+  // =========================================================================
   // TAB 2: PLAYING XI & BACKUPS VIEW
   // =========================================================================
 
@@ -1501,7 +1923,9 @@
               return `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs gap-2">
                   <div class="flex items-center gap-2">
-                    <img src="${getPlayerImage(p)}" alt="${p.name}" class="w-8 h-8 rounded-lg object-cover">
+                    <div class="w-8 h-8 rounded-lg overflow-hidden shrink-0">
+                      ${renderPlayerAvatarImg(p, 'w-full h-full object-cover')}
+                    </div>
                     <div>
                       <strong class="text-white">${p.name}</strong>
                       <span class="text-slate-400 block text-[11px]">${p.role} | Bought for ₹${Number(p.soldPrice || p.price || 0).toFixed(2)} Cr</span>
@@ -1592,6 +2016,9 @@
     if (DOM.modalUserName) DOM.modalUserName.textContent = user.userName;
     if (DOM.modalUserAvatar) DOM.modalUserAvatar.textContent = user.userName.charAt(0).toUpperCase();
     if (DOM.inputEditUserName) DOM.inputEditUserName.value = user.userName;
+    if (DOM.inputManagerPageName && (!DOM.inputManagerPageName.value || DOM.inputManagerPageName.value === 'Manager')) {
+      DOM.inputManagerPageName.value = user.userName;
+    }
   }
 
   async function handleRename() {
@@ -1632,7 +2059,7 @@
     // Update connection badge
     if (DOM.serverSyncBadge) {
       DOM.serverSyncBadge.textContent = StorageEngine.isServerConnected ? '🟢 Connected to Secure Server' : '🟡 Local Storage Active';
-      DOM.serverSyncBadge.className = StorageEngine.isServerConnected
+      if (DOM.serverSyncBadge) DOM.serverSyncBadge.className = StorageEngine.isServerConnected
         ? 'text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800'
         : 'text-xs px-2 py-0.5 rounded-full font-semibold bg-amber-950 text-amber-300 border border-amber-800';
     }
@@ -1737,7 +2164,7 @@
     const allUsers = await StorageEngine.getAllUsers();
     const currentUser = StorageEngine.getCurrentUser();
 
-    DOM.multiplayerTeamsList.innerHTML = '';
+    if (DOM.multiplayerTeamsList) DOM.multiplayerTeamsList.innerHTML = '';
 
     rawTeams.forEach(t => {
       const assigned = humanManagers[t.id];
@@ -1767,44 +2194,82 @@
         </div>
       `;
 
-      DOM.multiplayerTeamsList.appendChild(row);
+      if (DOM.multiplayerTeamsList) DOM.multiplayerTeamsList.appendChild(row);
     });
 
-    DOM.multiplayerModal.classList.remove('hidden');
+    if (DOM.multiplayerModal) DOM.multiplayerModal.classList.remove('hidden');
   }
 
   async function saveMultiplayerRoom() {
-    const selects = document.querySelectorAll('.select-team-manager');
-    const allUsers = await StorageEngine.getAllUsers();
-    const currentUser = StorageEngine.getCurrentUser();
+    try {
+      const selects = document.querySelectorAll('.select-team-manager');
+      const allUsers = (typeof StorageEngine !== 'undefined' && StorageEngine.getAllUsers) ? await StorageEngine.getAllUsers() : [];
+      const currentUser = (typeof StorageEngine !== 'undefined' && StorageEngine.getCurrentUser) ? StorageEngine.getCurrentUser() : null;
 
-    for (const sel of selects) {
-      const teamId = sel.dataset.team;
-      const val = sel.value;
+      for (const sel of selects) {
+        const teamId = sel.dataset.team;
+        const val = sel.value;
 
-      if (val === 'AI') {
-        StorageEngine.removeMultiplayerManager(teamId);
-        Game.setHumanTeam(teamId, null);
-      } else if (val === 'NEW_HUMAN') {
-        const pName = prompt(`Enter player name managing ${teamId}:`);
-        if (pName && pName.trim()) {
-          const res = await StorageEngine.loginUser(pName.trim(), teamId);
-          await StorageEngine.assignMultiplayerManager(teamId, res.user.userId, res.user.userName);
-          Game.setHumanTeam(teamId, { userId: res.user.userId, userName: res.user.userName });
-        }
-      } else {
-        const matched = allUsers.find(u => u.userId === val) || (currentUser && currentUser.userId === val ? currentUser : null);
-        if (matched) {
-          await StorageEngine.assignMultiplayerManager(teamId, matched.userId, matched.userName);
-          Game.setHumanTeam(teamId, { userId: matched.userId, userName: matched.userName });
+        if (val === 'AI') {
+          if (typeof StorageEngine !== 'undefined' && StorageEngine.removeMultiplayerManager) {
+            StorageEngine.removeMultiplayerManager(teamId);
+          }
+          if (typeof Game !== 'undefined' && Game.setHumanTeam) {
+            Game.setHumanTeam(teamId, null);
+          }
+        } else if (val === 'NEW_HUMAN') {
+          const pName = prompt(`Enter manager name for ${teamId}:`);
+          if (pName && pName.trim()) {
+            let uId = 'user_' + Date.now();
+            let uName = pName.trim();
+            if (typeof StorageEngine !== 'undefined' && StorageEngine.loginUser) {
+              const res = await StorageEngine.loginUser(uName, teamId);
+              if (res && res.user) {
+                uId = res.user.userId;
+                uName = res.user.userName;
+              }
+            }
+            if (typeof StorageEngine !== 'undefined' && StorageEngine.assignMultiplayerManager) {
+              await StorageEngine.assignMultiplayerManager(teamId, uId, uName);
+            }
+            if (typeof Game !== 'undefined' && Game.setHumanTeam) {
+              Game.setHumanTeam(teamId, { userId: uId, userName: uName });
+            }
+          }
+        } else {
+          const matched = allUsers.find(u => u.userId === val) || (currentUser && currentUser.userId === val ? currentUser : null);
+          if (matched) {
+            if (typeof StorageEngine !== 'undefined' && StorageEngine.assignMultiplayerManager) {
+              await StorageEngine.assignMultiplayerManager(teamId, matched.userId, matched.userName);
+            }
+            if (typeof Game !== 'undefined' && Game.setHumanTeam) {
+              Game.setHumanTeam(teamId, { userId: matched.userId, userName: matched.userName });
+            }
+          }
         }
       }
-    }
 
-    renderMultiplayerPaddles();
-    updateTopBar();
-    DOM.multiplayerModal.classList.add('hidden');
-    AuctionAudio.playSoldFanfare();
+      if (typeof renderMultiplayerPaddles === 'function') renderMultiplayerPaddles();
+      if (typeof updateTopBar === 'function') updateTopBar();
+      if (typeof saveAppState === 'function') saveAppState();
+      if (DOM.multiplayerModal) DOM.multiplayerModal.classList.add('hidden');
+      if (typeof AuctionAudio !== 'undefined' && AuctionAudio.playSoldFanfare) AuctionAudio.playSoldFanfare();
+
+      // Launch or switch to auction arena to start playing
+      const state = (typeof Game !== 'undefined' && Game.getState) ? Game.getState() : {};
+      if (state.phase === 'home' || !state.phase) {
+        startAuctionFromLanding();
+      } else {
+        switchTab('auction');
+        if (state.isPaused && typeof Game.resumeGame === 'function') {
+          Game.resumeGame();
+        }
+      }
+    } catch (err) {
+      console.error('[Multiplayer] Error in saveMultiplayerRoom:', err);
+      if (DOM.multiplayerModal) DOM.multiplayerModal.classList.add('hidden');
+      switchTab('auction');
+    }
   }
 
   async function copyPrivateLinkToClipboard() {
@@ -1881,11 +2346,11 @@
     if (DOM.setSwapTitle) DOM.setSwapTitle.textContent = title;
     if (DOM.setSwapSubtitle) DOM.setSwapSubtitle.textContent = subtitle;
 
-    DOM.setSwapBanner.classList.remove('opacity-0', '-translate-y-6', 'scale-95', 'pointer-events-none');
+    if (DOM.setSwapBanner) DOM.setSwapBanner.classList.remove('opacity-0', '-translate-y-6', 'scale-95', 'pointer-events-none');
     DOM.setSwapBanner.classList.add('opacity-100', 'translate-y-0', 'scale-100');
 
     setTimeout(() => {
-      DOM.setSwapBanner.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+      if (DOM.setSwapBanner) DOM.setSwapBanner.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
       DOM.setSwapBanner.classList.add('opacity-0', '-translate-y-6', 'scale-95', 'pointer-events-none');
     }, 3800);
   }
@@ -1895,25 +2360,28 @@
     const state = Game.getState();
     const nextThree = state.auctionPool.slice(state.currentPlayerIndex + 1, state.currentPlayerIndex + 4);
 
-    DOM.onDeckPreviewContainer.innerHTML = '';
+    if (DOM.onDeckPreviewContainer) DOM.onDeckPreviewContainer.innerHTML = '';
     if (nextThree.length === 0) {
-      DOM.onDeckPreviewContainer.innerHTML = '<span class="text-slate-500 italic">Final Lot</span>';
+      if (DOM.onDeckPreviewContainer) DOM.onDeckPreviewContainer.innerHTML = '<span class="text-slate-500 italic">Final Lot</span>';
     } else {
       nextThree.forEach(np => {
         const chip = document.createElement('div');
         chip.className = 'flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-800 border border-slate-700 text-[11px] text-slate-300';
         chip.innerHTML = `
-          <img src="${getPlayerImage(np)}" class="w-4 h-4 rounded-full object-cover">
+          <div class="w-4 h-4 rounded-full overflow-hidden shrink-0">
+            ${renderPlayerAvatarImg(np, 'w-full h-full object-cover')}
+          </div>
           <span class="font-medium text-white truncate max-w-[75px]">${np.name}</span>
           <span class="text-amber-400 font-bold">${np.rating}</span>
         `;
-        DOM.onDeckPreviewContainer.appendChild(chip);
+        if (DOM.onDeckPreviewContainer) DOM.onDeckPreviewContainer.appendChild(chip);
       });
     }
   }
 
   function populateTeamSelects() {
     const rawTeams = (typeof TEAMS !== 'undefined') ? TEAMS : [];
+    if (!DOM.selectPlaying11Team || !DOM.userReviewTeamSelect) return;
     DOM.selectPlaying11Team.innerHTML = '';
     DOM.userReviewTeamSelect.innerHTML = '';
 
@@ -1935,6 +2403,7 @@
 
   function populateCatalogSetFilter() {
     const sets = (typeof AUCTION_SETS !== 'undefined') ? AUCTION_SETS : [];
+    if (!DOM.catalogSetFilter) return;
     DOM.catalogSetFilter.innerHTML = '<option value="ALL">All Auction Sets</option>';
     sets.forEach((setName, idx) => {
       const opt = document.createElement('option');
@@ -1971,7 +2440,7 @@
     const teamHistoryDB = window.TEAM_HISTORY || {};
     const aiOwnersDB = window.TEAM_AI_OWNERS || {};
 
-    DOM.landingTeamsGrid.innerHTML = '';
+    if (DOM.landingTeamsGrid) DOM.landingTeamsGrid.innerHTML = '';
 
     teams.forEach(t => {
       const isSelected = t.id === AppState.selectedLandingTeamId;
@@ -2026,7 +2495,7 @@
         selectLandingTeam(t.id);
       });
 
-      DOM.landingTeamsGrid.appendChild(card);
+      if (DOM.landingTeamsGrid) DOM.landingTeamsGrid.appendChild(card);
     });
 
     updateLandingSummary();
@@ -2034,8 +2503,22 @@
 
   function selectLandingTeam(teamId) {
     AppState.selectedLandingTeamId = teamId;
+    AppState.userTeamId = teamId;
+    AppState.selectedPlaying11TeamId = teamId;
+    AppState.selectedReviewTeamId = teamId;
+    if (typeof Game !== 'undefined') {
+      if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(teamId);
+      else if (typeof Game.selectTeam === 'function') Game.selectTeam(teamId);
+      else if (Game.getState) Game.getState().userTeamId = teamId;
+    }
+    if (typeof StorageEngine !== 'undefined' && StorageEngine.currentUser) {
+      StorageEngine.currentUser.teamId = teamId;
+      StorageEngine.currentUser.favoriteTeam = teamId;
+      if (typeof StorageEngine.saveCurrentUser === 'function') StorageEngine.saveCurrentUser();
+    }
     AuctionAudio.playBidPaddle();
     renderLandingPage();
+    updateTopBar();
   }
 
   function setAuctionMode(mode) {
@@ -2043,27 +2526,27 @@
     AuctionAudio.playBidPaddle();
 
     if (mode === 'MINI') {
-      DOM.cardModeMini.classList.add('border-amber-400', 'shadow-amber-500/10');
+      if (DOM.cardModeMini) DOM.cardModeMini.classList.add('border-amber-400', 'shadow-amber-500/10');
       DOM.cardModeMini.classList.remove('border-slate-800');
-      DOM.radioCheckMini.textContent = '✓';
+      if (DOM.radioCheckMini) DOM.radioCheckMini.textContent = '✓';
       DOM.radioCheckMini.className = 'w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black';
 
-      DOM.cardModeMega.classList.remove('border-amber-400', 'shadow-amber-500/10');
+      if (DOM.cardModeMega) DOM.cardModeMega.classList.remove('border-amber-400', 'shadow-amber-500/10');
       DOM.cardModeMega.classList.add('border-slate-800');
-      DOM.radioCheckMega.textContent = '○';
+      if (DOM.radioCheckMega) DOM.radioCheckMega.textContent = '○';
       DOM.radioCheckMega.className = 'w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-black';
       
       DOM.auctionModeBadge.textContent = 'MINI AUCTION (40/60)';
       DOM.auctionModeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-purple-900/60 text-purple-300 border border-purple-700/50';
     } else {
-      DOM.cardModeMega.classList.add('border-amber-400', 'shadow-amber-500/10');
+      if (DOM.cardModeMega) DOM.cardModeMega.classList.add('border-amber-400', 'shadow-amber-500/10');
       DOM.cardModeMega.classList.remove('border-slate-800');
-      DOM.radioCheckMega.textContent = '✓';
+      if (DOM.radioCheckMega) DOM.radioCheckMega.textContent = '✓';
       DOM.radioCheckMega.className = 'w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black';
 
-      DOM.cardModeMini.classList.remove('border-amber-400', 'shadow-amber-500/10');
+      if (DOM.cardModeMini) DOM.cardModeMini.classList.remove('border-amber-400', 'shadow-amber-500/10');
       DOM.cardModeMini.classList.add('border-slate-800');
-      DOM.radioCheckMini.textContent = '○';
+      if (DOM.radioCheckMini) DOM.radioCheckMini.textContent = '○';
       DOM.radioCheckMini.className = 'w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-black';
 
       DOM.auctionModeBadge.textContent = 'MEGA AUCTION';
@@ -2077,24 +2560,24 @@
     AppState.poolSize = size;
     AuctionAudio.playBidPaddle();
     if (size === 'quick') {
-      DOM.btnPoolQuick.classList.add('border-amber-400');
+      if (DOM.btnPoolQuick) DOM.btnPoolQuick.classList.add('border-amber-400');
       DOM.btnPoolQuick.classList.remove('border-slate-800');
-      DOM.badgePoolQuick.textContent = 'SELECTED';
+      if (DOM.badgePoolQuick) DOM.badgePoolQuick.textContent = 'SELECTED';
       DOM.badgePoolQuick.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700';
 
-      DOM.btnPoolFull.classList.remove('border-amber-400');
+      if (DOM.btnPoolFull) DOM.btnPoolFull.classList.remove('border-amber-400');
       DOM.btnPoolFull.classList.add('border-slate-800');
-      DOM.badgePoolFull.textContent = 'FULL';
+      if (DOM.badgePoolFull) DOM.badgePoolFull.textContent = 'FULL';
       DOM.badgePoolFull.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
     } else {
-      DOM.btnPoolFull.classList.add('border-amber-400');
+      if (DOM.btnPoolFull) DOM.btnPoolFull.classList.add('border-amber-400');
       DOM.btnPoolFull.classList.remove('border-slate-800');
-      DOM.badgePoolFull.textContent = 'SELECTED';
+      if (DOM.badgePoolFull) DOM.badgePoolFull.textContent = 'SELECTED';
       DOM.badgePoolFull.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700';
 
-      DOM.btnPoolQuick.classList.remove('border-amber-400');
+      if (DOM.btnPoolQuick) DOM.btnPoolQuick.classList.remove('border-amber-400');
       DOM.btnPoolQuick.classList.add('border-slate-800');
-      DOM.badgePoolQuick.textContent = 'QUICK';
+      if (DOM.badgePoolQuick) DOM.badgePoolQuick.textContent = 'QUICK';
       DOM.badgePoolQuick.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
     }
   }
@@ -2128,6 +2611,17 @@
   }
 
   function startAuctionFromLanding() {
+    // 0. Clear previous session state for a fresh start
+    if (typeof Game !== 'undefined' && Game.clearSavedState) {
+      Game.clearSavedState();
+    }
+    try {
+      localStorage.removeItem('ipl_auction_app_state');
+      localStorage.removeItem('ipl_auction_chat_msgs');
+    } catch (e) {}
+    AppState.userPlayingXI = {};
+    AppState.activePickupSlot = null;
+
     // 1. Initialize Game Engine with chosen format, team, and pool
     Game.initGame({
       auctionMode: AppState.auctionMode,
@@ -2161,6 +2655,7 @@
     // 6. Update user chip in header
     updateTopBar();
     renderAllViews();
+    saveAppState();
   }
 
   
@@ -2562,7 +3057,7 @@
           card.style.backgroundColor = (team.primaryColor || '#f59e0b') + '25';
         });
         card.setAttribute('data-entry-team', team.id);
-        DOM.entryTeamSelectGrid.appendChild(card);
+        if (DOM.entryTeamSelectGrid) DOM.entryTeamSelectGrid.appendChild(card);
       });
 
       // Submit handler
@@ -2574,13 +3069,20 @@
         // Save to localStorage & update state
         localStorage.setItem('ipl_manager_name', managerName);
         localStorage.setItem('ipl_manager_team', teamId);
+        localStorage.setItem('ipl_user_name', managerName);
         AppState.managerName = managerName;
-
-        // Set team in game
-        Game.selectTeam(teamId);
+        AppState.userTeamId = teamId;
         AppState.selectedPlaying11TeamId = teamId;
         AppState.selectedReviewTeamId = teamId;
         AppState.selectedLandingTeamId = teamId;
+
+        // Set team in game
+        Game.selectTeam(teamId);
+        if (typeof StorageEngine !== 'undefined' && StorageEngine.currentUser) {
+          StorageEngine.currentUser.teamId = teamId;
+          StorageEngine.currentUser.favoriteTeam = teamId;
+          if (typeof StorageEngine.saveCurrentUser === 'function') StorageEngine.saveCurrentUser();
+        }
 
         // Update header
         if (DOM.headerUserName) DOM.headerUserName.textContent = managerName;
@@ -2592,7 +3094,7 @@
           if (DOM.userTeamName) DOM.userTeamName.textContent = selectedTeam.shortName || selectedTeam.name;
         }
 
-        DOM.managerEntryModal.classList.add('hidden');
+        if (DOM.managerEntryModal) DOM.managerEntryModal.classList.add('hidden');
         updateTopBar();
         renderAllViews();
       };
@@ -2611,12 +3113,12 @@
       const btnCloseMgr = document.getElementById('btnCloseManagerEntryModal');
       if (btnCloseMgr) {
         btnCloseMgr.onclick = () => {
-          DOM.managerEntryModal.classList.add('hidden');
+          if (DOM.managerEntryModal) DOM.managerEntryModal.classList.add('hidden');
         };
       }
     }
 
-    DOM.managerEntryModal.classList.remove('hidden');
+    if (DOM.managerEntryModal) DOM.managerEntryModal.classList.remove('hidden');
   }
 
   // =========================================================================
@@ -2629,6 +3131,29 @@
 
     // Clear chat after close auction
     clearChat();
+
+    // Ensure user team is selected for Playing 11 and review
+    const userTeam = Game.getUserTeam();
+    if (userTeam) {
+      AppState.selectedPlaying11TeamId = userTeam.id;
+      AppState.selectedReviewTeamId = userTeam.id;
+      if (DOM.selectPlaying11Team) DOM.selectPlaying11Team.value = userTeam.id;
+      if (DOM.userReviewTeamSelect) DOM.userReviewTeamSelect.value = userTeam.id;
+
+      // Auto-fill XI if empty
+      const xi = getUserXIForTeam(userTeam.id);
+      if (xi.every(slot => slot === null) && userTeam.players && userTeam.players.length > 0) {
+        const playerStatsDB = window.PLAYER_STATS || {};
+        const bestXI = RatingEngine.selectBestXI(userTeam.players, playerStatsDB);
+        if (bestXI && bestXI.xi) {
+          bestXI.xi.forEach((slot, idx) => {
+            if (slot.player) xi[idx] = slot.player;
+          });
+        }
+      }
+    }
+
+    saveAppState();
 
     // Switch to Playing 11 tab
     switchTab('playing11');
@@ -2747,52 +3272,62 @@
         const isActiveSlot = AppState.activePickupSlot === idx;
 
         const card = document.createElement('div');
-        card.className = `bg-slate-950/85 backdrop-blur-md rounded-2xl border-2 p-2.5 flex flex-col justify-between shadow-lg text-center transition cursor-pointer ${isActiveSlot ? 'ring-2 ring-amber-400 scale-105' : 'hover:scale-105'}`;
+        card.className = `bg-slate-950/85 backdrop-blur-md rounded-xl sm:rounded-2xl border-2 p-1.5 sm:p-2.5 flex flex-col justify-between shadow-lg text-center transition cursor-pointer ${isActiveSlot ? 'ring-2 ring-amber-400 scale-102 bg-amber-950/40 border-amber-400' : 'hover:scale-102'}`;
         card.style.borderColor = isActiveSlot ? '#f59e0b' : (p ? (p.overseas ? '#8B5CF6' : '#3B82F6') : '#334155');
 
         if (p) {
           card.innerHTML = `
-            <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">${template.label}</div>
-            <div class="w-14 h-16 mx-auto my-1.5 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 relative">
+            <div class="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">${template.label}</div>
+            <div class="w-11 h-14 sm:w-14 sm:h-16 mx-auto my-1 rounded-lg sm:rounded-xl overflow-hidden bg-slate-800 border border-slate-700 relative">
               ${renderPlayerAvatarImg(p, 'w-full h-full object-cover')}
-              ${p.overseas ? '<span class="absolute top-0.5 right-0.5 text-[10px]" title="Overseas">✈️</span>' : ''}
+              ${p.overseas ? '<span class="absolute top-0.5 right-0.5 text-[8px] sm:text-[10px]" title="Overseas">✈️</span>' : ''}
             </div>
-            <div class="font-bold text-white text-xs truncate" title="${p.name}">${p.name}</div>
-            <div class="text-[10px] text-amber-400 font-semibold">${p.role}</div>
-            <div class="mt-1 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+            <div class="font-bold text-white text-[11px] sm:text-xs truncate" title="${p.name}">${p.name}</div>
+            <div class="text-[9px] sm:text-[10px] text-amber-400 font-semibold truncate">${p.role}</div>
+            <div class="mt-0.5 pt-0.5 border-t border-slate-800/80 flex items-center justify-between text-[8px] sm:text-[10px]">
               <span class="text-slate-400">OVR</span>
               <span class="font-bold text-amber-300">${p.rating || 75}</span>
             </div>
-            <button class="mt-1 px-2 py-0.5 rounded-lg bg-red-950/60 hover:bg-red-900/60 text-red-300 text-[9px] font-bold border border-red-800/40 cursor-pointer" data-remove-slot="${idx}">✕ Remove</button>
+            <button class="mt-1 px-1.5 py-0.5 rounded-md sm:rounded-lg bg-red-950/70 hover:bg-red-900 text-red-300 text-[8px] sm:text-[9px] font-bold border border-red-800/40 cursor-pointer w-full transition" data-remove-slot="${idx}">✕ Remove</button>
           `;
         } else {
           card.innerHTML = `
-            <div class="text-[9px] font-bold uppercase tracking-wider text-slate-500">${template.label}</div>
-            <div class="w-14 h-16 mx-auto my-1.5 rounded-xl border border-dashed ${isActiveSlot ? 'border-amber-400' : 'border-slate-700'} flex items-center justify-center text-slate-600 text-xl">
-              ${isActiveSlot ? '👆' : '?'}
+            <div class="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">${template.label}</div>
+            <div class="w-11 h-14 sm:w-14 sm:h-16 mx-auto my-1 rounded-lg sm:rounded-xl border border-dashed ${isActiveSlot ? 'border-amber-400 bg-amber-500/10' : 'border-slate-700'} flex items-center justify-center text-slate-500 text-base sm:text-xl">
+              ${isActiveSlot ? '👆' : '+'}
             </div>
-            <div class="text-xs ${isActiveSlot ? 'text-amber-300 font-bold' : 'text-slate-500 italic'}">${isActiveSlot ? 'Pick a Player!' : 'Empty Slot'}</div>
-            <div class="text-[9px] text-slate-600">${template.idealRoles.join('/')}</div>
+            <div class="text-[10px] sm:text-xs ${isActiveSlot ? 'text-amber-300 font-bold' : 'text-slate-500 italic'} truncate">${isActiveSlot ? 'Selected!' : 'Empty Slot'}</div>
+            <div class="text-[8px] sm:text-[9px] text-slate-500 truncate">${template.idealRoles.join('/')}</div>
           `;
         }
 
-        // Click to toggle active pickup slot
+        // Click on turf slot card: select slot, swap slots, or remove
         card.addEventListener('click', (e) => {
-          if (e.target.dataset.removeSlot !== undefined) {
-            const slotIdx = parseInt(e.target.dataset.removeSlot);
+          // If remove button was clicked
+          if (e.target.dataset.removeSlot !== undefined || e.target.closest('[data-remove-slot]')) {
+            const btn = e.target.dataset.removeSlot !== undefined ? e.target : e.target.closest('[data-remove-slot]');
+            const slotIdx = parseInt(btn.dataset.removeSlot);
             userXI[slotIdx] = null;
             AppState.activePickupSlot = null;
+            saveAppState();
             renderPlaying11ViewInteractive();
             return;
           }
-          if (p) {
-            // Clicking a filled slot removes the player
-            userXI[idx] = null;
+
+          // If another slot was already selected, swap the two slots!
+          if (AppState.activePickupSlot !== null && AppState.activePickupSlot !== idx) {
+            const prevIdx = AppState.activePickupSlot;
+            const temp = userXI[prevIdx];
+            userXI[prevIdx] = userXI[idx];
+            userXI[idx] = temp;
             AppState.activePickupSlot = null;
-          } else {
-            // Toggle active pickup slot
-            AppState.activePickupSlot = isActiveSlot ? null : idx;
+            saveAppState();
+            renderPlaying11ViewInteractive();
+            return;
           }
+
+          // Toggle selection on this slot
+          AppState.activePickupSlot = (AppState.activePickupSlot === idx) ? null : idx;
           renderPlaying11ViewInteractive();
         });
 
@@ -2840,24 +3375,29 @@
       `;
 
       if (!wouldExceedOverseas) {
-        card.querySelector('button').addEventListener('click', () => {
+        const handlePickPlayer = () => {
           const teamId = team.id;
           const xi = getUserXIForTeam(teamId);
 
-          if (AppState.activePickupSlot !== null && xi[AppState.activePickupSlot] === null) {
+          if (AppState.activePickupSlot !== null) {
+            // Place in active slot (replaces previous player in slot, returning them to bench)
             xi[AppState.activePickupSlot] = p;
             AppState.activePickupSlot = null;
           } else {
             // Find first empty slot
             const emptyIdx = xi.findIndex(slot => slot === null);
             if (emptyIdx === -1) {
-              alert('All 11 slots are filled! Remove a player first.');
+              alert('All 11 slots are currently filled! Click a slot on the turf above to select it for replacement, or remove a player.');
               return;
             }
             xi[emptyIdx] = p;
           }
+          saveAppState();
           renderPlaying11ViewInteractive();
-        });
+        };
+
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', handlePickPlayer);
       }
 
       DOM.squadPlayerPickerTray.appendChild(card);
@@ -2877,6 +3417,9 @@
   function clearChat() {
     ChatState.messages = [];
     ChatState.unreadCount = 0;
+    try {
+      localStorage.removeItem('ipl_auction_chat_msgs');
+    } catch (e) {}
     updateChatBadges();
     renderChatMessages();
     renderPurchasedPlayersShortcut();
@@ -2888,11 +3431,11 @@
     ChatState.isDrawerOpen = shouldOpen;
 
     if (shouldOpen) {
-      DOM.multiplayerChatDrawer.classList.remove('translate-x-full');
+      if (DOM.multiplayerChatDrawer) DOM.multiplayerChatDrawer.classList.remove('translate-x-full');
       ChatState.unreadCount = 0;
       updateChatBadges();
     } else {
-      DOM.multiplayerChatDrawer.classList.add('translate-x-full');
+      if (DOM.multiplayerChatDrawer) DOM.multiplayerChatDrawer.classList.add('translate-x-full');
     }
   }
 
@@ -2900,8 +3443,8 @@
     ChatState.activeTab = tab;
     if (DOM.chatMessagesView && DOM.purchasedPlayersShortcutView) {
       if (tab === 'chat') {
-        DOM.chatMessagesView.classList.remove('hidden');
-        DOM.purchasedPlayersShortcutView.classList.add('hidden');
+        if (DOM.chatMessagesView) DOM.chatMessagesView.classList.remove('hidden');
+        if (DOM.purchasedPlayersShortcutView) DOM.purchasedPlayersShortcutView.classList.add('hidden');
         if (DOM.btnTabChatMessages) {
           DOM.btnTabChatMessages.className = 'py-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center justify-center gap-1.5 cursor-pointer transition';
         }
@@ -2909,8 +3452,8 @@
           DOM.btnTabPurchasedShortcut.className = 'py-2 rounded-lg text-slate-400 hover:text-white flex items-center justify-center gap-1.5 cursor-pointer transition';
         }
       } else {
-        DOM.chatMessagesView.classList.add('hidden');
-        DOM.purchasedPlayersShortcutView.classList.remove('hidden');
+        if (DOM.chatMessagesView) DOM.chatMessagesView.classList.add('hidden');
+        if (DOM.purchasedPlayersShortcutView) DOM.purchasedPlayersShortcutView.classList.remove('hidden');
         if (DOM.btnTabPurchasedShortcut) {
           DOM.btnTabPurchasedShortcut.className = 'py-2 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 cursor-pointer transition';
         }
@@ -2946,6 +3489,7 @@
     };
 
     ChatState.messages.push(msg);
+    saveChatMessages();
 
     // Broadcast to StorageEngine for multiplayer sync if available
     if (typeof StorageEngine !== 'undefined' && StorageEngine.broadcastChatMessage) {
@@ -2969,6 +3513,7 @@
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'system'
     });
+    saveChatMessages();
 
     if (!ChatState.isDrawerOpen) {
       ChatState.unreadCount++;
@@ -3114,10 +3659,10 @@
     if (DOM.shortcutTotalPurseSpent) DOM.shortcutTotalPurseSpent.textContent = `₹${totalSpent.toFixed(2)} Cr`;
     if (DOM.purchasedTabBadge) DOM.purchasedTabBadge.textContent = purchased.length;
 
-    DOM.shortcutPurchasedListContainer.innerHTML = '';
+    if (DOM.shortcutPurchasedListContainer) DOM.shortcutPurchasedListContainer.innerHTML = '';
 
     if (purchased.length === 0) {
-      DOM.shortcutPurchasedListContainer.innerHTML = `
+      if (DOM.shortcutPurchasedListContainer) DOM.shortcutPurchasedListContainer.innerHTML = `
         <div class="flex flex-col items-center justify-center h-32 text-center space-y-2 text-slate-500">
           <div class="text-3xl">📋</div>
           <div class="text-xs font-semibold">No players purchased yet</div>
@@ -3146,7 +3691,7 @@
         <div class="text-amber-400 font-black text-[11px] shrink-0">₹${Number(p.price).toFixed(2)} Cr</div>
       `;
 
-      DOM.shortcutPurchasedListContainer.appendChild(row);
+      if (DOM.shortcutPurchasedListContainer) DOM.shortcutPurchasedListContainer.appendChild(row);
     });
   }
 
@@ -3195,6 +3740,7 @@
           if (slot.player) xi[idx] = slot.player;
         });
         AppState.activePickupSlot = null;
+        saveAppState();
         renderPlaying11ViewInteractive();
       });
     }
@@ -3205,6 +3751,7 @@
         if (!team) return;
         AppState.userPlayingXI[team.id] = new Array(11).fill(null);
         AppState.activePickupSlot = null;
+        saveAppState();
         renderPlaying11ViewInteractive();
       });
     }
@@ -3215,13 +3762,66 @@
         if (!team) return;
         const userXI = getUserXIForTeam(team.id);
         const filledCount = userXI.filter(p => p !== null).length;
-        if (filledCount < 11) {
-          alert(`You have only ${filledCount}/11 slots filled! Fill all 11 slots to finalize.`);
+        const totalSquadCount = team.players ? team.players.length : 0;
+
+        if (filledCount === 0) {
+          alert('Please pick at least 1 player into your Playing 11 before evaluating!');
           return;
+        }
+
+        if (filledCount < 11 && totalSquadCount >= 11) {
+          if (!confirm(`You have only filled ${filledCount}/11 slots on the turf, but your squad has ${totalSquadCount} players available.\n\nDo you want to evaluate with this partial lineup?`)) {
+            return;
+          }
         }
 
         const playerStatsDB = window.PLAYER_STATS || {};
         const evaluation = RatingEngine.evaluateUserXI(userXI, team.players, playerStatsDB);
+        AppState.userTeamRatings[team.id] = evaluation;
+        saveAppState();
+
+        // Save cleaned auction history (top 5 bids, buys, ratings, auctioneer name) & cleanup scratch data
+        try {
+          const allTeams = (typeof Game !== 'undefined' && Game.getTeams) ? Game.getTeams() : [];
+          const userTeamObj = (typeof Game !== 'undefined' && Game.getTeam) ? Game.getTeam(team.id) : team;
+          
+          // Collect top 5 bids from log
+          const logs = (typeof Game !== 'undefined' && Game.getLogs) ? Game.getLogs() : [];
+          const bidLogs = logs.filter(l => l.type === 'bid' && l.bid > 0);
+          bidLogs.sort((a, b) => (b.bid || 0) - (a.bid || 0));
+          const top5 = bidLogs.slice(0, 5).map(l => ({
+            name: l.player?.name || 'Player',
+            teamId: l.teamId || l.team?.shortName || 'Team',
+            price: l.bid || 0
+          }));
+
+          // All auctioneer buys
+          const allBuys = (userTeamObj.players || []).map(p => ({
+            name: p.name,
+            role: p.role,
+            overseas: !!p.overseas,
+            price: p.soldPrice || p.price || 0
+          }));
+
+          const auctioneerName = localStorage.getItem('ipl_user_name') || 'Manager';
+          StorageEngine.saveCleanedAuctionHistory({
+            roomId: window.CurrentRoom?.roomId || 'IPL-2027',
+            auctioneerName,
+            mode: AppState.auctionMode || 'Mini',
+            userTeam: team.id,
+            totalSpent: userTeamObj.spent || 0,
+            squadCount: (userTeamObj.players || []).length,
+            aiRating: evaluation.finalRating || 92,
+            userRating: evaluation.tier || 'A-Tier',
+            top5Bids: top5,
+            allBuys
+          });
+
+          // Refresh history list on home page
+          renderHomeAuctionHistory();
+        } catch (e) {
+          console.warn('History save warning:', e);
+        }
 
         // Show result in end auction modal
         if (DOM.endAuctionEvaluationCard) {
@@ -3281,24 +3881,36 @@
 
     // Chat Drawer toggles
     if (DOM.btnToggleChatDrawer) {
-      DOM.btnToggleChatDrawer.addEventListener('click', () => toggleChatDrawer());
+      if (DOM.btnToggleChatDrawer) {
+        DOM.btnToggleChatDrawer.addEventListener('click', () => toggleChatDrawer());
+      }
     }
     if (DOM.btnFloatingChat) {
-      DOM.btnFloatingChat.addEventListener('click', () => toggleChatDrawer(true));
+      if (DOM.btnFloatingChat) {
+        DOM.btnFloatingChat.addEventListener('click', () => toggleChatDrawer(true));
+      }
     }
     if (DOM.btnCloseChatDrawer) {
-      DOM.btnCloseChatDrawer.addEventListener('click', () => toggleChatDrawer(false));
+      if (DOM.btnCloseChatDrawer) {
+        DOM.btnCloseChatDrawer.addEventListener('click', () => toggleChatDrawer(false));
+      }
     }
 
     // Chat tab switchers
     if (DOM.btnTabChatMessages) {
-      DOM.btnTabChatMessages.addEventListener('click', () => switchChatTab('chat'));
+      if (DOM.btnTabChatMessages) {
+        DOM.btnTabChatMessages.addEventListener('click', () => switchChatTab('chat'));
+      }
     }
     if (DOM.btnTabPurchasedShortcut) {
-      DOM.btnTabPurchasedShortcut.addEventListener('click', () => switchChatTab('purchased'));
+      if (DOM.btnTabPurchasedShortcut) {
+        DOM.btnTabPurchasedShortcut.addEventListener('click', () => switchChatTab('purchased'));
+      }
     }
     if (DOM.btnChatShortcutSoldToggle) {
-      DOM.btnChatShortcutSoldToggle.addEventListener('click', () => switchChatTab('purchased'));
+      if (DOM.btnChatShortcutSoldToggle) {
+        DOM.btnChatShortcutSoldToggle.addEventListener('click', () => switchChatTab('purchased'));
+      }
     }
 
     // Send Chat Message
@@ -3324,14 +3936,110 @@
 
     // Search Purchased Players
     if (DOM.inputSearchPurchased) {
-      DOM.inputSearchPurchased.addEventListener('input', () => {
-        renderPurchasedPlayersShortcut(DOM.inputSearchPurchased.value);
-      });
+      if (DOM.inputSearchPurchased) {
+        DOM.inputSearchPurchased.addEventListener('input', () => {
+          if (DOM.inputSearchPurchased) renderPurchasedPlayersShortcut(DOM.inputSearchPurchased.value);
+        });
+      }
     }
     if (DOM.btnRefreshPurchasedList) {
-      DOM.btnRefreshPurchasedList.addEventListener('click', () => {
-        renderPurchasedPlayersShortcut();
+      if (DOM.btnRefreshPurchasedList) {
+        DOM.btnRefreshPurchasedList.addEventListener('click', () => {
+          renderPurchasedPlayersShortcut();
+        });
+      }
+    }
+
+        // AI Bidding Mode Selector for each player
+    if (DOM.selectAiBiddingMode) {
+      if (DOM.selectAiBiddingMode) {
+        DOM.selectAiBiddingMode.addEventListener('change', (e) => {
+          const mode = e.target.value;
+          Game.setAiBiddingMode(mode);
+          if (DOM.aiBiddingModeHint) {
+            const hints = {
+              all: 'All AI franchises actively bid based on squad budgets & needs',
+              aggressive: 'Fierce bidding war: AI maximum valuation ceilings boosted +30%',
+              conservative: 'Bargain mode: AI will only bid if price is under -30% valuation',
+              rivals_only: 'Exclusive battle: Only top 2 highest interested rival AI teams will bid',
+              human_only: 'Human & multiplayer paddles only. AI will not place bids.'
+            };
+            if (DOM.aiBiddingModeHint) DOM.aiBiddingModeHint.textContent = hints[mode] || 'Active for every AI franchise';
+          }
+          if (DOM.auctioneerCallout) {
+            DOM.auctioneerCallout.textContent = `⚡ AI BIDDING MODE: ${mode.toUpperCase().replace('_', ' ')}`;
+          }
+        });
+      }
+    }
+
+    // Open Team Squad Export Modal from Tab 2
+    if (DOM.btnOpenExportRoster) {
+      DOM.btnOpenExportRoster.addEventListener('click', () => {
+        const team = Game.getTeam(AppState.selectedPlaying11TeamId) || Game.getUserTeam();
+        openTeamSquadExportModal(team?.id || 'CSK');
       });
+    }
+
+    // Team Squad Export Modal action buttons
+    if (DOM.btnCloseExportModal) {
+      DOM.btnCloseExportModal.addEventListener('click', () => {
+        if (DOM.teamSquadExportModal) DOM.teamSquadExportModal.classList.add('hidden');
+      });
+    }
+    if (DOM.btnDownloadSquadCSV) {
+      DOM.btnDownloadSquadCSV.addEventListener('click', () => {
+        downloadSquadCSV(AppState.exportModalSelectedTeamId);
+      });
+    }
+    if (DOM.btnDownloadSquadTXT) {
+      DOM.btnDownloadSquadTXT.addEventListener('click', () => {
+        downloadSquadTXT(AppState.exportModalSelectedTeamId);
+      });
+    }
+    if (DOM.btnShareSquadWhatsApp) {
+      DOM.btnShareSquadWhatsApp.addEventListener('click', () => {
+        shareSquadWhatsApp(AppState.exportModalSelectedTeamId);
+      });
+    }
+    if (DOM.btnCopySquadText) {
+      DOM.btnCopySquadText.addEventListener('click', () => {
+        copySquadText(AppState.exportModalSelectedTeamId);
+      });
+    }
+    if (DOM.btnShareSquadNative) {
+      if (DOM.btnShareSquadNative) {
+        DOM.btnShareSquadNative.addEventListener('click', () => {
+          shareSquadNative(AppState.exportModalSelectedTeamId);
+        });
+      }
+    }
+
+    // Room WhatsApp & Native Share Shortcuts
+    if (DOM.btnShareRoomWhatsApp) {
+      if (DOM.btnShareRoomWhatsApp) {
+        DOM.btnShareRoomWhatsApp.addEventListener('click', () => {
+          const link = DOM.inputPrivateShareLink?.value || window.location.href;
+          const msg = "🏏 Join my IPL Mega Auction Room (HTTPS SSL Certified)!\n👉 Click link to enter: " + link;
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+        });
+      }
+    }
+    if (DOM.btnShareRoomNative) {
+      if (DOM.btnShareRoomNative) {
+        DOM.btnShareRoomNative.addEventListener('click', () => {
+          const link = DOM.inputPrivateShareLink?.value || window.location.href;
+          if (navigator.share) {
+            navigator.share({
+              title: 'IPL Mega Auction Room',
+              text: 'Join my IPL Mega Auction Room live!',
+              url: link
+            }).catch(() => {});
+          } else {
+            DOM.btnShareRoomWhatsApp?.click();
+          }
+        });
+      }
     }
 
     // Auto-feed sold players into chat
@@ -3348,6 +4056,2158 @@
 
   // Override renderPlaying11View to use interactive version
   const _origRenderPlaying11View = typeof renderPlaying11View === 'function' ? renderPlaying11View : null;
+
+
+
+  // =========================================================================
+  // TEAM SQUAD CATEGORIZED EXPORT, DOWNLOAD & SHARE CONTROLLER
+  // Categorizes squad into Wicketkeepers, Batters, All-Rounders, Bowlers
+  // =========================================================================
+  AppState.exportModalSelectedTeamId = 'CSK';
+
+  function getCategorizedSquad(teamId) {
+    const team = Game.getTeam(teamId) || Game.getUserTeam();
+    if (!team) return null;
+
+    const squad = team.players || [];
+    const categorized = {
+      team: team,
+      spent: team.spent || squad.reduce((sum, p) => sum + (p.soldPrice || p.price || 0), 0),
+      remaining: Math.max(0, (team.purse || 120) - (team.spent || 0)),
+      wicketKeepers: [],
+      batters: [],
+      allRounders: [],
+      bowlers: []
+    };
+
+    squad.forEach(p => {
+      const role = (p.role || '').toUpperCase();
+      const item = {
+        name: p.name,
+        role: p.role || 'Batsman',
+        price: Number(p.soldPrice !== undefined ? p.soldPrice : (p.price !== undefined ? p.price : p.basePrice || 0.5)),
+        rating: p.rating || 80,
+        overseas: !!p.overseas,
+        country: p.country || (p.overseas ? 'Overseas' : 'India')
+      };
+
+      if (role.includes('WK') || role.includes('WICKET') || role === 'WK-BAT') {
+        categorized.wicketKeepers.push(item);
+      } else if (role.includes('ALL') || role === 'AR') {
+        categorized.allRounders.push(item);
+      } else if (role.includes('BOWL')) {
+        categorized.bowlers.push(item);
+      } else {
+        categorized.batters.push(item);
+      }
+    });
+
+    return categorized;
+  }
+
+  function openTeamSquadExportModal(teamId) {
+    if (!DOM.teamSquadExportModal) return;
+    const targetTeamId = teamId || Game.getUserTeam()?.id || 'CSK';
+    AppState.exportModalSelectedTeamId = targetTeamId;
+
+    renderTeamSquadExportModal();
+    DOM.teamSquadExportModal.classList.remove('hidden');
+  }
+
+  function renderTeamSquadExportModal() {
+    const teamId = AppState.exportModalSelectedTeamId;
+    const data = getCategorizedSquad(teamId);
+    if (!data) return;
+
+    const { team, wicketKeepers, batters, allRounders, bowlers } = data;
+    const isUser = team.id === Game.getUserTeam()?.id;
+
+    // Render franchise tabs
+    if (DOM.exportModalTeamTabs) {
+      DOM.exportModalTeamTabs.innerHTML = '';
+      const state = Game.getState();
+      state.teams.forEach(t => {
+        const isCurrent = t.id === teamId;
+        const btn = document.createElement('button');
+        btn.className = `px-3 py-1.5 rounded-xl font-bold text-xs shrink-0 transition cursor-pointer flex items-center gap-1.5 ${
+          isCurrent 
+            ? 'bg-amber-400 text-slate-950 shadow-md font-extrabold' 
+            : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+        }`;
+        btn.innerHTML = `<span>${t.logo}</span><span>${t.shortName || t.name}</span>`;
+        btn.addEventListener('click', () => {
+          AppState.exportModalSelectedTeamId = t.id;
+          renderTeamSquadExportModal();
+        });
+        DOM.exportModalTeamTabs.appendChild(btn);
+      });
+    }
+
+    // Header info
+    if (DOM.exportModalTeamLogo) {
+      DOM.exportModalTeamLogo.textContent = team.logo || '🏏';
+      DOM.exportModalTeamLogo.style.backgroundColor = team.primaryColor || '#1e293b';
+    }
+    if (DOM.exportModalTeamName) {
+      DOM.exportModalTeamName.textContent = team.name.toUpperCase();
+    }
+    if (DOM.exportModalManagerBadge) {
+      const managerName = localStorage.getItem('ipl_manager_name') || 'Manager';
+      if (DOM.exportModalManagerBadge) DOM.exportModalManagerBadge.textContent = isUser ? `👑 ${managerName} (You)` : '🤖 AI Managed';
+    }
+
+    // Stats banner
+    if (DOM.exportModalTotalSpent) DOM.exportModalTotalSpent.textContent = `₹${data.spent.toFixed(2)} Cr`;
+    if (DOM.exportModalRemainingPurse) DOM.exportModalRemainingPurse.textContent = `₹${data.remaining.toFixed(2)} Cr`;
+    if (DOM.exportModalSquadCount) DOM.exportModalSquadCount.textContent = `${(team.players || []).length} / 25`;
+    if (DOM.exportModalOverseasCount) DOM.exportModalOverseasCount.textContent = `${team.overseas || 0} / 8`;
+
+    // Render categorized sections
+    if (DOM.exportModalCategoriesContainer) {
+      DOM.exportModalCategoriesContainer.innerHTML = '';
+
+      const categories = [
+        { title: '🧤 WICKET-KEEPERS', list: wicketKeepers, color: 'text-amber-400', border: 'border-amber-500/30' },
+        { title: '🏏 BATTERS', list: batters, color: 'text-blue-400', border: 'border-blue-500/30' },
+        { title: '⚡ ALL-ROUNDERS', list: allRounders, color: 'text-purple-400', border: 'border-purple-500/30' },
+        { title: '🎯 BOWLERS', list: bowlers, color: 'text-emerald-400', border: 'border-emerald-500/30' },
+      ];
+
+      categories.forEach(cat => {
+        const sec = document.createElement('div');
+        sec.className = `p-4 rounded-2xl bg-slate-950/70 border ${cat.border} space-y-2.5`;
+
+        sec.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-xs font-black uppercase tracking-wider ${cat.color} flex items-center gap-1.5">
+              <span>${cat.title}</span>
+              <span class="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px] text-white">${cat.list.length}</span>
+            </h4>
+            <span class="text-[10px] text-slate-500 font-semibold">Subtotal: ₹${cat.list.reduce((s, p) => s + p.price, 0).toFixed(2)} Cr</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            ${cat.list.length === 0 ? `
+              <div class="col-span-full py-2 text-center text-slate-500 text-xs italic">No players acquired in this category.</div>
+            ` : cat.list.map(p => `
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs hover:border-slate-700 transition">
+                <div class="min-w-0 pr-2">
+                  <div class="font-bold text-white truncate" title="${p.name}">${p.name}</div>
+                  <div class="text-[10px] text-slate-400 flex items-center gap-1">
+                    <span>${p.role}</span>
+                    <span>•</span>
+                    <span class="text-amber-300">OVR ${p.rating}</span>
+                    <span>${p.overseas ? '✈️' : '🇮🇳'}</span>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="font-black text-amber-400 text-xs">₹${p.price.toFixed(2)} Cr</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        DOM.exportModalCategoriesContainer.appendChild(sec);
+      });
+    }
+  }
+
+  // 1. Download Squad as CSV
+  function downloadSquadCSV(teamId) {
+    const data = getCategorizedSquad(teamId);
+    if (!data) return;
+
+    let csv = `Category,Player Name,Role,Price (₹ Cr),Overseas,Rating,Country\n`;
+
+    const sections = [
+      { name: 'WICKET-KEEPER', list: data.wicketKeepers },
+      { name: 'BATTER', list: data.batters },
+      { name: 'ALL-ROUNDER', list: data.allRounders },
+      { name: 'BOWLER', list: data.bowlers }
+    ];
+
+    sections.forEach(sec => {
+      sec.list.forEach(p => {
+        csv += `"${sec.name}","${p.name.replace(/"/g, '""')}","${p.role}","${p.price.toFixed(2)}","${p.overseas ? 'Yes' : 'No'}","${p.rating}","${p.country}"\n`;
+      });
+    });
+
+    csv += `\nSUMMARY,,,\n`;
+    csv += `Total Spent,"₹${data.spent.toFixed(2)} Cr",,\n`;
+    csv += `Remaining Purse,"₹${data.remaining.toFixed(2)} Cr",,\n`;
+    csv += `Total Squad Size,"${(data.team.players || []).length} / 25",,\n`;
+    csv += `Overseas Players,"${data.team.overseas || 0} / 8",,\n`;
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${data.team.shortName || data.team.name}_Squad_IPL2027.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // 2. Download Squad as Formatted Report TXT
+  function downloadSquadTXT(teamId) {
+    const textData = generateSquadTextReport(teamId);
+    if (!textData) return;
+
+    const blob = new Blob([textData.text], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${textData.team.shortName || textData.team.name}_Official_Roster.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function generateSquadTextReport(teamId) {
+    const data = getCategorizedSquad(teamId);
+    if (!data) return null;
+
+    const t = data.team;
+    let txt = `========================================================================\n`;
+    txt += `🏆 ${t.name.toUpperCase()} (${t.shortName || t.id}) - OFFICIAL IPL AUCTION ROSTER\n`;
+    txt += `========================================================================\n`;
+    txt += `Total Purse Spent: ₹${data.spent.toFixed(2)} Cr | Remaining: ₹${data.remaining.toFixed(2)} Cr\n`;
+    txt += `Squad Size: ${(t.players || []).length} / 25 | Overseas: ${t.overseas || 0} / 8\n`;
+    txt += `------------------------------------------------------------------------\n\n`;
+
+    const categories = [
+      { label: '🧤 WICKET-KEEPERS', list: data.wicketKeepers },
+      { label: '🏏 BATTERS', list: data.batters },
+      { label: '⚡ ALL-ROUNDERS', list: data.allRounders },
+      { label: '🎯 BOWLERS', list: data.bowlers }
+    ];
+
+    categories.forEach(cat => {
+      txt += `${cat.label} (${cat.list.length}):\n`;
+      if (cat.list.length === 0) {
+        txt += `  (None acquired)\n\n`;
+      } else {
+        cat.list.forEach((p, i) => {
+          const num = String(i + 1).padStart(2, ' ');
+          const name = p.name.padEnd(24, ' ');
+          const price = `₹${p.price.toFixed(2)} Cr`.padStart(11, ' ');
+          const ovr = `OVR: ${p.rating}`.padEnd(8, ' ');
+          const flag = p.overseas ? '✈️ OS' : '🇮🇳 Ind';
+          txt += `  ${num}. ${name} | ${price} | ${ovr} | ${flag}\n`;
+        });
+        txt += `\n`;
+      }
+    });
+
+    txt += `========================================================================\n`;
+    txt += `Generated via IPL Mega Auction Game Simulator 2027\n`;
+    txt += `========================================================================\n`;
+
+    return { text: txt, team: t };
+  }
+
+  // 3. Share Squad on WhatsApp
+  function shareSquadWhatsApp(teamId) {
+    const data = getCategorizedSquad(teamId);
+    if (!data) return;
+
+    const t = data.team;
+    let msg = `*🏏 ${t.name.toUpperCase()} - IPL 2027 AUCTION ROSTER*\n`;
+    msg += `💰 Spent: ₹${data.spent.toFixed(2)} Cr | Remaining: ₹${data.remaining.toFixed(2)} Cr\n`;
+    msg += `👥 Squad: ${(t.players || []).length} players (Overseas: ${t.overseas || 0}/8)\n\n`;
+
+    if (data.wicketKeepers.length > 0) {
+      msg += `*🧤 Wicket-Keepers:* \n`;
+      data.wicketKeepers.forEach(p => msg += `• ${p.name} (₹${p.price.toFixed(2)} Cr)\n`);
+      msg += `\n`;
+    }
+    if (data.batters.length > 0) {
+      msg += `*🏏 Batters:* \n`;
+      data.batters.forEach(p => msg += `• ${p.name} (₹${p.price.toFixed(2)} Cr)\n`);
+      msg += `\n`;
+    }
+    if (data.allRounders.length > 0) {
+      msg += `*⚡ All-Rounders:* \n`;
+      data.allRounders.forEach(p => msg += `• ${p.name} (₹${p.price.toFixed(2)} Cr)\n`);
+      msg += `\n`;
+    }
+    if (data.bowlers.length > 0) {
+      msg += `*🎯 Bowlers:* \n`;
+      data.bowlers.forEach(p => msg += `• ${p.name} (₹${p.price.toFixed(2)} Cr)\n`);
+      msg += `\n`;
+    }
+
+    msg += `_Play IPL Mega Auction Live at http://localhost:8000_`;
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+  }
+
+  // 4. Copy Formatted Squad to Clipboard
+  function copySquadText(teamId) {
+    const report = generateSquadTextReport(teamId);
+    if (!report) return;
+
+    navigator.clipboard.writeText(report.text).then(() => {
+      alert(`📋 ${report.team.name} full categorized roster copied to clipboard!`);
+    }).catch(() => {
+      alert('Copied roster data!');
+    });
+  }
+
+  // 5. Native Web Share API
+  function shareSquadNative(teamId) {
+    const report = generateSquadTextReport(teamId);
+    if (!report) return;
+
+    if (navigator.share) {
+      navigator.share({
+        title: `${report.team.name} IPL Auction Roster`,
+        text: report.text
+      }).catch(() => {});
+    } else {
+      shareSquadWhatsApp(teamId);
+    }
+  }
+
+  // Overwrite window.openTeamRosterModal so all franchise buttons open this categorized modal
+  window.openTeamRosterModal = function(teamId) {
+    openTeamSquadExportModal(teamId);
+  };
+
+
+
+
+
+  // =========================================================================
+  // MULTIPLAYER ROOM & REDESIGN ENGINE (FULL IMPLEMENTATION)
+  // =========================================================================
+
+  window.RoomRules = {
+    maxBidEnabled: false,
+    maxBidAmount: 25,
+    exceedLimitEnabled: false,
+    exceedThreshold: 15,
+    exceedMaxPlayers: 3,
+    acceleratedEnabled: false,
+    timer: 10
+  };
+
+  window.CurrentRoom = null;
+
+  // Global alert for bidding rule violation
+  window.showBiddingRuleAlert = function(msg) {
+    const notifyBox = document.getElementById('biddingRuleNotification');
+    const notifyText = document.getElementById('biddingRuleNotificationText');
+    if (notifyBox && notifyText) {
+      notifyText.textContent = msg;
+      notifyBox.classList.remove('hidden');
+      setTimeout(() => { notifyBox.classList.add('hidden'); }, 4000);
+    } else {
+      alert(msg);
+    }
+  };
+
+  // Switch between Auction Arena sub-panes (Live Bidding, Playing XI, Messages, Ratings, Accelerated)
+  function switchArenaTab(arenaKey) {
+    AppState.currentArenaTab = arenaKey;
+    document.querySelectorAll('.arena-tab').forEach(btn => {
+      if (btn.dataset.arenaTab === arenaKey) {
+        btn.classList.add('active', 'bg-amber-500', 'text-slate-950');
+        btn.classList.remove('text-slate-400');
+      } else {
+        btn.classList.remove('active', 'bg-amber-500', 'text-slate-950');
+        btn.classList.add('text-slate-400');
+      }
+    });
+
+    document.querySelectorAll('.arena-pane').forEach(pane => {
+      if (pane.id === `arenaPane-${arenaKey}`) {
+        pane.classList.remove('hidden');
+      } else {
+        pane.classList.add('hidden');
+      }
+    });
+
+    if (arenaKey === 'playing11') {
+      if (typeof renderPlaying11ViewInteractive === 'function') renderPlaying11ViewInteractive();
+      renderArenaPlayerCatalogue();
+    } else if (arenaKey === 'ratings') {
+      if (typeof renderRatingsView === 'function') renderRatingsView();
+    } else if (arenaKey === 'messages') {
+      renderRoomChatMessages();
+    } else if (arenaKey === 'accelerated') {
+      renderAcceleratedAuctionPanel();
+    }
+  }
+  window.switchArenaTab = switchArenaTab;
+
+  // Intercept switchTab for 'playing11' and 'ratings' to move them inside Arena!
+  const originalSwitchTab = window.switchTab || switchTab;
+  window.switchTab = function(tabKey) {
+    if (tabKey === 'playing11') {
+      originalSwitchTab('auction');
+      switchArenaTab('playing11');
+      return;
+    }
+    if (tabKey === 'ratings') {
+      originalSwitchTab('auction');
+      switchArenaTab('ratings');
+      return;
+    }
+    originalSwitchTab(tabKey);
+  };
+
+  // Initialize Welcome Modal / Identity on Page Load
+  function initWelcomeAndRoomFlow() {
+    // Unify all storage keys for user identity so refresh never loses past data!
+    const savedName = localStorage.getItem('ipl_user_name') || localStorage.getItem('ipl_manager_name') || (StorageEngine && StorageEngine.currentUser ? StorageEngine.currentUser.userName : null);
+    const welcomeModal = document.getElementById('welcomeNewUserModal');
+    const inputWelcomeName = document.getElementById('inputWelcomeUserName');
+    const btnSubmitWelcome = document.getElementById('btnSubmitWelcomeName');
+
+    // Parse URL parameter ?roomId= or ?room=
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryRoomId = urlParams.get('roomId') || urlParams.get('room');
+
+    if (!savedName) {
+      // New User: Show Welcome Popup
+      if (welcomeModal) welcomeModal.classList.remove('hidden');
+      if (btnSubmitWelcome) {
+        btnSubmitWelcome.onclick = () => {
+          const nameVal = (inputWelcomeName?.value || '').trim();
+          if (!nameVal) {
+            alert('Please enter your name to continue.');
+            return;
+          }
+          localStorage.setItem('ipl_user_name', nameVal);
+          StorageEngine.loginUser(nameVal, AppState.userTeamId || 'RCB');
+          if (welcomeModal) welcomeModal.classList.add('hidden');
+
+          // If from a room link, redirect directly to that room!
+          if (queryRoomId) {
+            handleJoinSpecificRoom(queryRoomId);
+          } else {
+            renderHomeAuctionHistory();
+            renderPublicRoomsList();
+          }
+        };
+      }
+    } else {
+      // Old User: ensure both keys are set and restore past data immediately
+      localStorage.setItem('ipl_user_name', savedName);
+      localStorage.setItem('ipl_manager_name', savedName);
+      if (welcomeModal) welcomeModal.classList.add('hidden');
+
+      if (typeof StorageEngine !== 'undefined') {
+        StorageEngine.loginUser(savedName, AppState.userTeamId || 'RCB').then(res => {
+          if (res && res.user) updateUserDisplay(res.user);
+          if (typeof renderHomeAuctionHistory === 'function') renderHomeAuctionHistory();
+        });
+      }
+
+      if (queryRoomId) {
+        handleJoinSpecificRoom(queryRoomId);
+      } else {
+        renderHomeAuctionHistory();
+        renderPublicRoomsList();
+      }
+    }
+
+    // Attach Room Create & Join Button Handlers
+    initRoomActionListeners();
+  }
+
+  // Handle Joining Specific Room via Link or Code
+  function handleJoinSpecificRoom(roomId) {
+    const user = StorageEngine.currentUser || { userId: 'user_' + Date.now(), userName: localStorage.getItem('ipl_user_name') || 'Manager' };
+    const res = StorageEngine.joinRoom(roomId, AppState.userTeamId, user.userId, user.userName);
+
+    if (!res.success) {
+      if (res.reason === 'banned') {
+        alert('🚫 You have been banned from this room by the host.');
+        window.switchTab('home');
+        return;
+      }
+      alert('Room not found or expired.');
+      return;
+    }
+
+    window.CurrentRoom = res.room;
+    window.RoomRules = res.room.rules || window.RoomRules;
+    AppState.isSpectator = !!res.isSpectator;
+
+    // Open Room Lobby
+    openRoomLobbyUI(res.room);
+  }
+
+  // Open Room Lobby UI
+  function openRoomLobbyUI(room) {
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.sanitizeRoomTeams === 'function') {
+      room = StorageEngine.sanitizeRoomTeams(room);
+    }
+    window.CurrentRoom = room;
+
+    // Synchronize user team from room if user already has an assigned team in room
+    const currentUser = StorageEngine?.currentUser;
+    const myUserId = currentUser?.userId;
+    const myUserName = (currentUser?.userName || localStorage.getItem('ipl_user_name') || '').trim();
+    const myNormName = myUserName.toLowerCase();
+    let userTeamInRoom = null;
+    if (room && room.players) {
+      for (const tId of Object.keys(room.players)) {
+        const p = room.players[tId];
+        const pNormName = (p && p.userName ? p.userName.trim().toLowerCase() : '');
+        if (p && ((myUserId && p.userId === myUserId) || (myNormName && pNormName && pNormName === myNormName) || (room.hostId === myUserId && room.hostTeam === tId) || (myNormName && room.hostName && room.hostName.trim().toLowerCase() === myNormName && room.hostTeam === tId))) {
+          userTeamInRoom = tId;
+          break;
+        }
+      }
+    }
+    if (userTeamInRoom) {
+      AppState.userTeamId = userTeamInRoom;
+      AppState.selectedLandingTeamId = userTeamInRoom;
+      AppState.selectedPlaying11TeamId = userTeamInRoom;
+      AppState.selectedReviewTeamId = userTeamInRoom;
+      if (typeof Game !== 'undefined') {
+        if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(userTeamInRoom);
+        else if (typeof Game.selectTeam === 'function') Game.selectTeam(userTeamInRoom);
+        else if (Game.getState) Game.getState().userTeamId = userTeamInRoom;
+      }
+      if (typeof updateTopBar === 'function') updateTopBar();
+    }
+
+    const lobbySec = document.getElementById('roomLobbySection');
+    if (!lobbySec) return;
+
+    // HIDE BOTH Hero Banner & Browse Public Rooms when player is already in room!
+    const heroBanner = document.getElementById('homeHeroBanner');
+    const publicRoomsSec = document.getElementById('homePublicRoomsSection');
+    const historySec = document.getElementById('homeAuctionHistorySection');
+
+    if (heroBanner) heroBanner.classList.add('hidden');
+    if (publicRoomsSec) publicRoomsSec.classList.add('hidden');
+    if (historySec) historySec.classList.add('hidden');
+
+    lobbySec.classList.remove('hidden');
+    lobbySec.scrollIntoView({ behavior: 'smooth' });
+
+    // Wire Leave Room Button (releases team back to available!)
+    const btnLeave = document.getElementById('btnLeaveRoomLobby');
+    if (btnLeave) {
+      btnLeave.onclick = () => {
+        if (confirm('Are you sure you want to leave this auction room? Your franchise will be freed up for other players.')) {
+          const myId = StorageEngine?.currentUser?.userId || 'me';
+          if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.leaveRoom === 'function') {
+            StorageEngine.leaveRoom(room.roomId, myId);
+          }
+          window.CurrentRoom = null;
+          lobbySec.classList.add('hidden');
+          if (heroBanner) heroBanner.classList.remove('hidden');
+          if (publicRoomsSec) publicRoomsSec.classList.remove('hidden');
+          if (historySec) historySec.classList.remove('hidden');
+          renderPublicRoomsList();
+          renderHomeAuctionHistory();
+        }
+      };
+    }
+
+    // Update badges
+    const roomBadge = document.getElementById('lobbyRoomBadge');
+    if (roomBadge) roomBadge.textContent = `ROOM: ${room.roomId}`;
+
+    const modeBadge = document.getElementById('lobbyModeBadge');
+    if (modeBadge) modeBadge.textContent = room.mode === 'MINI' ? 'Mini Auction' : 'Mega Auction';
+
+    const visBadge = document.getElementById('lobbyVisibilityBadge');
+    if (visBadge) visBadge.textContent = room.visibility === 'PUBLIC' ? 'Public Room' : 'Private Room';
+
+    // Share link
+    const linkInput = document.getElementById('inputLobbyShareLink');
+    const joinUrl = `https://iplauctiongamehaswanthkodali88.workers.dev/?roomId=${room.roomId}`;
+    if (linkInput) linkInput.value = joinUrl;
+
+    const copyBtn = document.getElementById('btnCopyLobbyLink');
+    if (copyBtn) {
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(joinUrl).then(() => {
+          const txt = document.getElementById('copyLobbyBtnText');
+          if (txt) txt.textContent = 'Copied!';
+          setTimeout(() => { if (txt) txt.textContent = 'Copy'; }, 2000);
+        });
+      };
+    }
+
+    const waBtn = document.getElementById('btnShareLobbyWhatsApp');
+    if (waBtn) {
+      waBtn.onclick = () => {
+        const text = encodeURIComponent(`Join my live IPL Auction Room (${room.roomId})! Click here to play: ${joinUrl}`);
+        window.open(`https://wa.me/?text=${text}`, '_blank');
+      };
+    }
+
+    // Rules display
+    const rFormat = document.getElementById('ruleDisplayFormat');
+    if (rFormat) rFormat.textContent = room.mode === 'MINI' ? '2027 Mini Auction' : 'Mega Auction';
+
+    const rMax = document.getElementById('ruleDisplayMaxBid');
+    if (rMax) rMax.textContent = room.rules?.maxBidEnabled ? `Max ₹${room.rules.maxBidAmount}.00 Cr` : 'None (No Cap)';
+
+    const rExceed = document.getElementById('ruleDisplayExceedLimit');
+    if (rExceed) rExceed.textContent = room.rules?.exceedLimitEnabled ? `Max ${room.rules.exceedMaxPlayers} > ₹${room.rules.exceedThreshold} Cr` : 'Unlimited';
+
+    const rAcc = document.getElementById('ruleDisplayAccelerated');
+    if (rAcc) rAcc.textContent = room.rules?.acceleratedEnabled ? 'Enabled (ON)' : 'Disabled (OFF)';
+
+    // Render 10 Teams Grid for Room (Lock already taken teams)
+    renderLobbyTeamsGrid(room);
+
+    // Render Players in Room with Online / Offline (Green / Red) & Host Ban buttons
+    renderLobbyPlayersList(room);
+
+    // Host controls vs Non-host waiting message (currentUser is already defined above in openRoomLobbyUI)
+    const isHost = (currentUser && currentUser.userId === room.hostId) || room.hostId === 'user_host' || !room.hostId;
+    const hostPanel = document.getElementById('lobbyHostPanel');
+    const waitingNotice = document.getElementById('lobbyWaitingNotice');
+    const editSettingsBtn = document.getElementById('lobbyEditSettingsBtn');
+
+    if (isHost) {
+      if (hostPanel) hostPanel.classList.remove('hidden');
+      if (waitingNotice) waitingNotice.classList.add('hidden');
+      // Only show settings button if auction hasn't started yet
+      if (editSettingsBtn) {
+        const isAuctionLive = window.AuctionStarted || room.status === 'started' || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
+        if (isAuctionLive) {
+          editSettingsBtn.classList.add('hidden');
+          const editor = document.getElementById('lobbySettingsEditor');
+          if (editor) editor.classList.add('hidden');
+        } else {
+          editSettingsBtn.classList.remove('hidden');
+        }
+      }
+      initLobbyHostControls(room);
+      initLobbySettingsEditor(room);
+    } else {
+      if (hostPanel) hostPanel.classList.add('hidden');
+      if (waitingNotice) waitingNotice.classList.remove('hidden');
+      if (editSettingsBtn) editSettingsBtn.classList.add('hidden');
+    }
+  }
+
+  // =========================================================================
+  // HOST INLINE SETTINGS EDITOR
+  // Allows host to change Max Bid Ceiling, Exceed Limit, Accelerated Auction
+  // Format (Mini/Mega) is NOT changeable after room creation
+  // =========================================================================
+  function initLobbySettingsEditor(room) {
+    const toggleBtn = document.getElementById('btnToggleLobbySettings');
+    const editor = document.getElementById('lobbySettingsEditor');
+    const saveBtn = document.getElementById('btnSaveLobbySettings');
+    const cancelBtn = document.getElementById('btnCancelLobbySettings');
+    const statusMsg = document.getElementById('settingsSaveStatus');
+    if (!toggleBtn || !editor) return;
+
+    // ── LOCK CHECK: If auction already started, hide settings editor completely ──
+    const isAuctionLive = window.AuctionStarted || room.status === 'started' || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
+    if (isAuctionLive) {
+      const editBtn = document.getElementById('lobbyEditSettingsBtn');
+      if (editBtn) editBtn.classList.add('hidden');
+      editor.classList.add('hidden');
+      return; // Strictly lock out any editing once auction starts
+    }
+    // ── END LOCK CHECK ──
+
+    // Populate editor fields from current room rules
+    const rules = room.rules || {};
+    const chkMaxBid = document.getElementById('editMaxBidEnabled');
+    const inpMaxBid = document.getElementById('editMaxBidAmount');
+    const chkExceed = document.getElementById('editExceedLimitEnabled');
+    const inpExceedMax = document.getElementById('editExceedMaxPlayers');
+    const inpExceedThreshold = document.getElementById('editExceedThreshold');
+    const chkAccelerated = document.getElementById('editAcceleratedEnabled');
+
+    if (chkMaxBid) chkMaxBid.checked = !!rules.maxBidEnabled;
+    if (inpMaxBid) inpMaxBid.value = rules.maxBidAmount || 25;
+    if (chkExceed) chkExceed.checked = !!rules.exceedLimitEnabled;
+    if (inpExceedMax) inpExceedMax.value = rules.exceedMaxPlayers || 3;
+    if (inpExceedThreshold) inpExceedThreshold.value = rules.exceedThreshold || 15;
+    if (chkAccelerated) chkAccelerated.checked = !!rules.acceleratedEnabled;
+
+    // Toggle editor visibility
+    toggleBtn.onclick = () => {
+      if (editor.classList.contains('hidden')) {
+        editor.classList.remove('hidden');
+        toggleBtn.querySelector('span:last-child').textContent = 'Close Settings Editor';
+      } else {
+        editor.classList.add('hidden');
+        toggleBtn.querySelector('span:last-child').textContent = 'Edit Room Settings (Host Only)';
+      }
+    };
+
+    // Cancel button
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        editor.classList.add('hidden');
+        toggleBtn.querySelector('span:last-child').textContent = 'Edit Room Settings (Host Only)';
+      };
+    }
+
+    // Save button
+    if (saveBtn) {
+      saveBtn.onclick = () => {
+        const isLive = window.AuctionStarted || room.status === 'started' || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
+        if (isLive) {
+          alert('⚠️ Room settings can only be changed before the auction starts. Modifying rules is locked once bidding begins.');
+          editor.classList.add('hidden');
+          const editBtn = document.getElementById('lobbyEditSettingsBtn');
+          if (editBtn) editBtn.classList.add('hidden');
+          return;
+        }
+
+        // Read values from editor
+        const newRules = {
+          maxBidEnabled: chkMaxBid ? chkMaxBid.checked : false,
+          maxBidAmount: inpMaxBid ? Number(inpMaxBid.value) || 25 : 25,
+          exceedLimitEnabled: chkExceed ? chkExceed.checked : false,
+          exceedThreshold: inpExceedThreshold ? Number(inpExceedThreshold.value) || 15 : 15,
+          exceedMaxPlayers: inpExceedMax ? Number(inpExceedMax.value) || 3 : 3,
+          acceleratedEnabled: chkAccelerated ? chkAccelerated.checked : false,
+          timer: rules.timer || 10
+        };
+
+        // Update room object
+        room.rules = newRules;
+        if (window.CurrentRoom) window.CurrentRoom.rules = newRules;
+
+        // Persist to storage
+        if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
+          StorageEngine.saveRoom(room);
+        } else {
+          try {
+            const db = JSON.parse(localStorage.getItem('ipl_auction_rooms') || localStorage.getItem('ipl_all_active_rooms') || '{}');
+            db[room.roomId] = room;
+            localStorage.setItem('ipl_all_active_rooms', JSON.stringify(db));
+            localStorage.setItem('ipl_auction_rooms', JSON.stringify(db));
+          } catch (e) {}
+        }
+
+        // Update display badges immediately
+        const rMax = document.getElementById('ruleDisplayMaxBid');
+        if (rMax) rMax.textContent = newRules.maxBidEnabled ? 'Max ₹' + newRules.maxBidAmount + '.00 Cr' : 'None (No Cap)';
+
+        const rExceed = document.getElementById('ruleDisplayExceedLimit');
+        if (rExceed) rExceed.textContent = newRules.exceedLimitEnabled ? 'Max ' + newRules.exceedMaxPlayers + ' > ₹' + newRules.exceedThreshold + ' Cr' : 'Unlimited';
+
+        const rAcc = document.getElementById('ruleDisplayAccelerated');
+        if (rAcc) rAcc.textContent = newRules.acceleratedEnabled ? 'Enabled (ON)' : 'Disabled (OFF)';
+
+        // Also update live Game engine rules if auction is running
+        try {
+          if (typeof Game !== 'undefined' && Game.getState) {
+            const gs = Game.getState();
+            if (gs) {
+              gs.maxBidEnabled = newRules.maxBidEnabled;
+              gs.maxBidAmount = newRules.maxBidAmount;
+              gs.exceedLimitEnabled = newRules.exceedLimitEnabled;
+              gs.exceedThreshold = newRules.exceedThreshold;
+              gs.exceedMaxPlayers = newRules.exceedMaxPlayers;
+              gs.acceleratedEnabled = newRules.acceleratedEnabled;
+            }
+          }
+        } catch (e) {}
+
+        // Show success feedback
+        if (statusMsg) {
+          statusMsg.classList.remove('hidden');
+          statusMsg.textContent = '✅ Settings updated!';
+          setTimeout(() => {
+            if (statusMsg) statusMsg.classList.add('hidden');
+          }, 3000);
+        }
+
+        // Close editor
+        editor.classList.add('hidden');
+        toggleBtn.querySelector('span:last-child').textContent = 'Edit Room Settings (Host Only)';
+
+        console.log('[IPL Auction] Room rules updated:', newRules);
+      };
+    }
+  }
+
+  // Render Lobby Teams Grid (Disables taken teams, lets user pick remaining)
+  function renderLobbyTeamsGrid(room) {
+    const grid = document.getElementById('lobbyTeamsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const allTeams = ['CSK', 'MI', 'RCB', 'KKR', 'DC', 'PBKS', 'RR', 'SRH', 'GT', 'LSG'];
+    const takenMap = room.players || {};
+    const currentUser = StorageEngine?.currentUser;
+    const myUserId = currentUser?.userId;
+    const myUserName = (currentUser?.userName || localStorage.getItem('ipl_user_name') || '').trim();
+    const myNormName = myUserName.toLowerCase();
+    const myTeamId = AppState.userTeamId || (typeof Game !== 'undefined' && Game.getState && Game.getState().userTeamId);
+
+    allTeams.forEach(teamId => {
+      const takenBy = takenMap[teamId];
+      const isTaken = !!takenBy;
+      const takenNormName = (takenBy && takenBy.userName ? takenBy.userName.trim().toLowerCase() : '');
+      const takenUserId = (takenBy ? takenBy.userId : '');
+
+      // Accurate check: User is this team if registered in room (by userId, normalized userName, or host assignment), or if AppState/Game matches and it's not taken by someone else
+      const isMyTeamInRoom = isTaken && (
+        (myUserId && takenUserId === myUserId) ||
+        (myNormName && takenNormName && myNormName === takenNormName) ||
+        (room.hostId === myUserId && room.hostTeam === teamId) ||
+        (myNormName && room.hostName && room.hostName.trim().toLowerCase() === myNormName && room.hostTeam === teamId)
+      );
+
+      const isMyTeam = isMyTeamInRoom || (!isTaken && myTeamId === teamId);
+
+      const card = document.createElement('div');
+      card.className = `p-3 rounded-2xl border-2 transition relative flex flex-col justify-between ${
+        isMyTeam
+          ? 'bg-amber-950/60 border-amber-500 shadow-md ring-2 ring-amber-400/40 cursor-default'
+          : (isTaken
+            ? 'bg-slate-950/70 border-slate-800 opacity-60 cursor-not-allowed'
+            : 'bg-slate-900 border-slate-700 hover:border-amber-400 cursor-pointer shadow-lg hover:scale-102')
+      }`;
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-sm text-white">${teamId}</span>
+          ${isMyTeam
+            ? `<span class="px-2 py-0.5 rounded text-[9px] font-black bg-amber-500 text-slate-950 uppercase">YOU</span>`
+            : (isTaken
+              ? `<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-950 text-red-300 border border-red-800">TAKEN</span>`
+              : `<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">AVAILABLE</span>`)
+          }
+        </div>
+        <div class="text-[10px] text-slate-400 mt-2 truncate">
+          ${isMyTeam
+            ? `<strong class="text-amber-400">Managing (Your Team)</strong>`
+            : (isTaken ? `Manager: ${takenBy.userName || 'Player'}` : 'Click to Select')}
+        </div>
+      `;
+
+      if (!isTaken && !isMyTeam) {
+        card.onclick = () => {
+          executeLiveTeamChange(teamId);
+        };
+      }
+
+      grid.appendChild(card);
+    });
+
+    // Check if spectator
+    const takenCount = Object.keys(takenMap).length;
+    const specBadge = document.getElementById('spectatorNoticeBadge');
+    if (specBadge) {
+      if (AppState.isSpectator || takenCount >= 10) {
+        specBadge.classList.remove('hidden');
+      } else {
+        specBadge.classList.add('hidden');
+      }
+    }
+  }
+
+  // Render Joined Players List with Green/Red status & Host Ban buttons
+  function renderLobbyPlayersList(room) {
+    const list = document.getElementById('lobbyPlayersList');
+    const countBadge = document.getElementById('lobbyPlayersCount');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const players = room.players || {};
+    const playerKeys = Object.keys(players);
+    if (countBadge) countBadge.textContent = playerKeys.length;
+
+    const currentUser = StorageEngine.currentUser;
+    const isCurrentUserHost = (currentUser && currentUser.userId === room.hostId) || room.hostId === 'user_host' || !room.hostId;
+
+    playerKeys.forEach(tId => {
+      const p = players[tId];
+      const isOnline = p.isOnline !== false;
+      const isHost = p.isHost || p.userId === room.hostId;
+
+      const card = document.createElement('div');
+      card.className = 'p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2 text-xs';
+      card.innerHTML = `
+        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+          <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${isOnline ? 'bg-emerald-400' : 'bg-red-500'}" title="${isOnline ? 'Online' : 'Offline'}"></span>
+          <div class="truncate">
+            <div class="flex items-center gap-1.5 font-bold text-white truncate">
+              <span>${p.userName || 'Manager'}</span>
+              ${isHost ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-extrabold border border-amber-500/40">HOST</span>' : ''}
+            </div>
+            <div class="text-[10px] text-slate-400">Team: <strong class="text-amber-400">${tId}</strong> • 
+              <button class="btn-toggle-online cursor-pointer underline hover:text-white" title="Click to toggle Online/Offline status">
+                <span class="${isOnline ? 'text-emerald-400' : 'text-red-400'}">${isOnline ? '🟢 Online' : '🔴 Offline'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          ${isCurrentUserHost && !isHost && !isOnline ? `
+            <button class="btn-kick-offline px-2.5 py-1 rounded-lg bg-orange-950 hover:bg-orange-900 border border-orange-700 text-orange-300 text-[10px] font-bold transition cursor-pointer flex items-center gap-1" data-userid="${p.userId}" data-team="${tId}" title="Kick offline player out of room. Franchise ${tId} will become available again.">
+              <span>👢 Kick</span>
+            </button>
+          ` : ''}
+          ${isCurrentUserHost && !isHost ? `
+            <button class="btn-ban-player px-2 py-1 rounded-lg bg-red-950 hover:bg-red-900 border border-red-800 text-red-300 text-[10px] font-bold transition cursor-pointer" data-userid="${p.userId}">
+              🚫 Ban
+            </button>
+          ` : ''}
+        </div>
+      `;
+
+      // Allow clicking the status to toggle online/offline for testing
+      const toggleBtn = card.querySelector('.btn-toggle-online');
+      if (toggleBtn) {
+        toggleBtn.onclick = () => {
+          const newStatus = !isOnline;
+          if (typeof StorageEngine.setPlayerOnlineStatus === 'function') {
+            const res = StorageEngine.setPlayerOnlineStatus(room.roomId, p.userId, newStatus);
+            if (res.success) {
+              window.CurrentRoom = res.room;
+              renderLobbyPlayersList(res.room);
+            }
+          }
+        };
+      }
+
+      // Kick offline player handler -> frees up team back to available
+      const kickBtn = card.querySelector('.btn-kick-offline');
+      if (kickBtn) {
+        kickBtn.onclick = () => {
+          if (confirm(`Kick offline player ${p.userName} from this room? Franchise "${tId}" will immediately become available again for other players.`)) {
+            const res = StorageEngine.kickPlayer(room.roomId, p.userId, tId);
+            if (res.success) {
+              window.CurrentRoom = res.room;
+              alert(`👢 ${p.userName} has been removed from the room. Franchise "${tId}" is now available again!`);
+              openRoomLobbyUI(res.room);
+            }
+          }
+        };
+      }
+
+      // Ban button handler
+      const banBtn = card.querySelector('.btn-ban-player');
+      if (banBtn) {
+        banBtn.onclick = () => {
+          if (confirm(`Are you sure you want to ban ${p.userName} from this room? Their team "${tId}" will also become available again.`)) {
+            StorageEngine.banPlayer(room.roomId, p.userId);
+            StorageEngine.kickPlayer(room.roomId, p.userId, tId);
+            alert(`${p.userName} has been banned and removed.`);
+            openRoomLobbyUI(room);
+          }
+        };
+      }
+
+      list.appendChild(card);
+    });
+  }
+
+  // Host Controls inside Room Lobby
+  function initLobbyHostControls(room) {
+    const btn5s = document.getElementById('btnLobbyTimer5s');
+    const btn10s = document.getElementById('btnLobbyTimer10s');
+    const btnStart = document.getElementById('btnHostStartAuction');
+
+    if (btn5s) {
+      btn5s.onclick = () => {
+        btn5s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-bold transition cursor-pointer';
+        if (btn10s) btn10s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer';
+        window.RoomRules.timer = 5;
+        if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(5);
+      };
+    }
+
+    if (btn10s) {
+      btn10s.onclick = () => {
+        btn10s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-bold transition cursor-pointer';
+        if (btn5s) btn5s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer';
+        window.RoomRules.timer = 10;
+        if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(10);
+      };
+    }
+
+    if (btnStart) {
+      btnStart.onclick = () => {
+        // Ensure user's team in Game matches room team!
+        let activeTeam = room.hostTeam;
+        const myId = StorageEngine?.currentUser?.userId;
+        const myName = StorageEngine?.currentUser?.userName || localStorage.getItem('ipl_user_name');
+        if (room.players) {
+          for (const tId of Object.keys(room.players)) {
+            const p = room.players[tId];
+            if (p && (p.isHost || p.userId === room.hostId || p.userId === myId || (myName && p.userName === myName))) {
+              activeTeam = tId;
+              break;
+            }
+          }
+        }
+        if (!activeTeam) {
+          activeTeam = AppState.userTeamId || (typeof Game !== 'undefined' && Game.getState ? Game.getState().userTeamId : 'RCB');
+        }
+
+        AppState.userTeamId = activeTeam;
+        AppState.selectedLandingTeamId = activeTeam;
+        AppState.selectedPlaying11TeamId = activeTeam;
+        AppState.selectedReviewTeamId = activeTeam;
+
+        // Apply auction mode & start
+        if (typeof setAuctionMode === 'function') {
+          setAuctionMode(room.mode || 'MINI');
+        }
+        if (typeof Game !== 'undefined') {
+          if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(activeTeam);
+          else if (typeof Game.selectTeam === 'function') Game.selectTeam(activeTeam);
+          else if (Game.getState) Game.getState().userTeamId = activeTeam;
+
+          if (Game.setBidDuration) Game.setBidDuration(window.RoomRules.timer || 10);
+          Game.startAuction();
+        }
+
+        // ── LOCK SETTINGS: Hide settings editor after auction starts ──
+        window.AuctionStarted = true;
+        room.status = 'started';
+        if (window.CurrentRoom) window.CurrentRoom.status = 'started';
+        // Hide the edit settings button & editor
+        const editBtn = document.getElementById('lobbyEditSettingsBtn');
+        const settingsEditor = document.getElementById('lobbySettingsEditor');
+        if (editBtn) editBtn.classList.add('hidden');
+        if (settingsEditor) settingsEditor.classList.add('hidden');
+        // Persist started status
+        if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
+          StorageEngine.saveRoom(room);
+        }
+        // ── END LOCK SETTINGS ──
+
+        if (typeof updateTopBar === 'function') updateTopBar();
+        window.switchTab('auction');
+        switchArenaTab('bidding');
+        AuctionAudio.playHammerHit();
+      };
+    }
+  }
+
+  // Room Action Listeners (Create, Join, Browse)
+  function initRoomActionListeners() {
+    // 1. Open Create Room Modal
+    const btnOpenCreate = document.getElementById('btnOpenCreateRoomModal');
+    const modalCreate = document.getElementById('createRoomModal');
+    const btnCloseCreate = document.getElementById('btnCloseCreateRoomModal');
+
+    if (btnOpenCreate && modalCreate) {
+      btnOpenCreate.onclick = () => {
+        const selectHostTeam = document.getElementById('selectCreateRoomHostTeam');
+        if (selectHostTeam) {
+          selectHostTeam.value = AppState.userTeamId || (typeof Game !== 'undefined' && Game.getState ? Game.getState().userTeamId : 'MI') || 'MI';
+        }
+        modalCreate.classList.remove('hidden');
+      };
+    }
+    if (btnCloseCreate && modalCreate) {
+      btnCloseCreate.onclick = () => modalCreate.classList.add('hidden');
+    }
+
+    // Create Room Options State
+    let createConfig = {
+      mode: 'MINI',
+      visibility: 'PUBLIC',
+      maxBidEnabled: false,
+      maxBidAmount: 25,
+      exceedLimitEnabled: false,
+      exceedThreshold: 15,
+      exceedMaxPlayers: 3,
+      acceleratedEnabled: false,
+      timer: 10
+    };
+
+    // Format buttons
+    const btnOptMini = document.getElementById('btnCreateOptMini');
+    const btnOptMega = document.getElementById('btnCreateOptMega');
+    if (btnOptMini && btnOptMega) {
+      btnOptMini.onclick = () => {
+        createConfig.mode = 'MINI';
+        btnOptMini.className = 'btn-create-format p-4 rounded-2xl border-2 border-amber-400 bg-amber-500/10 text-left space-y-1 transition cursor-pointer';
+        btnOptMega.className = 'btn-create-format p-4 rounded-2xl border-2 border-slate-700 bg-slate-950 text-left space-y-1 transition cursor-pointer hover:border-slate-500';
+      };
+      btnOptMega.onclick = () => {
+        createConfig.mode = 'MEGA';
+        btnOptMega.className = 'btn-create-format p-4 rounded-2xl border-2 border-blue-400 bg-blue-500/10 text-left space-y-1 transition cursor-pointer';
+        btnOptMini.className = 'btn-create-format p-4 rounded-2xl border-2 border-slate-700 bg-slate-950 text-left space-y-1 transition cursor-pointer hover:border-slate-500';
+      };
+    }
+
+    // Visibility buttons
+    const btnOptPub = document.getElementById('btnCreateOptPublic');
+    const btnOptPriv = document.getElementById('btnCreateOptPrivate');
+    if (btnOptPub && btnOptPriv) {
+      btnOptPub.onclick = () => {
+        createConfig.visibility = 'PUBLIC';
+        btnOptPub.className = 'btn-create-vis p-3.5 rounded-2xl border-2 border-emerald-400 bg-emerald-500/10 text-left transition cursor-pointer';
+        btnOptPriv.className = 'btn-create-vis p-3.5 rounded-2xl border-2 border-slate-700 bg-slate-950 text-left transition cursor-pointer hover:border-slate-500';
+      };
+      btnOptPriv.onclick = () => {
+        createConfig.visibility = 'PRIVATE';
+        btnOptPriv.className = 'btn-create-vis p-3.5 rounded-2xl border-2 border-purple-400 bg-purple-500/10 text-left transition cursor-pointer';
+        btnOptPub.className = 'btn-create-vis p-3.5 rounded-2xl border-2 border-slate-700 bg-slate-950 text-left transition cursor-pointer hover:border-slate-500';
+      };
+    }
+
+    // Rule A: Max Bid
+    const btnMaxYes = document.getElementById('btnRuleMaxBidYes');
+    const btnMaxNo = document.getElementById('btnRuleMaxBidNo');
+    const subMax = document.getElementById('ruleMaxBidSubGroup');
+    if (btnMaxYes && btnMaxNo && subMax) {
+      btnMaxYes.onclick = () => {
+        createConfig.maxBidEnabled = true;
+        btnMaxYes.className = 'btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition';
+        btnMaxNo.className = 'btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition';
+        subMax.classList.remove('hidden');
+      };
+      btnMaxNo.onclick = () => {
+        createConfig.maxBidEnabled = false;
+        btnMaxNo.className = 'btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition';
+        btnMaxYes.className = 'btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition';
+        subMax.classList.add('hidden');
+      };
+    }
+
+    // Rule B: Exceed Limit
+    const btnExcYes = document.getElementById('btnRuleExceedYes');
+    const btnExcNo = document.getElementById('btnRuleExceedNo');
+    const subExc = document.getElementById('ruleExceedSubGroup');
+    if (btnExcYes && btnExcNo && subExc) {
+      btnExcYes.onclick = () => {
+        createConfig.exceedLimitEnabled = true;
+        btnExcYes.className = 'btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition';
+        btnExcNo.className = 'btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition';
+        subExc.classList.remove('hidden');
+      };
+      btnExcNo.onclick = () => {
+        createConfig.exceedLimitEnabled = false;
+        btnExcNo.className = 'btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition';
+        btnExcYes.className = 'btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition';
+        subExc.classList.add('hidden');
+      };
+    }
+
+    // Rule C: Accelerated
+    const btnAccOn = document.getElementById('btnRuleAcceleratedOn');
+    const btnAccOff = document.getElementById('btnRuleAcceleratedOff');
+    if (btnAccOn && btnAccOff) {
+      btnAccOn.onclick = () => {
+        createConfig.acceleratedEnabled = true;
+        btnAccOn.className = 'btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition';
+        btnAccOff.className = 'btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition';
+      };
+      btnAccOff.onclick = () => {
+        createConfig.acceleratedEnabled = false;
+        btnAccOff.className = 'btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition';
+        btnAccOn.className = 'btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition';
+      };
+    }
+
+    // Confirm Create Room
+    const btnConfirm = document.getElementById('btnConfirmCreateRoom');
+    if (btnConfirm) {
+      btnConfirm.onclick = () => {
+        createConfig.maxBidAmount = Number(document.getElementById('selectMaxBidAmount')?.value) || 25;
+        createConfig.exceedThreshold = Number(document.getElementById('selectExceedAmount')?.value) || 15;
+        createConfig.exceedMaxPlayers = Number(document.getElementById('selectExceedPlayersCount')?.value) || 3;
+        
+        const selectHostTeam = document.getElementById('selectCreateRoomHostTeam');
+        const chosenTeam = (selectHostTeam ? selectHostTeam.value : null)
+          || AppState.userTeamId
+          || (typeof Game !== 'undefined' && Game.getState && Game.getState().userTeamId)
+          || 'MI';
+        createConfig.hostTeam = chosenTeam;
+        AppState.userTeamId = chosenTeam;
+        AppState.selectedLandingTeamId = chosenTeam;
+        AppState.selectedPlaying11TeamId = chosenTeam;
+        AppState.selectedReviewTeamId = chosenTeam;
+        if (typeof Game !== 'undefined') {
+          if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(chosenTeam);
+          else if (typeof Game.selectTeam === 'function') Game.selectTeam(chosenTeam);
+          else if (Game.getState) Game.getState().userTeamId = chosenTeam;
+        }
+        if (typeof StorageEngine !== 'undefined' && StorageEngine.updateUserTeam) {
+          StorageEngine.updateUserTeam(chosenTeam);
+        }
+
+        const room = StorageEngine.createAuctionRoom(createConfig);
+        if (modalCreate) modalCreate.classList.add('hidden');
+
+        window.CurrentRoom = room;
+        window.RoomRules = room.rules;
+
+        AuctionAudio.playSoldFanfare();
+        openRoomLobbyUI(room);
+        renderPublicRoomsList();
+      };
+    }
+
+    // 2. Join Room Modal
+    const btnOpenJoin = document.getElementById('btnOpenJoinRoomModal');
+    const modalJoin = document.getElementById('joinRoomModal');
+    const btnCloseJoin = document.getElementById('btnCloseJoinRoomModal');
+    const inputJoinCode = document.getElementById('inputJoinRoomCode');
+    const btnConfirmJoin = document.getElementById('btnConfirmJoinRoom');
+
+    if (btnOpenJoin && modalJoin) {
+      btnOpenJoin.onclick = () => modalJoin.classList.remove('hidden');
+    }
+    if (btnCloseJoin && modalJoin) {
+      btnCloseJoin.onclick = () => modalJoin.classList.add('hidden');
+    }
+    if (btnConfirmJoin && inputJoinCode) {
+      btnConfirmJoin.onclick = () => {
+        let code = inputJoinCode.value.trim();
+        if (!code) {
+          alert('Please enter a room code or link.');
+          return;
+        }
+        if (code.includes('?roomId=')) {
+          code = code.split('?roomId=')[1].split('&')[0];
+        } else if (code.includes('?room=')) {
+          code = code.split('?room=')[1].split('&')[0];
+        }
+        if (modalJoin) modalJoin.classList.add('hidden');
+        handleJoinSpecificRoom(code);
+      };
+    }
+
+    // 3. Refresh Public Rooms
+    const btnRefPub = document.getElementById('btnRefreshPublicRooms');
+    if (btnRefPub) {
+      btnRefPub.onclick = () => renderPublicRoomsList();
+    }
+
+    // 4. Arena Sub-Tabs Navigation Buttons
+    document.querySelectorAll('.arena-tab').forEach(btn => {
+      btn.onclick = () => {
+        const arenaKey = btn.dataset.arenaTab;
+        if (arenaKey) switchArenaTab(arenaKey);
+      };
+    });
+
+    // 5. Host Arena Timer & Pause Controls
+    const btnH5 = document.getElementById('btnHostTimer5s');
+    const btnH10 = document.getElementById('btnHostTimer10s');
+    const btnHPause = document.getElementById('btnHostPauseResume');
+
+    if (btnH5) {
+      btnH5.onclick = () => {
+        if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(5);
+        btnH5.className = 'px-2 py-1 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-bold';
+        if (btnH10) btnH10.className = 'px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold';
+      };
+    }
+    if (btnH10) {
+      btnH10.onclick = () => {
+        if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(10);
+        btnH10.className = 'px-2 py-1 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-bold';
+        if (btnH5) btnH5.className = 'px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold';
+      };
+    }
+    if (btnHPause) {
+      btnHPause.onclick = () => {
+        if (typeof Game !== 'undefined' && Game.togglePause) {
+          const paused = Game.togglePause();
+          btnHPause.textContent = paused ? '▶️ Resume' : '⏸️ Pause';
+        }
+      };
+    }
+  }
+
+  // Render Public Rooms List
+  function renderPublicRoomsList() {
+    const grid = document.getElementById('publicRoomsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const rooms = StorageEngine.getPublicRooms();
+    if (rooms.length === 0) {
+      grid.innerHTML = '<div class="col-span-3 text-slate-500 text-center py-6 text-xs">No public rooms active right now. Click "Create Auction Room" above to start one!</div>';
+      return;
+    }
+
+    rooms.forEach(room => {
+      const card = document.createElement('div');
+      card.className = 'p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-amber-400/60 transition shadow-lg space-y-3';
+      const takenCount = Object.keys(room.players || {}).length;
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${room.mode === 'MINI' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'}">
+            ${room.mode === 'MINI' ? '⚡ Mini Auction' : '🔥 Mega Auction'}
+          </span>
+          <span class="text-xs font-mono font-bold text-amber-400">${room.roomId}</span>
+        </div>
+        <div>
+          <h4 class="font-bold text-white text-sm truncate">${room.roomName || room.roomId}</h4>
+          <p class="text-[11px] text-slate-400">Host: <span class="text-slate-200">${room.hostName || 'Organizer'}</span></p>
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+          <span class="text-slate-400">Franchises: <strong class="text-white">${takenCount}/10</strong></span>
+          <button class="btn-join-public-room px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow">
+            Join Room ➔
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-join-public-room').onclick = () => {
+        handleJoinSpecificRoom(room.roomId);
+      };
+
+      grid.appendChild(card);
+    });
+  }
+
+  // Render Previous Auction History (for returning users)
+  function renderHomeAuctionHistory() {
+    const list = document.getElementById('homePastAuctionsList');
+    const badge = document.getElementById('historyCountBadge');
+    if (!list) return;
+
+    const history = StorageEngine.getAuctionHistory();
+    if (badge) badge.textContent = `${history.length} Previous Auctions`;
+
+    if (history.length === 0) {
+      list.innerHTML = '<div class="text-slate-500 text-center py-8 text-xs">No completed auctions found. Start bidding in an auction room to create your career history!</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    history.forEach((entry, idx) => {
+      const card = document.createElement('div');
+      card.className = 'p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition space-y-4';
+
+      // Build Top 5 Bids HTML
+      let top5Html = '';
+      if (entry.top5Bids && entry.top5Bids.length > 0) {
+        top5Html = `
+          <div class="mt-2 pt-2 border-t border-slate-800/80">
+            <span class="text-[11px] uppercase font-bold text-amber-400 block mb-1.5">⚡ Top Bids Recorded:</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
+              ${entry.top5Bids.map((b, bIdx) => `
+                <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                  <div class="flex items-center justify-between text-[10px] text-slate-400">
+                    <span>#${bIdx + 1}</span>
+                    <span class="font-bold text-amber-300">₹${Number(b.amount || b.price || b.bid || 0).toFixed(2)} Cr</span>
+                  </div>
+                  <strong class="text-white block truncate text-[11px] mt-0.5">${b.player?.name || b.name || 'Player'}</strong>
+                  <span class="text-[10px] text-slate-400">${b.team?.shortName || b.teamId || 'Team'}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                ${entry.mode || 'Mini'} Auction
+              </span>
+              <span class="text-xs font-mono text-slate-400">Room: ${entry.roomId}</span>
+              <span class="text-xs text-slate-500">• ${entry.date}</span>
+            </div>
+            <h3 class="text-base font-bold text-white mt-1">
+              Managed: <span class="text-amber-400">${entry.userTeam || 'RCB'}</span> • Auctioneer: <span class="text-slate-300">${entry.auctioneerName || 'Manager'}</span>
+            </h3>
+          </div>
+
+          <!-- Download Action Buttons -->
+          <div class="flex items-center gap-2">
+            <button class="btn-download-history-pdf px-3 py-1.5 rounded-xl bg-red-950 hover:bg-red-900 border border-red-700/60 text-red-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+              <span>📄</span> <span>PDF</span>
+            </button>
+            <button class="btn-download-history-png px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700/60 text-purple-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+              <span>🖼️</span> <span>PNG Card</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 text-center">
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase font-semibold block">Total Spent</span>
+            <strong class="text-amber-400">₹${Number(entry.totalSpent || 0).toFixed(2)} Cr</strong>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase font-semibold block">Squad Count</span>
+            <strong class="text-white">${entry.squadCount || (entry.allBuys || []).length} Players</strong>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase font-semibold block">AI Squad Rating</span>
+            <strong class="text-emerald-400">${entry.aiRating || '92.4'}/100</strong>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase font-semibold block">User Rating</span>
+            <strong class="text-purple-400">${entry.userRating || '9.5 ★'}</strong>
+          </div>
+        </div>
+
+        ${top5Html}
+      `;
+
+      card.querySelector('.btn-download-history-pdf').onclick = () => downloadHistoryItemPDF(entry);
+      card.querySelector('.btn-download-history-png').onclick = () => downloadHistoryItemPNG(entry);
+
+      list.appendChild(card);
+    });
+  }
+
+  // =========================================================================
+  // INTERACTIVE PLAYER CATALOGUE IN AUCTION ARENA (WK, BAT, AR, BOWL FILTERS)
+  // =========================================================================
+  let currentArenaRoleFilter = 'ALL';
+
+  function renderArenaPlayerCatalogue() {
+    const container = document.getElementById('arenaCatListContainer');
+    const countBadge = document.getElementById('arenaCatFilteredCount');
+    const searchInput = document.getElementById('inputArenaCatSearch');
+    if (!container) return;
+
+    // Attach role buttons
+    document.querySelectorAll('.btn-arena-role-filter').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.btn-arena-role-filter').forEach(b => {
+          b.className = 'btn-arena-role-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer';
+        });
+        btn.className = 'btn-arena-role-filter active px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition cursor-pointer';
+        currentArenaRoleFilter = btn.dataset.role || 'ALL';
+        renderArenaPlayerCatalogue();
+      };
+    });
+
+    if (searchInput && !searchInput.dataset.bound) {
+      searchInput.dataset.bound = 'true';
+      searchInput.oninput = () => renderArenaPlayerCatalogue();
+    }
+
+    const query = (searchInput?.value || '').trim().toLowerCase();
+    const allPlayers = (typeof PLAYERS !== 'undefined') ? PLAYERS : ((typeof window !== 'undefined' && window.PLAYERS) ? window.PLAYERS : []);
+
+    const filtered = allPlayers.filter(p => {
+      if (query && !p.name.toLowerCase().includes(query)) return false;
+      if (currentArenaRoleFilter === 'ALL') return true;
+
+      const r = (p.role || '').toUpperCase();
+      if (currentArenaRoleFilter === 'WICKETKEEPER') return r.includes('WICKET') || r.includes('WK');
+      if (currentArenaRoleFilter === 'BATTER') return r.includes('BAT') && !r.includes('ALL') && !r.includes('WK');
+      if (currentArenaRoleFilter === 'ALLROUNDER') return r.includes('ALL') || r === 'AR';
+      if (currentArenaRoleFilter === 'BOWLER') return r.includes('BOWL');
+      return true;
+    });
+
+    if (countBadge) countBadge.textContent = `Showing ${filtered.length} players`;
+    container.innerHTML = '';
+
+    filtered.slice(0, 80).forEach(player => {
+      const stats = (typeof PLAYER_STATS !== 'undefined' && PLAYER_STATS[player.name]) ? PLAYER_STATS[player.name] : {};
+      const card = document.createElement('div');
+      card.className = 'p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center gap-3 hover:border-slate-700 transition';
+
+      card.innerHTML = `
+        <div class="w-12 h-14 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700 relative">
+          ${typeof renderPlayerAvatarImg === 'function' ? renderPlayerAvatarImg(player, 'w-full h-full object-cover object-top') : `<img src="${player.image || ''}" class="w-full h-full object-cover" onerror="handlePlayerImageError(this)">`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-1">
+            <h4 class="font-bold text-white text-xs truncate">${player.name}</h4>
+            <span class="text-[10px] font-bold text-amber-400">OVR ${player.rating || player.ovr || 85}</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+            <span>${player.overseas ? '✈️ OS' : '🇮🇳 Ind'}</span>
+            <span>•</span>
+            <span class="text-blue-300 font-semibold">${player.role || 'Player'}</span>
+            <span>•</span>
+            <span class="text-slate-300 font-mono">₹${Number(player.basePrice || 0.20).toFixed(2)} Cr</span>
+          </div>
+          <div class="text-[9px] text-slate-500 mt-1 truncate">
+            M: ${stats.matches || '--'} | Runs: ${stats.runs || '--'} | Wkts: ${stats.wickets || '--'} | SR: ${stats.strikeRate || '--'}
+          </div>
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  // =========================================================================
+  // LIVE ROOM CHAT & MESSAGING IN AUCTION ARENA
+  // =========================================================================
+  const roomMessagesFeed = [];
+
+  function renderRoomChatMessages() {
+    const container = document.getElementById('chatMessagesContainer');
+    const input = document.getElementById('inputChatMessage');
+    const btnSend = document.getElementById('btnSendChatMessage');
+    if (!container) return;
+
+    if (roomMessagesFeed.length === 0) {
+      container.innerHTML = '<div class="text-slate-500 text-center py-8">Chat room opened. Welcome managers! Discuss bids and banter here.</div>';
+    } else {
+      container.innerHTML = roomMessagesFeed.map(m => `
+        <div class="p-2.5 rounded-xl ${m.isSystem ? 'bg-slate-900 border border-slate-800 text-amber-300' : 'bg-slate-950 border border-slate-800/80'}">
+          <div class="flex items-center justify-between text-[10px] text-slate-500">
+            <strong class="text-white">${m.sender} ${m.team ? `(${m.team})` : ''}</strong>
+            <span>${m.time}</span>
+          </div>
+          <div class="text-xs text-slate-300 mt-1">${m.text}</div>
+        </div>
+      `).join('');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    if (btnSend && !btnSend.dataset.bound) {
+      btnSend.dataset.bound = 'true';
+      const sendAction = () => {
+        const text = (input?.value || '').trim();
+        if (!text) return;
+        const user = StorageEngine.currentUser || { userName: 'Manager' };
+        roomMessagesFeed.push({
+          sender: user.userName,
+          team: AppState.userTeamId,
+          text,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        if (input) input.value = '';
+        renderRoomChatMessages();
+      };
+      btnSend.onclick = sendAction;
+      if (input) {
+        input.onkeypress = (e) => { if (e.key === 'Enter') sendAction(); };
+      }
+    }
+
+    // Banter Pills
+    document.querySelectorAll('.btn-chat-quick-pill').forEach(pill => {
+      pill.onclick = () => {
+        const user = StorageEngine.currentUser || { userName: 'Manager' };
+        roomMessagesFeed.push({
+          sender: user.userName,
+          team: AppState.userTeamId,
+          text: pill.textContent.trim(),
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        renderRoomChatMessages();
+      };
+    });
+  }
+
+  // =========================================================================
+  // ACCELERATED AUCTION PANEL (UNSOLD RE-AUCTION & SQUAD RELEASES WITH REFUND)
+  // =========================================================================
+  function renderAcceleratedAuctionPanel() {
+    const unsoldContainer = document.getElementById('acceleratedUnsoldList');
+    const releaseContainer = document.getElementById('acceleratedReleaseList');
+    const btnFinish = document.getElementById('btnFinishAcceleratedRound');
+    const btnStartAcc = document.getElementById('btnStartAcceleratedRound');
+
+    const myTeam = (typeof Game !== 'undefined' && Game.getTeam) ? Game.getTeam(AppState.userTeamId) : null;
+    const unsoldPlayers = (typeof Game !== 'undefined' && Game.getGameState) ? (Game.getGameState().unsold || []) : [];
+
+    // Render my squad releases (refunds full price, returns to auction at base price)
+    if (releaseContainer && myTeam) {
+      releaseContainer.innerHTML = '';
+      if ((myTeam.players || []).length === 0) {
+        releaseContainer.innerHTML = '<div class="text-slate-500 text-xs col-span-3">No players in squad to release.</div>';
+      } else {
+        myTeam.players.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs';
+          card.innerHTML = `
+            <div>
+              <strong class="text-white block">${p.name}</strong>
+              <span class="text-[10px] text-slate-400">Bought for: <strong class="text-amber-400">₹${Number(p.soldPrice || p.price || 0).toFixed(2)} Cr</strong></span>
+            </div>
+            ${p.isRetained
+              ? '<span class="text-[10px] text-slate-500 font-bold px-2 py-0.5 rounded bg-slate-900">Retained Core</span>'
+              : `<button class="btn-release-player px-2.5 py-1 rounded-lg bg-red-950 hover:bg-red-900 text-red-300 font-bold text-[10px] border border-red-800 transition cursor-pointer">
+                  Release & Refund
+                 </button>`
+            }
+          `;
+
+          const relBtn = card.querySelector('.btn-release-player');
+          if (relBtn) {
+            relBtn.onclick = () => {
+              if (confirm(`Release ${p.name}? You will get a full refund of ₹${Number(p.soldPrice || p.price || 0).toFixed(2)} Cr, and ${p.name} will be available for re-auction at base price.`)) {
+                if (typeof Game !== 'undefined' && Game.releasePlayerFromTeam) {
+                  Game.releasePlayerFromTeam(myTeam.id, p.id || p.name);
+                  AuctionAudio.playHammerHit();
+                  renderAcceleratedAuctionPanel();
+                  updateTopBar();
+                }
+              }
+            };
+          }
+          releaseContainer.appendChild(card);
+        });
+      }
+    }
+
+    // Render Unsold Players List
+    if (unsoldContainer) {
+      unsoldContainer.innerHTML = '';
+      if (unsoldPlayers.length === 0) {
+        unsoldContainer.innerHTML = '<div class="text-slate-500 text-xs col-span-4 text-center py-4">No unsold players currently.</div>';
+      } else {
+        unsoldPlayers.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs';
+          card.innerHTML = `
+            <div>
+              <strong class="text-white block text-[11px] truncate">${p.name}</strong>
+              <span class="text-[10px] text-slate-400">Base: ₹${Number(p.basePrice || 0.20).toFixed(2)} Cr</span>
+            </div>
+            <button class="btn-nominate-player px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] transition cursor-pointer">
+              + Re-Auction
+            </button>
+          `;
+          card.querySelector('.btn-nominate-player').onclick = () => {
+            if (typeof Game !== 'undefined' && Game.nominateUnsoldPlayer) {
+              Game.nominateUnsoldPlayer(p.id || p.name);
+              alert(`${p.name} nominated for accelerated round!`);
+              renderAcceleratedAuctionPanel();
+            }
+          };
+          unsoldContainer.appendChild(card);
+        });
+      }
+    }
+
+    if (btnStartAcc) {
+      btnStartAcc.onclick = () => {
+        switchArenaTab('bidding');
+      };
+    }
+
+    if (btnFinish) {
+      btnFinish.onclick = () => {
+        switchArenaTab('playing11');
+      };
+    }
+  }
+
+  // =========================================================================
+  // PDF & PNG EXPORT SYSTEM (DOWNLOAD ALL AUCTION DATA)
+  // =========================================================================
+  function downloadAuctionReportPDF() {
+    const user = StorageEngine.currentUser || { userName: 'Manager' };
+    const myTeam = (typeof Game !== 'undefined' && Game.getTeam) ? Game.getTeam(AppState.userTeamId) : null;
+    const history = StorageEngine.getAuctionHistory();
+    const entry = history[0] || {
+      date: new Date().toLocaleString(),
+      mode: AppState.auctionMode || 'Mini',
+      roomId: window.CurrentRoom?.roomId || 'IPL-2027',
+      totalSpent: myTeam?.spent || 0,
+      squadCount: myTeam?.players?.length || 0,
+      top5Bids: [],
+      allBuys: myTeam?.players || []
+    };
+
+    downloadHistoryItemPDF(entry);
+  }
+
+  function downloadHistoryItemPDF(entry) {
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      alert('Please allow popups to download the PDF report.');
+      return;
+    }
+
+    const userName = entry.auctioneerName || (StorageEngine.currentUser?.userName) || 'Manager';
+    const topBidsHtml = (entry.top5Bids || []).map((b, i) => `
+      <tr>
+        <td style="padding:6px;border-bottom:1px solid #ddd;">#${i + 1}</td>
+        <td style="padding:6px;border-bottom:1px solid #ddd;"><strong>${b.player?.name || b.name || 'Player'}</strong></td>
+        <td style="padding:6px;border-bottom:1px solid #ddd;">${b.team?.shortName || b.teamId || 'Team'}</td>
+        <td style="padding:6px;border-bottom:1px solid #ddd;color:#b45309;font-weight:bold;">₹${Number(b.amount || b.price || b.bid || 0).toFixed(2)} Cr</td>
+      </tr>
+    `).join('');
+
+    const buysHtml = (entry.allBuys || []).map((p, i) => `
+      <tr>
+        <td style="padding:6px;border-bottom:1px solid #ddd;">${i + 1}</td>
+        <td style="padding:6px;border-bottom:1px solid #ddd;"><strong>${p.name}</strong></td>
+        <td style="padding:6px;border-bottom:1px solid #ddd;">${p.role || 'Player'}</td>
+        <td style="padding:6px;border-bottom:1px solid #ddd;">${p.overseas ? '✈️ Overseas' : '🇮🇳 Indian'}</td>
+        <td style="padding:6px;border-bottom:1px solid #ddd;color:#047857;font-weight:bold;">₹${Number(p.soldPrice || p.price || 0).toFixed(2)} Cr</td>
+      </tr>
+    `).join('');
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>IPL Auction Report - ${userName}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; color: #1e293b; }
+          .header { border-bottom: 2px solid #f59e0b; padding-bottom: 12px; margin-bottom: 20px; }
+          h1 { color: #0f172a; margin: 0; font-size: 24px; }
+          .meta { font-size: 12px; color: #64748b; margin-top: 5px; }
+          .stats-grid { display: flex; gap: 15px; margin: 15px 0; }
+          .stat-box { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+          th { background: #0f172a; color: white; padding: 8px; text-align: left; }
+          @media print { .no-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🏏 OFFICIAL IPL AUCTION TOURNAMENT REPORT</h1>
+          <div class="meta">
+            Manager: <strong>${userName}</strong> | Franchise: <strong>${entry.userTeam || 'RCB'}</strong> | Room ID: <strong>${entry.roomId || 'IPL-2027'}</strong> | Format: <strong>${entry.mode || 'Mini'} Auction</strong> | Date: ${entry.date}
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box"><div>Total Spent</div><div style="font-size:18px;font-weight:bold;color:#b45309;">₹${Number(entry.totalSpent || 0).toFixed(2)} Cr</div></div>
+          <div class="stat-box"><div>Squad Count</div><div style="font-size:18px;font-weight:bold;color:#2563eb;">${entry.squadCount || (entry.allBuys || []).length} Players</div></div>
+          <div class="stat-box"><div>AI Squad Rating</div><div style="font-size:18px;font-weight:bold;color:#10b981;">${entry.aiRating || '92.4'}/100</div></div>
+          <div class="stat-box"><div>User Grade</div><div style="font-size:18px;font-weight:bold;color:#7c3aed;">${entry.userRating || '9.5 ★'}</div></div>
+        </div>
+
+        <h3>⚡ TOP 5 BIDS OF THIS TOURNAMENT</h3>
+        <table>
+          <thead><tr><th>Rank</th><th>Player</th><th>Team</th><th>Price</th></tr></thead>
+          <tbody>${topBidsHtml || '<tr><td colspan="4" style="padding:10px;text-align:center;">No high bids recorded</td></tr>'}</tbody>
+        </table>
+
+        <h3 style="margin-top:25px;">📋 COMPLETE TEAM ROSTER & PURCHASES</h3>
+        <table>
+          <thead><tr><th>#</th><th>Player Name</th><th>Role</th><th>Origin</th><th>Price</th></tr></thead>
+          <tbody>${buysHtml || '<tr><td colspan="5" style="padding:10px;text-align:center;">No players bought</td></tr>'}</tbody>
+        </table>
+
+        <div class="no-print" style="margin-top:25px;text-align:center;">
+          <button onclick="window.print()" style="background:#f59e0b;color:#0f172a;border:none;padding:10px 25px;font-size:14px;font-weight:bold;border-radius:8px;cursor:pointer;">Save as PDF / Print 🖨️</button>
+        </div>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+  }
+
+  function downloadAuctionReportPNG() {
+    const history = StorageEngine.getAuctionHistory();
+    const entry = history[0] || {
+      date: new Date().toLocaleDateString(),
+      mode: AppState.auctionMode || 'Mini',
+      roomId: window.CurrentRoom?.roomId || 'IPL-2027',
+      totalSpent: 45.5,
+      squadCount: 18,
+      top5Bids: [],
+      allBuys: []
+    };
+    downloadHistoryItemPNG(entry);
+  }
+
+  function downloadHistoryItemPNG(entry) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1000;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+
+    // Background gradient
+    const grad = ctx.createLinearGradient(0, 0, 1000, 600);
+    grad.addColorStop(0, '#070d18');
+    grad.addColorStop(0.5, '#0f172a');
+    grad.addColorStop(1, '#070d18');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1000, 600);
+
+    // Gold accent border
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(20, 20, 960, 560);
+
+    // Title
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 32px Rajdhani, sans-serif';
+    ctx.fillText('🏆 IPL AUCTION CHAMPIONSHIP SCORECARD', 50, 70);
+
+    // Meta
+    const userName = entry.auctioneerName || (StorageEngine.currentUser?.userName) || 'Manager';
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '16px Inter, sans-serif';
+    ctx.fillText(`Manager: ${userName}  |  Franchise: ${entry.userTeam || 'RCB'}  |  Room: ${entry.roomId || 'IPL-2027'}  |  Format: ${entry.mode || 'Mini'} Auction`, 50, 105);
+
+    // Stats bar
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(50, 130, 900, 80);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(50, 130, 900, 80);
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 22px Orbitron, sans-serif';
+    ctx.fillText(`₹${Number(entry.totalSpent || 0).toFixed(2)} Cr`, 75, 175);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText('TOTAL SPENT', 75, 195);
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 22px Orbitron, sans-serif';
+    ctx.fillText(`${entry.squadCount || (entry.allBuys || []).length} Players`, 300, 175);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText('SQUAD SIZE', 300, 195);
+
+    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 22px Orbitron, sans-serif';
+    ctx.fillText(`${entry.aiRating || '92.4'} / 100`, 530, 175);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText('AI SQUAD RATING', 530, 195);
+
+    ctx.fillStyle = '#c084fc';
+    ctx.font = 'bold 22px Orbitron, sans-serif';
+    ctx.fillText(`${entry.userRating || '9.5 ★'}`, 760, 175);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText('USER RATING', 760, 195);
+
+    // Top Bids Section
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 18px Rajdhani, sans-serif';
+    ctx.fillText('TOP 5 BIDS RECORDED', 50, 250);
+
+    const topBids = entry.top5Bids || [];
+    topBids.slice(0, 5).forEach((b, idx) => {
+      const y = 285 + idx * 45;
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(50, y - 20, 900, 36);
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 14px Inter, sans-serif';
+      ctx.fillText(`#${idx + 1}`, 70, y);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(b.player?.name || b.name || 'Cricketer', 120, y);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(b.team?.shortName || b.teamId || 'Franchise', 450, y);
+      ctx.fillStyle = '#34d399';
+      ctx.font = 'bold 14px Orbitron, sans-serif';
+      ctx.fillText(`₹${Number(b.amount || b.price || b.bid || 0).toFixed(2)} Cr`, 780, y);
+    });
+
+    // Footer
+    ctx.fillStyle = '#64748b';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText(`Verified IPL Auction Game Report • Generated on ${new Date().toLocaleDateString()}`, 50, 550);
+
+    // Trigger download
+    const link = document.createElement('a');
+    link.download = `ipl_auction_report_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // Hook into DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initWelcomeAndRoomFlow, 300);
+      wireAdditionalButtons();
+    });
+  } else {
+    setTimeout(initWelcomeAndRoomFlow, 300);
+    wireAdditionalButtons();
+  }
+
+
+  // Wire additional UI buttons (PDF, PNG, Impact Player)
+  
+  // =========================================================================
+  // LIVE IN-AUCTION TEAM CHANGER
+  // =========================================================================
+
+  function openChangeTeamModal() {
+    const modal = document.getElementById('changeTeamModal');
+    const grid = document.getElementById('changeTeamGrid');
+    if (!modal || !grid) return;
+
+    const allTeams = (typeof TEAMS !== 'undefined') ? TEAMS : (Game.getTeams ? Game.getTeams() : []);
+    const currentRoom = window.CurrentRoom || null;
+    const roomPlayers = (currentRoom && currentRoom.players) ? currentRoom.players : {};
+    const currentUser = (typeof StorageEngine !== 'undefined' && StorageEngine.getCurrentUser) ? StorageEngine.getCurrentUser() : null;
+    const myUserId = currentUser?.userId || 'me';
+    const myUserName = currentUser?.userName || localStorage.getItem('ipl_user_name');
+
+    // Find user's actual assigned team in this room
+    let roomTeam = null;
+    if (currentRoom && currentRoom.players) {
+      for (const tId of Object.keys(currentRoom.players)) {
+        const p = currentRoom.players[tId];
+        if (p && (p.userId === myUserId || (myUserName && p.userName === myUserName))) {
+          roomTeam = tId;
+          break;
+        }
+      }
+    }
+
+    const currentTeamId = roomTeam || ((typeof Game !== 'undefined' && Game.getState) ? Game.getState().userTeamId : (AppState.userTeamId || 'RCB'));
+
+    grid.innerHTML = allTeams.map(t => {
+      const isCurrent = t.id === currentTeamId;
+      const takenByPlayer = roomPlayers[t.id];
+      const isTakenByOther = takenByPlayer && takenByPlayer.userId !== myUserId && (!myUserName || takenByPlayer.userName !== myUserName);
+      const purseLeft = t.purse || (t.budget ? (t.budget - (t.spent || 0)) : 120);
+      const squadCount = (t.players || []).length;
+
+      let badgeHtml = '';
+      let actionBtn = '';
+
+      if (isCurrent) {
+        badgeHtml = '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500 text-slate-950 uppercase tracking-wider">Current Team</span>';
+        actionBtn = '<span class="text-xs text-amber-400 font-bold">Selected ✓</span>';
+      } else if (isTakenByOther) {
+        badgeHtml = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-950 text-red-300 border border-red-800">Taken by ${takenByPlayer.userName || 'Player'}</span>`;
+        actionBtn = '<button disabled class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-600 text-xs font-bold cursor-not-allowed">Unavailable</button>';
+      } else {
+        badgeHtml = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Available</span>';
+        actionBtn = `<button class="btn-select-switch-team px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-bold text-xs transition cursor-pointer active:scale-95 shadow-md shadow-amber-500/20" data-team="${t.id}">Select Team →</button>`;
+      }
+
+      return `
+        <div class="p-3.5 rounded-2xl ${isCurrent ? 'bg-amber-500/10 border-2 border-amber-400/80' : 'bg-slate-950/80 border border-slate-800 hover:border-slate-700'} flex items-center justify-between gap-3 transition">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-xl font-bold border border-slate-700">
+              ${t.logo || '🏏'}
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <strong class="text-white text-sm">${t.shortName || t.name}</strong>
+                ${badgeHtml}
+              </div>
+              <div class="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                <span>Purse: <strong class="text-amber-400">₹${Number(purseLeft).toFixed(2)} Cr</strong></span>
+                <span>•</span>
+                <span>Squad: <strong class="text-blue-400">${squadCount}</strong></span>
+              </div>
+            </div>
+          </div>
+          <div>
+            ${actionBtn}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach click listeners to available team buttons
+    grid.querySelectorAll('.btn-select-switch-team').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const selectedTeamId = btn.dataset.team;
+        executeLiveTeamChange(selectedTeamId);
+      });
+    });
+
+    modal.classList.remove('hidden');
+  }
+
+  function executeLiveTeamChange(newTeamId) {
+    if (!newTeamId) return;
+
+    const currentRoom = window.CurrentRoom || null;
+    const currentUser = (typeof StorageEngine !== 'undefined' && StorageEngine.getCurrentUser) ? StorageEngine.getCurrentUser() : null;
+    const myUserId = currentUser?.userId || 'me';
+    const myUserName = currentUser?.userName || localStorage.getItem('ipl_user_name') || 'Manager';
+
+    // Find the team currently occupied by this user in CurrentRoom
+    let roomTeamOfUser = null;
+    const myNormName = (myUserName ? myUserName.trim().toLowerCase() : '');
+    if (currentRoom && currentRoom.players) {
+      for (const t of Object.keys(currentRoom.players)) {
+        const p = currentRoom.players[t];
+        const pNormName = (p && p.userName ? p.userName.trim().toLowerCase() : '');
+        if (p && ((myUserId && p.userId === myUserId) || (myNormName && pNormName && pNormName === myNormName))) {
+          roomTeamOfUser = t;
+          break;
+        }
+      }
+    }
+
+    const gameUserTeam = (typeof Game !== 'undefined' && Game.getState) ? Game.getState().userTeamId : null;
+    const oldTeamId = roomTeamOfUser || gameUserTeam || AppState.userTeamId || 'RCB';
+
+    // Only abort if user ALREADY occupies newTeamId in BOTH Game and Room!
+    if (newTeamId === oldTeamId && (!currentRoom || roomTeamOfUser === newTeamId) && gameUserTeam === newTeamId) {
+      alert('You are already managing this franchise.');
+      return;
+    }
+
+    console.log(`[IPL Auction] Switching franchise from ${oldTeamId} (room: ${roomTeamOfUser}, game: ${gameUserTeam}) to ${newTeamId}`);
+
+    // Check availability in current room if player is in a room
+    if (currentRoom && currentRoom.roomId) {
+      if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.changeRoomTeam === 'function') {
+        const res = StorageEngine.changeRoomTeam(currentRoom.roomId, myUserId, oldTeamId, newTeamId);
+        if (res && !res.success) {
+          if (res.reason === 'team_taken') {
+            alert(`🚫 Franchise "${newTeamId}" was just taken by ${res.takenBy || 'another player'}. Please select another team.`);
+            openChangeTeamModal();
+            return;
+          }
+        } else if (res && res.room) {
+          window.CurrentRoom = res.room;
+        }
+      } else {
+        // Direct room fallback
+        if (!currentRoom.players) currentRoom.players = {};
+        for (const t of Object.keys(currentRoom.players)) {
+          const p = currentRoom.players[t];
+          const pNormName = (p && p.userName ? p.userName.trim().toLowerCase() : '');
+          if ((myUserId && p.userId === myUserId) || (myNormName && pNormName === myNormName)) {
+            delete currentRoom.players[t];
+          }
+        }
+        const isHost = (currentRoom.hostId === myUserId) || (currentRoom.hostName === myUserName);
+        currentRoom.players[newTeamId] = {
+          userId: myUserId,
+          userName: myUserName,
+          status: 'online',
+          isOnline: true,
+          isHost: isHost,
+          joinedAt: new Date().toISOString()
+        };
+        if (isHost) currentRoom.hostTeam = newTeamId;
+        try {
+          const db = JSON.parse(localStorage.getItem('ipl_auction_rooms') || localStorage.getItem('ipl_all_active_rooms') || '{}');
+          db[currentRoom.roomId] = currentRoom;
+          localStorage.setItem('ipl_auction_rooms', JSON.stringify(db));
+          localStorage.setItem('ipl_all_active_rooms', JSON.stringify(db));
+        } catch (e) {}
+      }
+    }
+
+    // 1. Update Game Engine
+    try {
+      if (typeof Game !== 'undefined') {
+        if (typeof Game.changeUserTeam === 'function') {
+          Game.changeUserTeam(newTeamId);
+        } else if (typeof Game.selectTeam === 'function') {
+          Game.selectTeam(newTeamId);
+        } else if (typeof Game.getState === 'function') {
+          Game.getState().userTeamId = newTeamId;
+          if (typeof Game.saveGameState === 'function') Game.saveGameState();
+        }
+      }
+    } catch (e) {
+      console.warn('Game engine update warning:', e);
+    }
+
+    // 2. Update AppState
+    AppState.userTeamId = newTeamId;
+    AppState.selectedLandingTeamId = newTeamId;
+    AppState.selectedPlaying11TeamId = newTeamId;
+    AppState.selectedReviewTeamId = newTeamId;
+
+    // 3. Update StorageEngine user profile
+    try {
+      if (typeof StorageEngine !== 'undefined') {
+        if (StorageEngine.currentUser) {
+          StorageEngine.currentUser.teamId = newTeamId;
+          StorageEngine.currentUser.favoriteTeam = newTeamId;
+          if (typeof StorageEngine.saveCurrentUser === 'function') StorageEngine.saveCurrentUser();
+        }
+        if (typeof StorageEngine.assignMultiplayerManager === 'function') {
+          StorageEngine.assignMultiplayerManager(newTeamId, myUserId, myUserName);
+        }
+      }
+    } catch (e) {
+      console.warn('StorageEngine update warning:', e);
+    }
+
+    // 4. Update UI Dropdowns
+    if (DOM.selectPlaying11Team) DOM.selectPlaying11Team.value = newTeamId;
+    if (DOM.userReviewTeamSelect) DOM.userReviewTeamSelect.value = newTeamId;
+
+    // 5. Update Views
+    if (typeof updateTopBar === 'function') updateTopBar();
+    if (typeof updateAuctionArena === 'function') updateAuctionArena();
+    if (typeof renderPlaying11View === 'function') renderPlaying11View();
+    if (typeof renderFranchisesView === 'function') renderFranchisesView();
+    if (typeof saveAppState === 'function') saveAppState();
+
+    // 6. Close change team modal if open
+    const modal = document.getElementById('changeTeamModal');
+    if (modal) modal.classList.add('hidden');
+
+    // 7. If room lobby is open, re-render it
+    if (window.CurrentRoom) {
+      renderLobbyTeamsGrid(window.CurrentRoom);
+      renderLobbyPlayersList(window.CurrentRoom);
+    }
+
+    // 8. Sound & Feedback
+    try {
+      if (typeof AuctionAudio !== 'undefined' && typeof AuctionAudio.playSoldFanfare === 'function') {
+        AuctionAudio.playSoldFanfare();
+      }
+    } catch (e) {}
+
+    const targetTeam = (typeof Game !== 'undefined' && Game.getTeam) ? Game.getTeam(newTeamId) : null;
+    const teamTitle = targetTeam ? (targetTeam.shortName || targetTeam.name) : newTeamId;
+    alert(`🎉 Franchise successfully changed to ${teamTitle}! All squad data, purse, and bidding controls have been updated.`);
+  }
+
+  window.openChangeTeamModal = openChangeTeamModal;
+  window.executeLiveTeamChange = executeLiveTeamChange;
+
+  function wireAdditionalButtons() {
+    // Live Change Team Buttons
+    const btnHdrChange = document.getElementById('btnHeaderChangeTeam');
+    const btnArChange = document.getElementById('btnArenaChangeTeam');
+    const modalChange = document.getElementById('changeTeamModal');
+    const btnCloseChange = document.getElementById('btnCloseChangeTeamModal');
+    const btnCancelChange = document.getElementById('btnCancelChangeTeam');
+
+    if (btnHdrChange) btnHdrChange.onclick = () => openChangeTeamModal();
+    if (btnArChange) btnArChange.onclick = () => openChangeTeamModal();
+    if (btnCloseChange && modalChange) btnCloseChange.onclick = () => modalChange.classList.add('hidden');
+    if (btnCancelChange && modalChange) btnCancelChange.onclick = () => modalChange.classList.add('hidden');
+
+    // PDF & PNG Download Buttons in Ratings
+    const btnPdf = document.getElementById('btnDownloadPdfReport');
+    const btnPng = document.getElementById('btnDownloadPngCard');
+    if (btnPdf) btnPdf.onclick = () => downloadAuctionReportPDF();
+    if (btnPng) btnPng.onclick = () => downloadAuctionReportPNG();
+
+    // Impact Player Picker Button
+    const btnImpact = document.getElementById('btnPickImpactPlayer');
+    if (btnImpact) {
+      btnImpact.onclick = () => {
+        const team = Game.getTeam(AppState.selectedPlaying11TeamId) || Game.getUserTeam();
+        if (!team || !team.players || team.players.length === 0) {
+          alert('No players in squad to select as Impact Player.');
+          return;
+        }
+        const userXI = getUserXIForTeam(team.id);
+        const xiNames = userXI.filter(Boolean).map(p => p.name);
+        const bench = team.players.filter(p => !xiNames.includes(p.name));
+
+        if (bench.length === 0) {
+          alert('All squad players are already assigned to the starting XI. Add more bench players to select an Impact Player.');
+          return;
+        }
+
+        const promptList = bench.map((p, i) => `${i + 1}. ${p.name} (${p.role || 'Player'}) - ₹${Number(p.soldPrice || p.price || 0).toFixed(2)} Cr`).join('\n');
+        const choice = prompt(`Select Impact Player from Bench:\n\n${promptList}\n\nEnter player number (1-${bench.length}):`);
+        const num = parseInt(choice, 10);
+        if (num >= 1 && num <= bench.length) {
+          const selected = bench[num - 1];
+          AppState.impactPlayer = selected;
+          const nameEl = document.getElementById('impactPlayerName');
+          if (nameEl) nameEl.innerHTML = `<span class="text-amber-300 font-extrabold">${selected.name}</span> (${selected.role || 'Player'}) • Selected from Bench`;
+          AuctionAudio.playBidPaddle();
+        }
+      };
+    }
+  }
 
 
 })();

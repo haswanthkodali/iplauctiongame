@@ -1,0 +1,1690 @@
+import os
+
+html_content = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPL Auction Game | Official Mega & Mini Auction Simulator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20width=%22100%22%20height=%22100%22><text y=%22.9em%22 font-size=%2290%22>🏏</text></svg>">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@600;700;800&display=swap');
+
+    :root {
+      --bg-dark: #070d18;
+      --card-bg: #0f172a;
+      --border-glow: rgba(59, 130, 246, 0.4);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: #f8fafc;
+      overflow-x: hidden;
+      background-image: radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.25), transparent 70%),
+                        radial-gradient(circle at 100% 100%, rgba(147, 51, 234, 0.15), transparent 60%);
+    }
+
+    .font-cricket {
+      font-family: 'Rajdhani', sans-serif;
+    }
+
+    /* 3D Gavel / Hammer Animation */
+    .hammer-container {
+      perspective: 800px;
+      transform-style: preserve-3d;
+    }
+    .gavel {
+      transform-origin: 80% 80%;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .gavel.stage-1 { transform: rotate(-25deg); }
+    .gavel.stage-2 { transform: rotate(-50deg); }
+    .gavel.strike { animation: gavelSlam 0.35s ease-in forwards; }
+
+    @keyframes gavelSlam {
+      0% { transform: rotate(-55deg); }
+      70% { transform: rotate(10deg); }
+      85% { transform: rotate(-6deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    /* Rubber Stamp Effect */
+    @keyframes stampDrop {
+      0% { opacity: 0; transform: scale(3.5) rotate(-18deg); }
+      60% { opacity: 1; transform: scale(0.9) rotate(-12deg); }
+      80% { transform: scale(1.05) rotate(-14deg); }
+      100% { transform: scale(1) rotate(-12deg); }
+    }
+    .stamp-sold {
+      animation: stampDrop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Cricket Pitch Visualizer */
+    .cricket-turf {
+      background: radial-gradient(circle, #15803d 0%, #166534 65%, #14532d 100%);
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+      border: 3px solid #22c55e;
+      position: relative;
+    }
+    .pitch-strip {
+      background: #ca8a04;
+      border: 1px dashed rgba(254, 240, 138, 0.5);
+    }
+
+    /* Pulse Glow */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.8); }
+    }
+    .glow-active-bid { animation: pulseGlow 1.6s infinite; }
+
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-yellow-500 selection:text-slate-950">
+
+  <!-- 2027 SQUADS QUICK FRANCHISE BAR -->
+  <div class="bg-slate-950 border-b border-slate-800 text-[11px] py-1.5 px-4 overflow-x-auto">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3 whitespace-nowrap">
+      <div class="flex items-center gap-1.5 font-bold">
+        <span class="text-amber-400 font-extrabold uppercase tracking-wider text-[10px]">2027 SQUADS:</span>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 transition text-[11px] font-bold" data-team="CSK" onclick="openTeamRosterModal('CSK')">🦁 CSK</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition text-[11px] font-bold" data-team="MI" onclick="openTeamRosterModal('MI')">🌀 MI</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition text-[11px] font-bold" data-team="RCB" onclick="openTeamRosterModal('RCB')">👑 RCB</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 transition text-[11px] font-bold" data-team="KKR" onclick="openTeamRosterModal('KKR')">⚔️ KKR</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 transition text-[11px] font-bold" data-team="DC" onclick="openTeamRosterModal('DC')">🐯 DC</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition text-[11px] font-bold" data-team="PBKS" onclick="openTeamRosterModal('PBKS')">🦁 PBKS</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border border-pink-500/30 transition text-[11px] font-bold" data-team="RR" onclick="openTeamRosterModal('RR')">👑 RR</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 transition text-[11px] font-bold" data-team="SRH" onclick="openTeamRosterModal('SRH')">🦅 SRH</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 transition text-[11px] font-bold" data-team="GT" onclick="openTeamRosterModal('GT')">⚡ GT</button>
+        <button class="btn-franchise-quick px-2.5 py-0.5 rounded-full bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/30 transition text-[11px] font-bold" data-team="LSG" onclick="openTeamRosterModal('LSG')">🦅 LSG</button>
+      </div>
+      <div class="hidden md:flex items-center gap-3 text-slate-400 text-[11px]">
+        <span class="text-amber-400 font-semibold">⚡ IPL 2027 Auction Simulator</span>
+        <span>•</span>
+        <span class="text-emerald-400 flex items-center gap-1 font-bold text-[11px]">🏏 Multi-Room Platform</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Branding -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 font-cricket font-bold text-2xl shadow-lg shadow-amber-500/20">
+            🏆
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-cricket text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500">
+                IPL AUCTION GAME
+              </span>
+              <span id="auctionModeBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-purple-900/60 text-purple-300 border border-purple-700/50">
+                MINI AUCTION (40/60)
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 hidden sm:block">Tactical Playing XI Simulator &amp; Realistic AI Valuation</p>
+          </div>
+        </div>
+
+        <!-- User Franchise Badge -->
+        <div id="userTeamChip" class="hidden md:flex items-center gap-3 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60">
+          <div id="userTeamLogo" class="w-8 h-8 rounded-lg flex items-center justify-center text-xl font-bold">
+            👑
+          </div>
+          <div class="text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white" id="userTeamName">RCB</span>
+              <span class="text-slate-400" id="userRoleBadgeText">(Your Team)</span>
+            </div>
+            <div class="flex items-center gap-3 text-slate-300 font-medium">
+              <span>Purse: <strong class="text-amber-400" id="userPurseLeft">₹120.00 Cr</strong></span>
+              <span>Squad: <strong class="text-blue-400" id="userSquadCount">0/25</strong></span>
+              <span>OS: <strong class="text-purple-400" id="userOverseasCount">0/8</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Action Controls (Cleaned: No multiplier, connected, settings, 1x/2x/3x, private link) -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          
+          <!-- User Profile & Name Chip with Quick Rename -->
+          <button id="btnUserProfile" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer" title="View Profile, History & Change Name">
+            <span class="w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs" id="userAvatarLetter">U</span>
+            <span id="headerUserName" class="max-w-[90px] truncate">Manager</span>
+            <span class="text-amber-400 text-[11px]" title="Edit Name">✏️</span>
+          </button>
+
+          <!-- Audio Toggle -->
+          <button id="btnAudioToggle" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" title="Toggle Sound FX">
+            <span id="audioIcon">🔊</span>
+          </button>
+
+          <!-- Pause / Resume Button -->
+          <button id="btnPauseResume" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5 transition">
+            <span id="pauseIcon">⏸️</span>
+            <span id="pauseLabel" class="hidden sm:inline">Pause</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-2 border-t border-slate-800/60 pt-1 -mb-px overflow-x-auto">
+        <button data-tab="home" class="nav-tab active flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-t-lg border-b-2 border-amber-400 text-amber-400 bg-slate-800/40">
+          🏠 <span>Lobby & Rooms</span>
+        </button>
+        <button data-tab="manager" class="nav-tab flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200" title="Set Manager Name and Choose Franchise">
+          👑 <span>Manager & Team</span>
+        </button>
+        <button data-tab="auction" class="nav-tab flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+          🔨 <span>Auction Arena</span>
+        </button>
+        <button data-tab="franchises" class="nav-tab flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+          👥 <span>All Franchises</span>
+        </button>
+        <button data-tab="catalog" class="nav-tab flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+          🔍 <span>Player Catalog</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- TAB 0: LOBBY, ROOM CREATION & AUCTION HISTORY -->
+    <div id="tabContent-home" class="tab-pane active space-y-8">
+      
+      <!-- HERO BANNER & ROOM ACTIONS -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-10 shadow-2xl">
+        <div class="relative z-10 max-w-3xl space-y-4">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
+            <span>⚡ TATA IPL 2027 AUCTION PLATFORM</span>
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-cricket font-black text-white tracking-wide leading-tight">
+            EXPERIENCE THE THRILL OF THE <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">IPL AUCTION</span>
+          </h1>
+          <p class="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
+            Create or join real-time multiplayer auction rooms, enforce custom bidding ceilings, build your championship Playing 11 with an Impact Player, and get comprehensive AI squad ratings.
+          </p>
+
+          <!-- Core Room Action Buttons -->
+          <div class="flex flex-wrap items-center gap-3 pt-3">
+            <button id="btnOpenCreateRoomModal" class="px-7 py-3.5 rounded-2xl font-cricket font-extrabold text-base uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 shadow-xl shadow-amber-500/25 active:scale-95 transition flex items-center gap-2.5 cursor-pointer">
+              <span>➕ CREATE AUCTION ROOM</span>
+              <span>→</span>
+            </button>
+            <button id="btnOpenJoinRoomModal" class="px-5 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center gap-2 cursor-pointer">
+              <span>🔑</span> <span>Join by Room Code</span>
+            </button>
+            <button id="btnViewRetainedModalHero" class="px-5 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-slate-300 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition flex items-center gap-2 cursor-pointer">
+              <span>📋</span> <span>View Retained Cores</span>
+            </button>
+            <button id="btnOpenManagerSetupHero" onclick="switchTab('manager')" class="px-5 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-amber-300 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-600/60 transition flex items-center gap-2 cursor-pointer shadow-lg" title="Register Manager Name & Franchise">
+              <span>👑</span> <span>Manager Profile</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="absolute -right-6 -bottom-6 opacity-10 pointer-events-none text-9xl select-none font-black font-cricket">
+          IPL
+        </div>
+      </div>
+
+      <!-- ROOM LOBBY SECTION (Visible when user has created or joined a room) -->
+      <div id="roomLobbySection" class="hidden p-6 rounded-3xl bg-slate-900 border-2 border-amber-500/40 shadow-2xl space-y-6">
+        
+        <!-- Room Banner Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+              <h2 class="text-2xl font-cricket font-black text-white">AUCTION ROOM LOBBY</h2>
+              <span id="lobbyRoomBadge" class="px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider">ROOM: IPL-4821</span>
+              <span id="lobbyModeBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-950 text-purple-300 border border-purple-800">Mini Auction</span>
+              <span id="lobbyVisibilityBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Public Room</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Select your franchise below. Remaining teams will be driven by AI. Host controls when bidding starts.</p>
+          </div>
+
+          <!-- Share Link Box -->
+          <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-2xl border border-slate-800">
+            <input type="text" id="inputLobbyShareLink" readonly class="bg-transparent text-xs text-amber-300 font-mono px-2 py-1 outline-none w-64 select-all" value="https://iplauctiongamehaswanthkodali88.workers.dev/?roomId=IPL-4821">
+            <button id="btnCopyLobbyLink" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition cursor-pointer">
+              <span>📋</span> <span id="copyLobbyBtnText">Copy</span>
+            </button>
+            <button id="btnShareLobbyWhatsApp" class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition cursor-pointer">
+              <span>📲</span> <span>WhatsApp</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Room Rules Display Banner -->
+        <div id="lobbyRulesBanner" class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Format</span>
+            <strong class="text-amber-400" id="ruleDisplayFormat">2027 Mini Auction</strong>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Max Bid Ceiling</span>
+            <strong class="text-blue-400" id="ruleDisplayMaxBid">None (Unlimited)</strong>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Exceed Limit Rule</span>
+            <strong class="text-purple-400" id="ruleDisplayExceedLimit">Max 3 players > ₹15 Cr</strong>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Accelerated Auction</span>
+            <strong class="text-emerald-400" id="ruleDisplayAccelerated">Enabled (ON)</strong>
+          </div>
+        </div>
+
+        <!-- Franchise Selection for Room (Already taken teams disabled) -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <span>🏏</span> <span>Pick Your Franchise for this Room</span>
+              </h3>
+              <p class="text-xs text-slate-400">Host's team and already joined players' teams are locked. If no teams left, you join as a Spectator.</p>
+            </div>
+            <div id="spectatorNoticeBadge" class="hidden px-3 py-1 rounded-full bg-blue-950 text-blue-300 border border-blue-800 text-xs font-bold">
+              👁️ SPECTATOR MODE ACTIVE
+            </div>
+          </div>
+
+          <div id="lobbyTeamsGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <!-- Dynamically populated teams with TAKEN badges -->
+          </div>
+        </div>
+
+        <!-- Joined Players & Online/Offline Status List -->
+        <div class="space-y-3 pt-2 border-t border-slate-800">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span>👥</span> <span>Players in Room (<span id="lobbyPlayersCount">1</span>/10)</span>
+          </h3>
+          <div id="lobbyPlayersList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <!-- Populated dynamically with Green/Red indicators and Host Ban buttons -->
+          </div>
+        </div>
+
+        <!-- Host Controls Panel (Visible ONLY to Host) -->
+        <div id="lobbyHostPanel" class="p-5 rounded-2xl bg-amber-950/30 border border-amber-500/40 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <span>👑</span> <span>HOST CONTROLS</span>
+              </span>
+              <h4 class="text-base font-bold text-white">Configure Live Settings & Launch Auction</h4>
+            </div>
+
+            <!-- Timer Selector (5s vs 10s) -->
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-slate-300 font-semibold">Bid Countdown Timer:</span>
+              <button id="btnLobbyTimer5s" class="btn-timer-opt px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer" data-timer="5">5 Seconds</button>
+              <button id="btnLobbyTimer10s" class="btn-timer-opt px-3 py-1.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-bold transition cursor-pointer" data-timer="10">10 Seconds (Default)</button>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+            <p class="text-xs text-amber-200/80">Only you as the Host can start the auction. When started, all players will be entered into the Auction Arena together.</p>
+            <button id="btnHostStartAuction" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-cricket font-black text-lg uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 shadow-xl shadow-amber-500/30 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer">
+              <span>🚀 START AUCTION NOW</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Non-Host Waiting Message -->
+        <div id="lobbyWaitingNotice" class="hidden p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-1">
+          <div class="text-amber-400 font-bold text-sm">⏳ Waiting for the Host to start the auction...</div>
+          <div class="text-xs text-slate-400">All players and spectators will be redirected automatically when the Host clicks Start.</div>
+        </div>
+
+      </div>
+
+      <!-- SECTION: PREVIOUS AUCTION HISTORY (FOR RETURNING & OLD USERS) -->
+      <div id="homeAuctionHistorySection" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              📜 <span>Previous Auction History & Download Center</span>
+            </h2>
+            <p class="text-xs text-slate-400">View past completed auctions, inspect your squads, and download all data in PDF or PNG image format.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="historyCountBadge" class="px-3 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700 text-xs font-bold">0 Previous Auctions</span>
+          </div>
+        </div>
+
+        <!-- Past Auctions History List -->
+        <div id="homePastAuctionsList" class="space-y-4">
+          <!-- Populated dynamically: Shows summary, top 5 bids, buys, ratings, and PDF/PNG export buttons -->
+          <div class="text-slate-500 text-center py-8 text-xs">
+            No previous auctions found. Create or join an auction room to complete your first tournament!
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: BROWSE PUBLIC ROOMS TO JOIN -->
+      <div id="homePublicRoomsSection" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              🌐 <span>Browse Public Rooms to Join</span>
+            </h2>
+            <p class="text-xs text-slate-400">Click any public room to jump in and choose your franchise.</p>
+          </div>
+          <button id="btnRefreshPublicRooms" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
+            <span>🔄</span> <span>Refresh List</span>
+          </button>
+        </div>
+
+        <div id="publicRoomsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamically populated public rooms cards -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 1: MANAGER IDENTITY & TEAM REGISTRATION -->
+    <div id="tabContent-manager" class="tab-pane hidden space-y-8">
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border border-amber-500/30 p-6 sm:p-10 shadow-2xl">
+        <div class="relative z-10 max-w-3xl space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
+            <span>👑 OFFICIAL FRANCHISE REGISTRATION</span>
+          </div>
+          <h1 class="text-2xl sm:text-4xl font-cricket font-black text-white tracking-wide leading-tight">
+            REGISTER YOUR <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">MANAGER IDENTITY & TEAM</span>
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
+            Choose your Manager Name and Franchise. Your identity will appear across all live auction tables, multiplayer paddles, and chat feeds, and <strong class="text-amber-300">remains permanently saved on this device for all future logins</strong>!
+          </p>
+        </div>
+      </div>
+
+      <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-black">1</span>
+              <span>Your Manager Name</span>
+            </h2>
+            <p class="text-xs text-slate-400">This name will be attached to all your winning bids, squad history, and export files.</p>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+          <div class="relative flex-1 w-full">
+            <span class="absolute left-4 top-3.5 text-base">👑</span>
+            <input type="text" id="inputManagerPageName" placeholder="Enter your name (e.g. Haswanth)" class="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3.5 text-white font-bold text-base focus:outline-none transition pl-11">
+          </div>
+          <button id="btnSaveManagerPageNameOnly" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>💾</span> <span>Save Name</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-black">2</span>
+              <span>Select Your Default Franchise</span>
+            </h2>
+            <p class="text-xs text-slate-400">Choose your favorite franchise to represent across all auction tables.</p>
+          </div>
+        </div>
+        <div id="managerPageTeamsGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="sticky bottom-4 z-30 p-4 rounded-3xl bg-slate-900/95 backdrop-blur-md border border-slate-700 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div id="managerPageSelectedLogo" class="w-12 h-12 rounded-2xl bg-red-950/80 border border-red-700 flex items-center justify-center text-2xl font-bold">
+            👑
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Your Franchise</span>
+            <div class="flex items-center gap-2">
+              <h4 class="text-base font-bold text-white" id="managerPageSelectedTeamName">Royal Challengers Bengaluru (RCB)</h4>
+            </div>
+            <p class="text-xs text-slate-400" id="managerPageSelectedPurse">Purse: ₹120.00 Cr</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <button id="btnSaveManagerSetupAll" class="px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-wider text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center justify-center gap-2 cursor-pointer">
+            <span>💾 Save Setup</span>
+          </button>
+          <button id="btnSaveAndEnterAuction" class="flex-1 sm:flex-initial px-8 py-4 rounded-2xl font-cricket font-black text-lg uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 shadow-xl shadow-amber-500/30 active:scale-95 transition flex items-center justify-center gap-2.5 cursor-pointer">
+            <span>🚀 ENTER AUCTION ARENA</span>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: AUCTION ARENA (SINGLE UNIFIED INTERFACE WITH SUB-TABS) -->
+    <div id="tabContent-auction" class="tab-pane hidden space-y-6">
+
+      <!-- AUCTION ARENA SUB-TAB NAVIGATION -->
+      <div class="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto no-scrollbar">
+        <button data-arena-tab="bidding" class="arena-tab active px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer">
+          🔨 <span>Live Bidding</span>
+        </button>
+        <button data-arena-tab="playing11" class="arena-tab px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer">
+          🏏 <span>Playing XI, Backups & Catalogue</span>
+        </button>
+        <button data-arena-tab="messages" class="arena-tab px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer">
+          💬 <span>Live Messages</span>
+          <span id="arenaMessagesBadge" class="px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black hidden">0</span>
+        </button>
+        <button data-arena-tab="ratings" class="arena-tab px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer">
+          ⭐ <span>Review & Ratings</span>
+        </button>
+        <button id="btnTabAccelerated" data-arena-tab="accelerated" class="arena-tab hidden px-4 py-2 rounded-xl text-xs font-extrabold text-amber-300 bg-amber-950/80 border border-amber-500/40 hover:bg-amber-900 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer animate-pulse">
+          ⚡ <span>Accelerated Round</span>
+        </button>
+      </div>
+
+      <!-- ARENA SUB-PANE 1: LIVE BIDDING PODIUM -->
+      <div id="arenaPane-bidding" class="arena-pane space-y-6">
+
+        <!-- Progress Ribbon & Host Arena Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/80">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-slate-800 text-amber-400 border border-slate-700" id="currentSetName">
+              Set 1: Marquee Players
+            </span>
+            <span class="text-xs text-slate-400">
+              Player <strong class="text-white" id="playerProgressIndex">1</strong> of <strong class="text-white" id="playerProgressTotal">230</strong>
+            </span>
+            <button id="btnShufflePool" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 border border-purple-700/50 flex items-center gap-1.5 transition active:scale-95" title="Reshuffle all upcoming players in remaining sets">
+              <span>🔀</span> <span>Reshuffle Sets</span>
+            </button>
+          </div>
+
+          <!-- Host Arena Controls (Pause/Play & Timer Toggle) -->
+          <div id="arenaHostControls" class="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <span class="text-[10px] uppercase font-bold text-amber-400 mr-1">Host Controls:</span>
+            <button id="btnHostTimer5s" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold" title="Set bid timer to 5 seconds">5s</button>
+            <button id="btnHostTimer10s" class="px-2 py-1 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-bold" title="Set bid timer to 10 seconds">10s</button>
+            <button id="btnHostPauseResume" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-[11px] font-bold">⏸️ Pause</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btnOpenScoutModal" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 border border-blue-700/40 flex items-center gap-1.5 transition">
+              📊 <span>Scout Impact</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Stage Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+          <!-- Left / Center Column (Active Player Card & Paddle Controls) -->
+          <div class="lg:col-span-8 space-y-6">
+
+            <!-- ACTIVE PLAYER CARD -->
+            <div class="relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 rounded-3xl border border-slate-800 p-6 shadow-2xl overflow-hidden" id="activePlayerCard">
+              
+              <!-- SOLD / UNSOLD Stamp Overlay -->
+              <div id="stampOverlay" class="hidden absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
+                <div id="stampBadge" class="border-4 px-8 py-3 rounded-2xl text-4xl font-cricket font-black tracking-widest uppercase">
+                  SOLD
+                </div>
+              </div>
+
+              <!-- Player Card Header -->
+              <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                
+                <!-- Player Portrait -->
+                <div class="relative flex-shrink-0 group">
+                  <div class="w-36 h-44 sm:w-44 sm:h-52 rounded-2xl overflow-hidden bg-slate-800 border-2 border-slate-700 shadow-xl flex items-center justify-center relative">
+                    <img id="playerPhoto" src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 280'%3E%3Crect width='240' height='280' fill='%230f172a'/%3E%3C/svg%3E" alt="Player Portrait" class="w-full h-full object-cover object-top transition duration-300 group-hover:scale-105" onerror="handlePlayerImageError(this);">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
+                  </div>
+
+                  <div class="absolute -top-2 -left-2 bg-slate-900 border border-slate-700 rounded-full px-2 py-0.5 text-xs shadow-md flex items-center gap-1" id="playerCountryBadge">
+                    <span id="playerCountryFlag">🇮🇳</span>
+                    <span id="playerCountryName" class="font-medium text-slate-300">India</span>
+                  </div>
+
+                  <div class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900 border border-slate-700 rounded-full px-3 py-0.5 text-[11px] font-bold shadow-md" id="playerOverseasTag">
+                    🇮🇳 Indian Player
+                  </div>
+                </div>
+
+                <!-- Player Details & Bio -->
+                <div class="flex-1 text-center sm:text-left space-y-3">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-wide" id="playerName">Virat Kohli</h2>
+                      <p class="text-xs sm:text-sm text-amber-400 font-medium" id="playerSpeciality">Master Run-Machine & Anchor</p>
+                    </div>
+                    
+                    <div class="flex items-center justify-center sm:justify-end gap-2">
+                      <div class="bg-gradient-to-br from-amber-500 to-yellow-600 text-slate-950 px-3.5 py-1.5 rounded-xl font-cricket font-bold text-center shadow-lg shadow-amber-500/20">
+                        <div class="text-[10px] tracking-wider uppercase font-sans font-semibold">OVR</div>
+                        <div class="text-2xl leading-none" id="playerOverallRating">96</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Role Badges & Form -->
+                  <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-950/80 text-blue-300 border border-blue-800/60" id="playerRoleBadge">
+                      🏏 Batsman
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60" id="playerFormBadge">
+                      Form: A+
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-950/80 text-purple-300 border border-purple-800/60" id="playerBestPosBadge">
+                      Top Order (1-3)
+                    </span>
+                  </div>
+
+                  <!-- Rating Sub-meters -->
+                  <div class="grid grid-cols-3 gap-2 pt-2">
+                    <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-800">
+                      <span class="text-[10px] uppercase text-slate-400 block font-semibold">Batting</span>
+                      <span class="text-sm font-bold text-blue-400" id="playerBattingRating">97</span>
+                    </div>
+                    <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-800">
+                      <span class="text-[10px] uppercase text-slate-400 block font-semibold">Bowling</span>
+                      <span class="text-sm font-bold text-red-400" id="playerBowlingRating">35</span>
+                    </div>
+                    <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-800">
+                      <span class="text-[10px] uppercase text-slate-400 block font-semibold">Fielding</span>
+                      <span class="text-sm font-bold text-emerald-400" id="playerFieldingRating">93</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- PLAYER STATS DASHBOARD -->
+              <div class="mt-6 pt-5 border-t border-slate-800/80">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-400">📊 T20 & IPL Career Statistics</span>
+                  <span class="text-[11px] text-slate-500">2026/2027 Season</span>
+                </div>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+                  <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/60">
+                    <span class="text-[10px] text-slate-400 uppercase block font-semibold" id="lblStat1">Matches</span>
+                    <span class="text-sm sm:text-base font-bold text-white" id="statMatches">--</span>
+                  </div>
+                  <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/60">
+                    <span class="text-[10px] text-slate-400 uppercase block font-semibold" id="lblStat2">Runs</span>
+                    <span class="text-sm sm:text-base font-bold text-amber-400" id="statRuns">--</span>
+                  </div>
+                  <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/60">
+                    <span class="text-[10px] text-slate-400 uppercase block font-semibold" id="lblStat3">Strike Rate</span>
+                    <span class="text-sm sm:text-base font-bold text-blue-400" id="statSR">--</span>
+                  </div>
+                  <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/60">
+                    <span class="text-[10px] text-slate-400 uppercase block font-semibold" id="lblStat4">Average</span>
+                    <span class="text-sm sm:text-base font-bold text-emerald-400" id="statAvg">--</span>
+                  </div>
+                  <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/60">
+                    <span class="text-[10px] text-slate-400 uppercase block font-semibold" id="lblStat5">50s / 100s</span>
+                    <span class="text-sm sm:text-base font-bold text-purple-400" id="statMilestones">--</span>
+                  </div>
+                  <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/60">
+                    <span class="text-[10px] text-slate-400 uppercase block font-semibold" id="lblStat6">Wkts / Econ</span>
+                    <span class="text-sm sm:text-base font-bold text-red-400" id="statBowling">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tactical Playing XI Impact Banner -->
+              <div class="mt-4 p-3 rounded-xl bg-blue-950/40 border border-blue-800/50 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🎯</span>
+                  <span class="text-slate-300">
+                    Playing XI Fit for <strong class="text-white" id="impactTeamName">RCB</strong>:
+                    <span class="text-amber-400 font-semibold" id="impactSlotFit">Target: Slot #3 (Anchor)</span>
+                  </span>
+                </div>
+                <span class="text-emerald-400 font-bold" id="impactRatingDelta">+3.8 Rating</span>
+              </div>
+
+            </div>
+
+            <!-- LIVE BIDDING TIER & USER CONTROLS -->
+            <div class="bg-slate-900/90 rounded-3xl border border-slate-800 p-6 shadow-xl space-y-6">
+              
+              <!-- Current Price & Leader Badge -->
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+                <div class="text-center sm:text-left">
+                  <span class="text-xs uppercase text-slate-400 tracking-wider font-semibold block">Current Highest Bid</span>
+                  <div class="text-3xl sm:text-4xl font-cricket font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-200" id="currentBidDisplay">
+                    ₹ 0.00 Cr
+                  </div>
+                  <span class="text-[11px] text-slate-400">Base Price: <strong class="text-slate-200" id="basePriceDisplay">₹ 2.00 Cr</strong></span>
+                </div>
+
+                <div class="flex items-center gap-3 bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-800" id="leaderBadgeBox">
+                  <div id="leaderLogo" class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-2xl font-bold">
+                    ⚪
+                  </div>
+                  <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Leading Franchise</span>
+                    <span class="text-sm font-bold text-white" id="leaderName">No Bids Yet</span>
+                  </div>
+                </div>
+
+                <div class="text-center sm:text-right">
+                  <span class="text-xs uppercase text-slate-400 tracking-wider font-semibold block">Next Increment</span>
+                  <span class="text-base font-bold text-blue-400" id="nextIncrementDisplay">+₹ 0.05 Cr</span>
+                </div>
+              </div>
+
+              <!-- Rule Enforcement Notification Callout -->
+              <div id="biddingRuleNotification" class="hidden p-3 rounded-2xl bg-red-950/80 border border-red-700 text-red-300 text-xs font-bold flex items-center gap-2">
+                <span>⚠️</span> <span id="biddingRuleNotificationText">Maximum bid ceiling reached! Further bids prevented.</span>
+              </div>
+
+              <!-- Spectator Banner (Visible if user is spectator) -->
+              <div id="spectatorAuctionNotice" class="hidden p-4 rounded-2xl bg-blue-950/60 border border-blue-700/60 text-blue-300 text-xs font-semibold flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">👁️</span>
+                  <span><strong>Spectator Mode Active:</strong> You are viewing live bids and squad buys in real-time. Bidding paddles are disabled for spectators.</span>
+                </div>
+              </div>
+
+              <!-- USER BIDDING ACTION BUTTONS (Hidden for spectators) -->
+              <div id="userBiddingControlsGroup" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                <button id="btnUserBid" class="sm:col-span-8 py-4 px-6 rounded-2xl font-cricket font-black text-xl tracking-wider uppercase text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 active:scale-[0.98] shadow-lg shadow-amber-500/25 transition duration-150 flex items-center justify-center gap-3 cursor-pointer">
+                  <span>✋ RAISE PADDLE: BID</span>
+                  <span id="userNextBidAmount" class="font-sans text-2xl font-extrabold">₹ 2.00 Cr</span>
+                </button>
+
+                <button id="btnPassPlayer" class="sm:col-span-4 py-4 px-4 rounded-2xl font-bold text-sm text-slate-300 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] border border-slate-700 transition flex items-center justify-center gap-2 cursor-pointer">
+                  <span>🚫</span> <span>PASS / SKIP</span>
+                </button>
+
+                <button id="btnPowerJump" class="sm:col-span-6 py-3 px-4 rounded-xl font-bold text-xs text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer" title="Aggressive Jump Bid by +₹1.00 Crore">
+                  <span>⚡</span> <span>+₹1.00 Cr POWER JUMP</span>
+                </button>
+
+                <button id="btnFinishFast" class="sm:col-span-6 py-3 px-4 rounded-xl font-bold text-xs text-purple-300 bg-purple-950/60 hover:bg-purple-900/60 border border-purple-700/50 active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer" title="Fast AI simulation to ratings">
+                  <span>🤖</span> <span>SIMULATE REST (AI)</span>
+                </button>
+
+                <button id="btnEndAuctionArena" class="sm:col-span-12 py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-red-300 bg-red-950/60 hover:bg-red-900/60 border border-red-700/50 active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer shadow-md">
+                  <span>🏁</span> <span>CONCLUDE AUCTION & PROCEED TO PLAYING 11</span>
+                </button>
+              </div>
+
+              <!-- Quick Raise Helpers -->
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="text-slate-400">Quick Increment:</span>
+                  <button class="btn-quick-raise px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium" data-add="0.20">+20L</button>
+                  <button class="btn-quick-raise px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium" data-add="0.50">+50L</button>
+                  <button class="btn-quick-raise px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium" data-add="1.00">+1.0 Cr</button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Right Column (Auctioneer Desk & Gavel + Live Bidding Log) -->
+          <div class="lg:col-span-4 space-y-6">
+
+            <!-- AUCTIONEER DESK & GAVEL -->
+            <div class="bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl border border-slate-800 p-5 shadow-xl text-center relative overflow-hidden">
+              
+              <!-- Countdown Timer Ring -->
+              <div class="relative w-28 h-28 mx-auto mb-4 flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" fill="transparent" stroke="#1e293b" stroke-width="8"></circle>
+                  <circle id="timerProgressRing" cx="50" cy="50" r="42" fill="transparent" stroke="#f59e0b" stroke-width="8" stroke-dasharray="264" stroke-dashoffset="0" stroke-linecap="round" class="transition-all duration-300"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span class="text-3xl font-cricket font-black text-white" id="timerSeconds">10</span>
+                  <span class="text-[9px] uppercase tracking-wider text-slate-400 -mt-1 font-semibold">SEC</span>
+                </div>
+              </div>
+
+              <!-- 3D Animated Gavel Graphic -->
+              <div class="hammer-container h-24 flex items-center justify-center my-2">
+                <div id="gavelGraphic" class="gavel">
+                  <svg width="110" height="90" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="60" cy="85" rx="42" ry="10" fill="#3B1E08" stroke="#5D3A1A" stroke-width="2"/>
+                    <path d="M 18 85 L 18 90 C 18 96, 102 96, 102 90 L 102 85 Z" fill="#2E1704"/>
+                    <path d="M 40 50 L 95 15" stroke="#8B5A2B" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M 40 50 L 95 15" stroke="#5C3A1E" stroke-width="2" stroke-linecap="round"/>
+                    <g transform="translate(25, 40) rotate(-40)">
+                      <rect x="0" y="0" width="34" height="22" rx="3" fill="#8B5A2B" stroke="#3E200C" stroke-width="2"/>
+                      <rect x="4" y="0" width="4" height="22" fill="#F59E0B"/>
+                      <rect x="26" y="0" width="4" height="22" fill="#F59E0B"/>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="mt-2 min-h-[30px] flex items-center justify-center">
+                <span id="auctioneerCallout" class="font-cricket text-lg font-bold uppercase tracking-wider text-amber-400">
+                  Bidding Open
+                </span>
+              </div>
+
+              <div class="mt-4 p-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-left relative">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider" id="auctioneerName">Richard Madley (Auctioneer)</span>
+                </div>
+                <p class="text-xs text-slate-300 italic leading-relaxed" id="auctioneerCommentary">
+                  "Welcome franchisees! Place your bids to build your championship squad under purse constraints!"
+                </p>
+              </div>
+
+            </div>
+
+            <!-- LIVE BIDDING STREAM LOG -->
+            <div class="bg-slate-900/90 rounded-3xl border border-slate-800 p-5 shadow-xl flex flex-col h-[340px]">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  ⚡ <span>Live Bidding Stream</span>
+                </span>
+                <span class="text-[10px] text-slate-500" id="logCount">0 events</span>
+              </div>
+
+              <div id="biddingLogList" class="flex-1 overflow-y-auto space-y-2 py-3 pr-1 text-xs">
+                <div class="text-slate-500 text-center py-8">Waiting for opening bids...</div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ARENA SUB-PANE 2: PLAYING XI, BACKUPS & PLAYER CATALOGUE -->
+      <div id="arenaPane-playing11" class="arena-pane hidden space-y-6">
+
+        <!-- Header & Franchise Filter -->
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              🏏 <span>Playing XI, Impact Player & Player Catalogue</span>
+            </h2>
+            <p class="text-xs text-slate-400">Build your 11 + 1 Impact Player (Max 4 Overseas in XI, Min 1 Wicketkeeper, Min 5 Bowling options).</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <label class="text-xs text-slate-400">Select Franchise:</label>
+            <select id="selectPlaying11Team" class="bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-amber-400">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Stats Summary Ribbon -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+          <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] uppercase text-slate-400 block font-semibold">XI Rating</span>
+            <span class="text-lg font-bold text-amber-400" id="xiScoreVal">0/100</span>
+          </div>
+          <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] uppercase text-slate-400 block font-semibold">Overseas in XI</span>
+            <span class="text-lg font-bold text-purple-400" id="xiOverseasCount">0 / 4</span>
+          </div>
+          <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] uppercase text-slate-400 block font-semibold">Bowlers</span>
+            <span class="text-lg font-bold text-blue-400" id="xiBowlingOptions">0 (Min 5)</span>
+          </div>
+          <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] uppercase text-slate-400 block font-semibold">Wicketkeeper</span>
+            <span class="text-lg font-bold text-emerald-400" id="xiWkStatus">None</span>
+          </div>
+          <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] uppercase text-slate-400 block font-semibold">Bench Depth</span>
+            <span class="text-lg font-bold text-amber-300" id="xiBenchDepthScore">0/100</span>
+          </div>
+        </div>
+
+        <!-- XI Controls Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90 p-3 sm:p-4 rounded-2xl border border-slate-800 shadow-md">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">⚡ Actions:</span>
+            <span class="text-[11px] sm:text-xs text-slate-300 font-medium" id="pickupSlotHint">Click slot to assign player, or use Auto-Fill!</span>
+          </div>
+          <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <button id="btnAutoFillXI" class="px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+              <span>🤖</span> <span>Auto-Fill XI + Impact</span>
+            </button>
+            <button id="btnClearUserXI" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+              <span>🗑️</span> <span>Clear</span>
+            </button>
+            <button id="btnLockSubmitXI" class="col-span-2 sm:col-span-1 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer">
+              <span>🏆</span> <span>Submit & Rate Playing XI</span>
+            </button>
+            <button id="btnOpenExportRoster" class="col-span-2 sm:col-span-1 px-3 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+              <span>📥</span> <span>Download Squad</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Cricket Turf with 11 Slots + Impact Player Slot -->
+        <div class="cricket-turf rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-2xl relative min-h-[380px] sm:min-h-[500px] flex flex-col justify-between overflow-hidden">
+          <div class="absolute left-1/2 -translate-x-1/2 top-8 bottom-8 w-20 sm:w-28 pitch-strip rounded-xl opacity-20 pointer-events-none"></div>
+
+          <!-- 11 Spots Grid -->
+          <div id="playing11FieldGrid" class="relative z-10 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-1.5 sm:gap-2.5">
+            <!-- 11 Spots rendered dynamically -->
+          </div>
+
+          <!-- Impact Player Card Box -->
+          <div class="relative z-10 mt-4 pt-3 border-t border-emerald-500/40 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950/70 p-3 rounded-2xl">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 font-black text-lg flex items-center justify-center shadow-lg">⭐</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">OFFICIAL IMPACT PLAYER</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">IPL TACTICAL RULE</span>
+                </div>
+                <div class="text-sm font-bold text-white" id="impactPlayerName">None Assigned (Click to Pick from Bench)</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnPickImpactPlayer" class="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition cursor-pointer">
+                + Select Impact Player
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SQUAD BENCH PLAYER PICKER -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-4 shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                📋 <span>Squad Bench (Click "+ Pick" to Place Player into XI)</span>
+              </h3>
+              <p class="text-xs text-slate-400">Pick 11 players respecting the 4 overseas limit and 1 wicketkeeper rule.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-amber-400 border border-slate-700" id="squadBenchCountBadge">0 Players in Squad</span>
+            </div>
+          </div>
+          <div id="squadPlayerPickerTray" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- ALL CRICKETERS IN AUCTION DASHBOARD CATALOGUE (WITH ROLE FILTERS: WK, BAT, AR, BOWL) -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-5 shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                🔍 <span>Auction Player Catalogue (All Cricketers)</span>
+              </h3>
+              <p class="text-xs text-slate-400">Browse all cricketers in auction with role filter, photo on left side of name, and career stats.</p>
+            </div>
+
+            <!-- Role Selector Buttons -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button class="btn-arena-role-filter active px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition cursor-pointer" data-role="ALL">All Roles</button>
+              <button class="btn-arena-role-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer" data-role="WICKETKEEPER">🧤 Wicketkeeper</button>
+              <button class="btn-arena-role-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer" data-role="BATTER">🏏 Batter</button>
+              <button class="btn-arena-role-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer" data-role="ALLROUNDER">⚡ All-Rounder</button>
+              <button class="btn-arena-role-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer" data-role="BOWLER">⚾ Bowler</button>
+            </div>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="flex items-center gap-3">
+            <div class="relative flex-1">
+              <span class="absolute left-3 top-2.5 text-slate-500 text-xs">🔍</span>
+              <input type="text" id="inputArenaCatSearch" placeholder="Search cricketer by name or team..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+            </div>
+            <span class="text-xs text-slate-400" id="arenaCatFilteredCount">Showing 230 players</span>
+          </div>
+
+          <!-- Catalogue Cards List (Small photo left side of name, stats, price, status) -->
+          <div id="arenaCatListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-1">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- SPOT-BY-SPOT BACKUPS & BENCH DEPTH -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            🛡️ <span>Bench Reserves & Backup Depth (Spot-by-Spot)</span>
+          </h3>
+          <p class="text-xs text-slate-400">Primary and secondary backups for each crucial role in the starting 11.</p>
+          <div id="benchBackupsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ARENA SUB-PANE 3: LIVE ROOM MESSAGES & CHAT -->
+      <div id="arenaPane-messages" class="arena-pane hidden space-y-4">
+        <div class="bg-slate-900 rounded-3xl border border-slate-800 p-5 shadow-xl flex flex-col h-[600px]">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold">💬</div>
+              <div>
+                <h3 class="text-sm font-bold text-white">LIVE ROOM MESSAGES</h3>
+                <p class="text-[11px] text-slate-400">Communicate with host and other managers in this auction room</p>
+              </div>
+            </div>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
+
+          <!-- Chat Messages Scroll Stream -->
+          <div id="chatMessagesContainer" class="flex-1 overflow-y-auto p-3 space-y-3 font-sans text-xs">
+            <div class="text-slate-500 text-center py-8">Chat room opened. Welcome managers! Discuss bids and banter here.</div>
+          </div>
+
+          <!-- Banter Pills -->
+          <div class="p-2 border-t border-slate-800 bg-slate-950/60 flex items-center gap-1.5 overflow-x-auto text-[11px] no-scrollbar">
+            <span class="text-[10px] uppercase font-bold text-slate-500 shrink-0">Quick:</span>
+            <button class="btn-chat-quick-pill shrink-0 px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">🔥 Absolute Steal!</button>
+            <button class="btn-chat-quick-pill shrink-0 px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">💰 Total Overpay!</button>
+            <button class="btn-chat-quick-pill shrink-0 px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">🏏 We need Bowlers!</button>
+            <button class="btn-chat-quick-pill shrink-0 px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium">✋ Raise the Paddle!</button>
+          </div>
+
+          <!-- Chat Input -->
+          <div class="p-3 border-t border-slate-800 bg-slate-950 flex items-center gap-2">
+            <input id="inputChatMessage" type="text" placeholder="Type message to room managers & host..." class="flex-1 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-white text-xs font-medium focus:outline-none transition">
+            <button id="btnSendChatMessage" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-md">
+              Send 🚀
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARENA SUB-PANE 4: REVIEW & RATINGS -->
+      <div id="arenaPane-ratings" class="arena-pane hidden space-y-6">
+
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                ⭐ <span>Squad Ratings & Purchase List Review</span>
+              </h2>
+              <p class="text-xs text-slate-400" id="ratingFormulaDescription">
+                Evaluate squads with complete Playing 11 balance, bench depth, and past team data.
+              </p>
+            </div>
+
+            <!-- Normal vs User Rating Toggle -->
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+              <button id="btnRatingModeNormal" class="px-4 py-2 rounded-lg font-bold bg-amber-500 text-slate-950 transition">
+                🤖 Normal (AI Calculation)
+              </button>
+              <button id="btnRatingModeUser" class="px-4 py-2 rounded-lg font-medium text-slate-400 hover:text-white transition">
+                ✍️ User Rating (Interactive)
+              </button>
+            </div>
+          </div>
+
+          <!-- Download Action Bar -->
+          <div class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-xs text-slate-300">
+              <strong class="text-amber-400">Download Center:</strong> Export complete auction results with auctioneer name, top 5 bids, team buys & ratings.
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnDownloadPdfReport" class="px-4 py-2 rounded-xl bg-red-950 hover:bg-red-900 border border-red-700/60 text-red-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                <span>📄</span> <span>Download PDF Report</span>
+              </button>
+              <button id="btnDownloadPngCard" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700/60 text-purple-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                <span>🖼️</span> <span>Download PNG Card</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Mini Auction Formula Callout -->
+          <div id="miniAuctionFormulaBanner" class="p-3.5 rounded-xl bg-gradient-to-r from-blue-950/60 to-purple-950/60 border border-blue-800/60 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">⚖️</span>
+              <div>
+                <strong class="text-amber-400">Mini Auction Formula:</strong>
+                <span class="text-slate-300"> 40% Past Team Core Data + 60% (Strongest Playing XI & Bench Depth)</span>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded bg-blue-900/60 text-blue-200 font-bold">40% / 60% Weighted</span>
+          </div>
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl overflow-x-auto">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            🏅 <span>Franchise Leaderboard & Power Rankings (1st to 10th)</span>
+          </h3>
+
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="text-[11px] uppercase bg-slate-950 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-3">Rank</th>
+                <th class="py-3 px-3">Team</th>
+                <th class="py-3 px-3">Score & Grade</th>
+                <th class="py-3 px-3">Playing XI</th>
+                <th class="py-3 px-3">Bench Depth</th>
+                <th class="py-3 px-3">Spent / Left</th>
+                <th class="py-3 px-3">MVP Buy</th>
+                <th class="py-3 px-3">Action</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTableBody" class="divide-y divide-slate-800/60 font-medium">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- User Review Panel -->
+        <div id="userReviewSection" class="hidden bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                ✍️ <span>Rate Team Purchase List & Review Playing XI</span>
+              </h3>
+              <p class="text-xs text-slate-400">Review other players\' submissions and assign your expert ratings.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400">Reviewing:</span>
+              <select id="userReviewTeamSelect" class="bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+          <div id="userReviewTeamCard" class="space-y-4">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Tournament Simulation -->
+        <div id="seasonSimContainer" class="bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-6 shadow-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                🏆 <span>2027 IPL Season Tournament Simulation</span>
+              </h3>
+              <p class="text-xs text-slate-400">14-match round-robin league stage based on your squad strength & Playing 11, followed by Playoffs.</p>
+            </div>
+            <button id="btnSimulateSeason" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-2 shadow-lg shadow-amber-500/20 transition cursor-pointer">
+              <span>🎲</span> <span>Re-Simulate Season</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-7 bg-slate-950/70 rounded-xl border border-slate-800 p-4 overflow-x-auto">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2">
+                📊 <span>League Standings (14 Matches)</span>
+              </h4>
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="text-[10px] uppercase bg-slate-900 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="py-2 px-2">#</th>
+                    <th class="py-2 px-2">Team</th>
+                    <th class="py-2 px-2">P</th>
+                    <th class="py-2 px-2">W</th>
+                    <th class="py-2 px-2">L</th>
+                    <th class="py-2 px-2">Pts</th>
+                    <th class="py-2 px-2">NRR</th>
+                    <th class="py-2 px-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="seasonStandingsBody" class="divide-y divide-slate-800/50">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="lg:col-span-5 space-y-4">
+              <div class="bg-gradient-to-br from-amber-500/10 via-slate-950 to-slate-950 rounded-xl border border-amber-500/30 p-4 space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                  👑 <span>2027 IPL Champion Crown</span>
+                </h4>
+                <div id="championDisplay" class="p-4 rounded-xl bg-slate-900 border border-amber-500/40 text-center space-y-2">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+              <div class="bg-slate-950/70 rounded-xl border border-slate-800 p-4 space-y-2 text-xs">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2">
+                  ⚔️ <span>Playoff Matches & Knockout Path</span>
+                </h4>
+                <div id="playoffsResultsContainer" class="space-y-2">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ARENA SUB-PANE 5: ACCELERATED AUCTION ROUND -->
+      <div id="arenaPane-accelerated" class="arena-pane hidden space-y-6">
+        <div class="p-6 rounded-3xl bg-slate-900 border-2 border-amber-500/40 shadow-2xl space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                <span>⚡ ACCELERATED AUCTION PHASE</span>
+              </div>
+              <h2 class="text-2xl font-cricket font-black text-white mt-1">RE-AUCTION UNSOLD PLAYERS & SQUAD RELEASES</h2>
+              <p class="text-xs text-slate-300">Teams can nominate unsold cricketers and release purchased players to recover funds at full purchase price.</p>
+            </div>
+            <button id="btnFinishAcceleratedRound" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg transition cursor-pointer">
+              Proceed to Playing XI Build ➔
+            </button>
+          </div>
+
+          <!-- Section 1: Release Players for Refund -->
+          <div class="space-y-3">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+              <span>💸</span> <span>Release Players from Your Squad (Refund to Purse)</span>
+            </h3>
+            <p class="text-xs text-slate-400">Release any bought player to get their full purchase price refunded to your purse. (Pre-retained players cannot be released). Released players will be re-auctioned at base price.</p>
+            <div id="acceleratedReleaseList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <!-- Dynamically populated squad players with [Release & Refund] button -->
+            </div>
+          </div>
+
+          <!-- Section 2: Unsold Players Nominated for Re-Auction -->
+          <div class="space-y-3 pt-4 border-t border-slate-800">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span>🏏</span> <span>Unsold Cricketers Available for Re-Auction</span>
+              </h3>
+              <button id="btnStartAcceleratedRound" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition cursor-pointer shadow-md">
+                ⚡ Start Accelerated Bidding
+              </button>
+            </div>
+            <div id="acceleratedUnsoldList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-72 overflow-y-auto pr-1">
+              <!-- Dynamically populated unsold players -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 3: ALL 10 FRANCHISES -->
+    <div id="tabContent-franchises" class="tab-pane hidden space-y-6">
+      <div class="flex items-center justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800">
+        <div>
+          <h2 class="text-xl font-bold text-white">🏆 10 Official IPL Franchises</h2>
+          <p class="text-xs text-slate-400">Real-time squad rosters, purse utilization, and overseas quota status</p>
+        </div>
+      </div>
+      <div id="franchisesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- TAB 4: PLAYER CATALOG -->
+    <div id="tabContent-catalog" class="tab-pane hidden space-y-6">
+      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+          <input type="text" id="catalogSearchInput" placeholder="Search player by name..." class="w-full sm:w-72 bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-amber-400">
+          <select id="catalogSetFilter" class="w-full sm:w-auto bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-medium">
+            <option value="ALL">All Auction Sets</option>
+          </select>
+          <select id="catalogRoleFilter" class="w-full sm:w-auto bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-medium">
+            <option value="ALL">All Roles</option>
+            <option value="Batsman">Batsmen</option>
+            <option value="Bowler">Bowlers</option>
+            <option value="All-Rounder">All-Rounders</option>
+            <option value="Wicket-Keeper">Wicket-Keepers</option>
+          </select>
+          <select id="catalogOverseasFilter" class="w-full sm:w-auto bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-medium">
+            <option value="ALL">All Players</option>
+            <option value="INDIAN">Indian Players Only</option>
+            <option value="OVERSEAS">Overseas Only</option>
+          </select>
+        </div>
+      </div>
+      <div id="catalogPlayersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: WELCOME / FIRST ARRIVAL NEW USER POPUP -->
+  <!-- ========================================================================= -->
+  <div id="welcomeNewUserModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative">
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 text-3xl font-cricket font-black mx-auto shadow-xl shadow-amber-500/20">🏆</div>
+        <h2 class="text-2xl sm:text-3xl font-cricket font-black text-white tracking-wide">WELCOME TO IPL AUCTION</h2>
+        <p class="text-xs text-slate-400">Enter your manager name to get started. Your identity is saved for all future visits.</p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold uppercase tracking-wider text-amber-400">Enter Your Name</label>
+        <div class="relative">
+          <input id="inputWelcomeUserName" type="text" placeholder="e.g. Haswanth Kodali" class="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3.5 text-white font-bold text-base focus:outline-none transition">
+          <span class="absolute right-4 top-3.5 text-lg">👑</span>
+        </div>
+      </div>
+
+      <button id="btnSubmitWelcomeName" class="w-full py-4 rounded-2xl font-cricket font-black text-lg tracking-wider uppercase text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 active:scale-[0.98] shadow-xl shadow-amber-500/25 transition flex items-center justify-center gap-2 cursor-pointer">
+        <span>NEXT</span> <span>➔</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CREATE AUCTION ROOM (WITH ALL CONFIGURABLE RULES) -->
+  <!-- ========================================================================= -->
+  <div id="createRoomModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div>
+          <h3 class="text-xl font-bold text-white flex items-center gap-2">
+            ➕ <span>Create New Auction Room</span>
+          </h3>
+          <p class="text-xs text-slate-400">Configure your tournament format, room visibility, and bidding restrictions.</p>
+        </div>
+        <button id="btnCloseCreateRoomModal" class="text-slate-400 hover:text-white text-xl p-1 font-bold cursor-pointer">&times;</button>
+      </div>
+
+      <!-- Option 1: Auction Format (Mini vs Mega) -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-300">1. Select Auction Format</label>
+        <div class="grid grid-cols-2 gap-3">
+          <button id="btnCreateOptMini" type="button" class="btn-create-format p-4 rounded-2xl border-2 border-amber-400 bg-amber-500/10 text-left space-y-1 transition cursor-pointer">
+            <div class="flex items-center justify-between">
+              <span class="text-base">⚡</span>
+              <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500 text-slate-950">RECOMMENDED</span>
+            </div>
+            <h4 class="font-bold text-white text-sm">Mini Auction</h4>
+            <p class="text-[11px] text-slate-300">2027 Pre-retained superstar cores, adjusted purses, 40/60 rating formula.</p>
+          </button>
+
+          <button id="btnCreateOptMega" type="button" class="btn-create-format p-4 rounded-2xl border-2 border-slate-700 bg-slate-950 text-left space-y-1 transition cursor-pointer hover:border-slate-500">
+            <div class="flex items-center justify-between">
+              <span class="text-base">🔥</span>
+              <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400">BLANK SLATE</span>
+            </div>
+            <h4 class="font-bold text-white text-sm">Mega Auction</h4>
+            <p class="text-[11px] text-slate-300">Full clean slate, all 10 franchises start with zero players and ₹120 Cr.</p>
+          </button>
+        </div>
+      </div>
+
+      <!-- Option 2: Room Visibility (Public vs Private) -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-300">2. Room Visibility</label>
+        <div class="grid grid-cols-2 gap-3">
+          <button id="btnCreateOptPublic" type="button" class="btn-create-vis p-3.5 rounded-2xl border-2 border-emerald-400 bg-emerald-500/10 text-left transition cursor-pointer">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🌐</span>
+              <div>
+                <h4 class="font-bold text-white text-xs">Public Room (Default)</h4>
+                <p class="text-[10px] text-slate-300">Listed on the Browse Public Rooms tab for all users to join.</p>
+              </div>
+            </div>
+          </button>
+
+          <button id="btnCreateOptPrivate" type="button" class="btn-create-vis p-3.5 rounded-2xl border-2 border-slate-700 bg-slate-950 text-left transition cursor-pointer hover:border-slate-500">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🔒</span>
+              <div>
+                <h4 class="font-bold text-white text-xs">Private Room</h4>
+                <p class="text-[10px] text-slate-300">Only players with your room code or direct link can join.</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Option 3: Other Rules Required -->
+      <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">3. Custom Bidding Rules</h4>
+
+        <!-- Rule A: Maximum Bid Amount -->
+        <div class="space-y-2 border-b border-slate-800/80 pb-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-300 font-semibold">Set Maximum Bid Amount:</span>
+            <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button id="btnRuleMaxBidYes" type="button" class="btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition">Yes</button>
+              <button id="btnRuleMaxBidNo" type="button" class="btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition">No (Default)</button>
+            </div>
+          </div>
+          <div id="ruleMaxBidSubGroup" class="hidden flex items-center justify-between pt-1">
+            <span class="text-[11px] text-slate-400">Select Maximum Amount:</span>
+            <select id="selectMaxBidAmount" class="bg-slate-900 border border-slate-700 text-amber-300 font-bold text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-amber-400">
+              <option value="15">₹15.00 Cr</option>
+              <option value="20">₹20.00 Cr</option>
+              <option value="25" selected>₹25.00 Cr</option>
+              <option value="30">₹30.00 Cr</option>
+              <option value="35">₹35.00 Cr</option>
+              <option value="40">₹40.00 Cr</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Rule B: No. of players can exceed bid amount -->
+        <div class="space-y-2 border-b border-slate-800/80 pb-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-300 font-semibold">Limit Players Above Bid Amount:</span>
+            <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button id="btnRuleExceedYes" type="button" class="btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition">Yes (Default)</button>
+              <button id="btnRuleExceedNo" type="button" class="btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition">No</button>
+            </div>
+          </div>
+          <div id="ruleExceedSubGroup" class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400">Threshold Amount:</span>
+              <select id="selectExceedAmount" class="bg-slate-900 border border-slate-700 text-white font-bold text-xs rounded-xl px-2.5 py-1">
+                <option value="15" selected>₹15.00 Cr (Default)</option>
+                <option value="20">₹20.00 Cr</option>
+                <option value="25">₹25.00 Cr</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400">Max Players Allowed:</span>
+              <select id="selectExceedPlayersCount" class="bg-slate-900 border border-slate-700 text-white font-bold text-xs rounded-xl px-2.5 py-1">
+                <option value="1">1 Player</option>
+                <option value="2">2 Players</option>
+                <option value="3" selected>3 Players (Default)</option>
+                <option value="4">4 Players</option>
+                <option value="5">5 Players</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule C: Accelerated Auction ON / OFF -->
+        <div class="flex items-center justify-between pt-1">
+          <div>
+            <span class="text-xs text-slate-300 font-semibold block">Accelerated Auction Round:</span>
+            <span class="text-[10px] text-slate-400">Re-auction unsold players & squad player releases.</span>
+          </div>
+          <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <button id="btnRuleAcceleratedOn" type="button" class="btn-toggle-rule active px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition">ON</button>
+            <button id="btnRuleAcceleratedOff" type="button" class="btn-toggle-rule px-3 py-1 rounded-lg text-xs font-bold transition">OFF</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Button -->
+      <button id="btnConfirmCreateRoom" class="w-full py-4 rounded-2xl font-cricket font-black text-lg uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 shadow-xl shadow-amber-500/25 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer">
+        <span>🚀 CREATE ROOM & ENTER LOBBY</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: JOIN ROOM BY CODE -->
+  <!-- ========================================================================= -->
+  <div id="joinRoomModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>🔑</span> <span>Join Auction Room</span>
+        </h3>
+        <button id="btnCloseJoinRoomModal" class="text-slate-400 hover:text-white text-xl p-1 font-bold cursor-pointer">&times;</button>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-300">Enter Room Code or Link</label>
+        <input id="inputJoinRoomCode" type="text" placeholder="e.g. IPL-4821 or full link" class="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-4 py-3 text-white font-mono text-sm uppercase focus:outline-none transition">
+      </div>
+
+      <button id="btnConfirmJoinRoom" class="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-amber-500 hover:bg-amber-400 transition cursor-pointer shadow-lg">
+        Enter Room Lobby ➔
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: USER PROFILE & CAREER HISTORY -->
+  <!-- ========================================================================= -->
+  <div id="userProfileModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 font-cricket font-extrabold text-2xl flex items-center justify-center shadow-lg" id="modalUserAvatar">
+            U
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-xl font-bold text-white" id="modalUserName">Manager</h3>
+            </div>
+            <p class="text-xs text-slate-400">Personal Career History &amp; Settings</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="text" id="inputEditUserName" placeholder="Change name..." class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 w-40">
+          <button id="btnSaveUserName" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer">
+            Save
+          </button>
+        </div>
+      </div>
+
+      <div class="flex border-b border-slate-800 space-x-2 text-xs font-semibold">
+        <button data-profile-tab="history" class="profile-tab active px-3 py-2 border-b-2 border-amber-400 text-amber-400">
+          📜 Past Auctions
+        </button>
+        <button data-profile-tab="bids" class="profile-tab px-3 py-2 border-b-2 border-transparent text-slate-400 hover:text-white">
+          ⚡ Personal Bid History
+        </button>
+      </div>
+
+      <div id="profileTab-history" class="profile-pane space-y-3">
+        <div id="pastAuctionsProfileList" class="space-y-3 max-h-64 overflow-y-auto pr-1">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div id="profileTab-bids" class="profile-pane hidden space-y-3">
+        <div id="pastBidsList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end pt-4 border-t border-slate-800">
+        <button id="btnCloseProfileModal" class="px-5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: 2027 PRE-RETAINED SQUADS DRAWER -->
+  <!-- ========================================================================= -->
+  <div id="retainedSquadsModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div>
+          <h3 class="text-xl font-bold text-white flex items-center gap-2">
+            📋 <span>Official IPL 2027 Franchise Retentions</span>
+          </h3>
+          <p class="text-xs text-slate-400">Pre-retained cores and remaining purse deduction for Mini Auction</p>
+        </div>
+        <button id="btnCloseRetainedModal" class="text-slate-400 hover:text-white text-xl p-1 font-bold cursor-pointer">&times;</button>
+      </div>
+
+      <div class="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto text-xs" id="retainedModalTeamTabs">
+        <!-- Tabs -->
+      </div>
+      <div id="retainedModalTeamContent" class="space-y-4">
+        <!-- Content -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: TACTICAL SCOUT & PLAYING 11 IMPACT -->
+  <!-- ========================================================================= -->
+  <div id="scoutModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div>
+          <h3 class="text-xl font-bold text-white flex items-center gap-2">
+            📊 <span>Tactical Scout & Playing 11 Impact Analysis</span>
+          </h3>
+          <p class="text-xs text-slate-400">Comprehensive skill breakdown and all 10 franchises' need for current player</p>
+        </div>
+        <button id="btnCloseScoutModal" class="text-slate-400 hover:text-white text-xl p-1 font-bold cursor-pointer">&times;</button>
+      </div>
+      <div id="modalPlayerBio" class="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Franchise Need & Predicted Bidding Intent</h4>
+        <div id="modalTeamNeedsList" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+        <button id="btnModalResumeAuction" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer">
+          ▶️ Resume Auction Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: AUCTION CONCLUDED -->
+  <!-- ========================================================================= -->
+  <div id="endAuctionModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 text-2xl font-bold shadow-lg">🏁</div>
+          <div>
+            <h3 class="text-xl sm:text-2xl font-cricket font-black text-white">AUCTION CONCLUDED</h3>
+            <p class="text-xs text-slate-400">Finalize your Playing 11 to receive your official championship rating!</p>
+          </div>
+        </div>
+        <button id="btnCloseEndAuctionModal" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xl cursor-pointer">&times;</button>
+      </div>
+
+      <div id="endAuctionEvaluationCard" class="space-y-4">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center gap-3 justify-end pt-3 border-t border-slate-800">
+        <button id="btnProceedToPlaying11Turf" class="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-400 transition flex items-center justify-center gap-2 cursor-pointer shadow-lg">
+          <span>🏏</span> <span>Customize Playing XI on Turf</span>
+        </button>
+        <button id="btnViewFinalLeaderboard" class="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span>📊</span> <span>View Tournament Leaderboard</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: SQUAD ROSTER & SHARE EXPORT -->
+  <!-- ========================================================================= -->
+  <div id="teamSquadExportModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-5 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div id="exportModalTeamLogo" class="w-12 h-12 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-lg bg-slate-800">🏏</div>
+          <div>
+            <h3 id="exportModalTeamName" class="text-xl sm:text-2xl font-cricket font-black text-white">TEAM SQUAD ROSTER</h3>
+            <p class="text-xs text-slate-400">Complete categorized roster with prices and export options.</p>
+          </div>
+        </div>
+        <button id="btnCloseExportModal" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xl cursor-pointer">&times;</button>
+      </div>
+
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar" id="exportModalTeamTabs"></div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center text-xs bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800">
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <span class="text-[10px] text-slate-400 uppercase font-bold block">Total Spent</span>
+          <span id="exportModalTotalSpent" class="text-lg font-black text-amber-400">₹0.00 Cr</span>
+        </div>
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <span class="text-[10px] text-slate-400 uppercase font-bold block">Remaining Purse</span>
+          <span id="exportModalRemainingPurse" class="text-lg font-black text-emerald-400">₹120.00 Cr</span>
+        </div>
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <span class="text-[10px] text-slate-400 uppercase font-bold block">Squad Size</span>
+          <span id="exportModalSquadCount" class="text-lg font-black text-white">0 / 25</span>
+        </div>
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <span class="text-[10px] text-slate-400 uppercase font-bold block">Overseas Cap</span>
+          <span id="exportModalOverseasCount" class="text-lg font-black text-purple-400">0 / 8</span>
+        </div>
+      </div>
+
+      <div id="exportModalCategoriesContainer" class="space-y-4"></div>
+
+      <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-wrap items-center justify-between gap-3 pt-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400">⚡ Actions:</span>
+          <span class="text-xs text-slate-400">Download formatted reports or share directly</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnDownloadSquadCSV" class="px-3.5 py-2 rounded-xl bg-emerald-950 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+            <span>📊</span> <span>CSV</span>
+          </button>
+          <button id="btnDownloadSquadTXT" class="px-3.5 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 border border-blue-700/60 text-blue-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+            <span>📄</span> <span>Report (TXT)</span>
+          </button>
+          <button id="btnShareSquadWhatsApp" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer shadow-md">
+            <span>📲</span> <span>WhatsApp</span>
+          </button>
+          <button id="btnCopySquadText" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+            <span>📋</span> <span>Copy Roster</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS LOAD ORDER -->
+  <!-- 1. Data Definitions (Teams, Players, Sets, Increments) -->
+  <script src="data.js"></script>
+  <!-- 2. Updated Player Stats, Team History & Valuation -->
+  <script src="stats.js"></script>
+  <!-- 3. Player Portrait Images & Fallback SVG Vector Engine -->
+  <script src="player-images.js"></script>
+  <!-- 4. Web Audio API Synthesizer -->
+  <script src="auction-audio.js"></script>
+  <!-- 5. Enhanced Rating Engine (Playing XI, Backups, 40/60 Mini Formula) -->
+  <script src="rating.js"></script>
+  <!-- 6. Core Auction Game Engine (Pause Fix, AI Logic) -->
+  <script src="game.js"></script>
+  <!-- 7. Persistent Server Storage, Relogin & Room Client -->
+  <script src="storage.js"></script>
+  <!-- 8. Main Application Controller & UI View Bindings -->
+  <script src="app.js"></script>
+
+</body>
+</html>
+'''
+
+with open('index.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print(f"index.html successfully updated! Length: {len(html_content)} bytes")

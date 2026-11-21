@@ -15,6 +15,8 @@
   const STORAGE_KEY_CURRENT_USER = 'ipl_auction_current_user';
   const STORAGE_KEY_ALL_USERS = 'ipl_auction_users_db';
   const STORAGE_KEY_MULTIPLAYER = 'ipl_auction_multiplayer_room';
+  const DEFAULT_SUPABASE_URL = 'https://ridobleeeklguljsxzqd.supabase.co';
+  const DEFAULT_SUPABASE_KEY = 'sb_publishable_SbiqCV3UDGyJEE_g7kDyQA_s21owVn2';
 
   class StorageManager {
     constructor() {
@@ -27,10 +29,12 @@
       this.currentRoomId = 'DEFAULT';
       this.currentRoomPin = '';
       this.networkInfo = {
-        lanIp: '10.33.5.86',
-        port: 8443,
-        localhostUrl: 'https://localhost:8443',
-        privateLanUrl: 'https://10.33.5.86:8443'
+        lan_ip: '10.226.78.86',
+        lanIp: '10.226.78.86',
+        port: 8000,
+        https_port: 8443,
+        localhostUrl: 'http://localhost:8000',
+        privateLanUrl: 'http://10.226.78.86:8000'
       };
 
       // Read ?room= and ?pin= from URL query params
@@ -54,6 +58,8 @@
         if (netRes.ok) {
           const netData = await netRes.json();
           this.networkInfo = netData;
+          if (netData.lanIp && !netData.lan_ip) this.networkInfo.lan_ip = netData.lanIp;
+          if (netData.lan_ip && !netData.lanIp) this.networkInfo.lanIp = netData.lan_ip;
           this.isServerConnected = true;
         }
       } catch (e) {}
@@ -154,6 +160,12 @@
     async updateUserName(newUserName) {
       const cleanName = (newUserName || '').trim();
       if (!cleanName) return { success: false, error: 'Name cannot be empty' };
+
+      try {
+        localStorage.setItem('ipl_user_name', cleanName);
+        localStorage.setItem('ipl_manager_name', cleanName);
+      } catch (e) {}
+
       if (!this.currentUser) {
         return await this.loginUser(cleanName);
       }
@@ -189,6 +201,36 @@
           this.multiplayerRoom.humanManagers[tId].userName = cleanName;
         }
       }
+
+      // Update in all active rooms DB and sync to Supabase
+      try {
+        const roomsDB = this.getAllRoomsDB();
+        const myId = this.currentUser.userId;
+        let modified = false;
+        for (const rId of Object.keys(roomsDB)) {
+          const r = roomsDB[rId];
+          if (!r) continue;
+          if (r.hostId === myId || (oldName && (r.hostName || '').trim().toLowerCase() === oldName.trim().toLowerCase())) {
+            r.hostName = cleanName;
+            modified = true;
+          }
+          if (r.players) {
+            for (const t of Object.keys(r.players)) {
+              const p = r.players[t];
+              if (p && (p.userId === myId || (oldName && (p.userName || '').trim().toLowerCase() === oldName.trim().toLowerCase()))) {
+                p.userName = cleanName;
+                modified = true;
+              }
+            }
+          }
+          if (modified) {
+            this.syncRoomToSupabase(r);
+          }
+        }
+        if (modified) {
+          this.saveAllRoomsDB(roomsDB);
+        }
+      } catch (e) {}
 
       return { success: true, user: this.currentUser, oldName };
     }
@@ -450,10 +492,24 @@
 
     /**
      * Get shareable Private LAN URL with room parameter
+     * Accurately constructs the link for other devices:
+     * - Uses host LAN IP when host is running on localhost/127.0.0.1
+     * - Uses current origin if deployed on a domain or accessed via LAN IP
      */
-    getPrivateRoomLink() {
-      const room = (this.currentRoomId && this.currentRoomId !== 'DEFAULT') ? this.currentRoomId : 'MAIN';
-      let link = `https://iplauctiongame.haswanthkodali88.workers.dev/?room=${encodeURIComponent(room)}`;
+    getPrivateRoomLink(customRoomId) {
+      const room = customRoomId || (this.currentRoomId && this.currentRoomId !== 'DEFAULT' ? this.currentRoomId : (window.CurrentRoom ? window.CurrentRoom.roomId : 'MAIN'));
+      
+      const host = (typeof window !== 'undefined' && window.location) ? window.location.hostname : '';
+      const isLocalhost = (!host || host === 'localhost' || host === '127.0.0.1' || host === '::1');
+      let baseOrigin = (typeof window !== 'undefined' && window.location) ? window.location.origin : 'http://localhost:8000';
+
+      if (isLocalhost && this.networkInfo?.lan_ip) {
+        const port = (window.location.port ? `:${window.location.port}` : (window.location.protocol === 'https:' ? ':8443' : ':8000'));
+        baseOrigin = `${window.location.protocol}//${this.networkInfo.lan_ip}${port}`;
+      }
+
+      const pathname = (typeof window !== 'undefined' && window.location) ? (window.location.pathname || '/') : '/';
+      let link = `${baseOrigin}${pathname}?roomId=${encodeURIComponent(room)}`;
       if (this.currentRoomPin) {
         link += `&pin=${encodeURIComponent(this.currentRoomPin)}`;
       }
@@ -651,14 +707,226 @@
       return Object.values(db).filter(r => r.visibility === 'PUBLIC');
     }
 
+    getSupabaseConfig() {
+      const url = (typeof window !== 'undefined' && window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL;
+      const anonKey = (typeof window !== 'undefined' && window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || localStorage.getItem('supabase_anon_key') || DEFAULT_SUPABASE_KEY;
+      return { url, anonKey };
+    }
+
+    async syncRoomToSupabase(room) {
+      if (!room || !room.roomId) return false;
+      const cleanId = String(room.roomId).trim().toUpperCase();
+      const cfg = this.getSupabaseConfig();
+      if (!cfg.url || !cfg.anonKey) {
+        console.warn('[Supabase Sync] No Supabase config found, skipping sync.');
+        return false;
+      }
+
+      const payload = {
+        id: cleanId,
+        name: JSON.stringify(room),
+        mode: room.mode || 'MINI',
+        status: room.status || 'waiting'
+      };
+
+      try {
+        const res = await fetch(`${cfg.url}/rest/v1/auctions`, {
+          method: 'POST',
+          headers: {
+            'apikey': cfg.anonKey,
+            'Authorization': `Bearer ${cfg.anonKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=representation'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          console.log(`[Supabase Sync] Room ${cleanId} synced to cloud (${res.status}).`);
+          return true;
+        } else {
+          const errText = await res.text().catch(() => '');
+          console.error(`[Supabase Sync] Room ${cleanId} sync FAILED: ${res.status} ${res.statusText}`, errText);
+          return false;
+        }
+      } catch (e) {
+        console.warn('[Supabase Sync] Room sync network error:', e);
+        return false;
+      }
+    }
+
+    async fetchRoomFromSupabase(roomId) {
+      if (!roomId) return null;
+      let cleanId = String(roomId).trim().toUpperCase();
+      if (/^\d{3,5}$/.test(cleanId)) {
+        cleanId = 'IPL-' + cleanId;
+      }
+      const cfg = this.getSupabaseConfig();
+      if (!cfg.url || !cfg.anonKey) return null;
+
+      try {
+        const res = await fetch(`${cfg.url}/rest/v1/auctions?id=eq.${encodeURIComponent(cleanId)}&select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': cfg.anonKey,
+            'Authorization': `Bearer ${cfg.anonKey}`
+          }
+        });
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list) && list.length > 0) {
+            const row = list[0];
+            let roomObj = null;
+            try {
+              roomObj = JSON.parse(row.name);
+            } catch (err) {
+              roomObj = {
+                roomId: row.id,
+                roomName: row.name || row.id,
+                mode: row.mode || 'MINI',
+                visibility: 'PUBLIC',
+                status: row.status || 'waiting',
+                rules: { maxBidEnabled: false, maxBidAmount: 25, exceedLimitEnabled: true, exceedThreshold: 15, exceedMaxPlayers: 3, acceleratedEnabled: true, timer: 10 },
+                players: {},
+                banned: []
+              };
+            }
+            if (roomObj) {
+              const db = this.getAllRoomsDB();
+              db[cleanId] = roomObj;
+              this.saveAllRoomsDB(db);
+              return roomObj;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Supabase Fetch] Room query error:', e);
+      }
+      return null;
+    }
+
+    async fetchPublicRoomsFromSupabase() {
+      const cfg = this.getSupabaseConfig();
+      if (!cfg.url || !cfg.anonKey) return [];
+
+      try {
+        const res = await fetch(`${cfg.url}/rest/v1/auctions?select=*&order=created_at.desc&limit=30`, {
+          method: 'GET',
+          headers: {
+            'apikey': cfg.anonKey,
+            'Authorization': `Bearer ${cfg.anonKey}`
+          }
+        });
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list) && list.length > 0) {
+            const db = this.getAllRoomsDB();
+            const resultList = [];
+            list.forEach(row => {
+              let r = null;
+              try {
+                r = JSON.parse(row.name);
+              } catch (e) {
+                if (row.id && row.id !== 'DEFAULT') {
+                  r = {
+                    roomId: row.id,
+                    roomName: row.name || row.id,
+                    mode: row.mode || 'MINI',
+                    visibility: 'PUBLIC',
+                    status: row.status || 'waiting',
+                    rules: {},
+                    players: {}
+                  };
+                }
+              }
+              if (r && r.roomId) {
+                db[r.roomId] = r;
+                if (r.visibility !== 'PRIVATE') {
+                  resultList.push(r);
+                }
+              }
+            });
+            this.saveAllRoomsDB(db);
+            return resultList;
+          }
+        }
+      } catch (e) {
+        console.warn('[Supabase Fetch] Public rooms error:', e);
+      }
+      return [];
+    }
+
+    async fetchPublicRoomsFromServer() {
+      // 1. First fetch from Supabase Cloud (works everywhere worldwide: GitHub Pages, Workers, phones, PC)
+      try {
+        const supaRooms = await this.fetchPublicRoomsFromSupabase();
+        if (supaRooms && supaRooms.length > 0) {
+          return this.getPublicRooms();
+        }
+      } catch (e) {}
+
+      // 2. Fallback to local python server if running
+      try {
+        const res = await fetch('/api/rooms/public');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.rooms)) {
+            const db = this.getAllRoomsDB();
+            data.rooms.forEach(r => {
+              if (r && r.roomId) {
+                db[r.roomId] = r;
+                this.syncRoomToSupabase(r);
+              }
+            });
+            this.saveAllRoomsDB(db);
+            return this.getPublicRooms();
+          }
+        }
+      } catch (e) {}
+      return this.getPublicRooms();
+    }
+
+    async fetchRoomFromServer(roomId) {
+      if (!roomId) return null;
+      let cleanId = String(roomId).trim().toUpperCase();
+      if (/^\d{3,5}$/.test(cleanId)) {
+        cleanId = 'IPL-' + cleanId;
+      }
+
+      // 1. First check Supabase Cloud (vital for cross-device links on GitHub Pages/Workers!)
+      try {
+        const supaRoom = await this.fetchRoomFromSupabase(cleanId);
+        if (supaRoom) return supaRoom;
+      } catch (err) {}
+
+      // 2. Fallback to local python server
+      try {
+        const res = await fetch(`/api/multiplayer/room?roomId=${encodeURIComponent(cleanId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && data.room) {
+            const db = this.getAllRoomsDB();
+            db[cleanId] = data.room;
+            this.saveAllRoomsDB(db);
+            this.syncRoomToSupabase(data.room);
+            return data.room;
+          }
+        }
+      } catch (e) {}
+
+      return this.getRoom(cleanId);
+    }
+
     getRoom(roomId) {
       if (!roomId) return null;
-      const cleanId = roomId.trim().toUpperCase();
+      let cleanId = String(roomId).trim().toUpperCase();
+      if (/^\d{3,5}$/.test(cleanId)) {
+        cleanId = 'IPL-' + cleanId;
+      }
       const db = this.getAllRoomsDB();
       return db[cleanId] || null;
     }
 
-    createAuctionRoom(config) {
+    async createAuctionRoom(config) {
       const db = this.getAllRoomsDB();
       const roomId = 'IPL-' + Math.floor(1000 + Math.random() * 9000);
       const user = this.currentUser || { userId: 'user_' + Date.now(), userName: 'Manager' };
@@ -694,6 +962,7 @@
         teamId: hostTeam,
         isHost: true,
         isOnline: true,
+        lastSeen: Date.now(),
         joinedAt: new Date().toISOString()
       };
 
@@ -701,14 +970,24 @@
       this.saveAllRoomsDB(db);
       this.currentRoomId = roomId;
 
-      // Broadcast room creation to server if online
-      if (this.isServerConnected) {
-        fetch('/api/multiplayer/room/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newRoom)
-        }).catch(() => {});
+      // 1. Sync to Supabase Cloud so all devices worldwide can join immediately
+      try {
+        const synced = await this.syncRoomToSupabase(newRoom);
+        if (synced) {
+          console.log(`[Room Create] Room ${roomId} saved to Supabase database successfully.`);
+        } else {
+          console.warn(`[Room Create] Room ${roomId} Supabase sync returned false - room saved locally only.`);
+        }
+      } catch (e) {
+        console.warn(`[Room Create] Room ${roomId} Supabase sync error:`, e);
       }
+
+      // 2. Broadcast room creation to server so other devices can join immediately
+      fetch('/api/multiplayer/room/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRoom)
+      }).then(r => { if (r.ok) this.isServerConnected = true; }).catch(() => {});
 
       return newRoom;
     }
@@ -771,6 +1050,17 @@
       try {
         localStorage.setItem('ipl_auction_rooms', JSON.stringify(db));
       } catch (e) {}
+
+      // 1. Sync to Supabase Cloud so all devices worldwide see updates in real time
+      this.syncRoomToSupabase(room);
+
+      // 2. Broadcast room update to local server for cross-device synchronization
+      fetch('/api/multiplayer/room/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(room)
+      }).then(r => { if (r.ok) this.isServerConnected = true; }).catch(() => {});
+
       return room;
     }
 
@@ -826,8 +1116,13 @@
       return room;
     }
 
-    joinRoom(roomId, teamId, userId, userName) {
-      const room = this.getRoom(roomId);
+    joinRoom(roomId, preferredTeamId, userId, userName) {
+      if (!roomId) return { success: false, reason: 'not_found' };
+      let cleanId = String(roomId).trim().toUpperCase();
+      if (/^\d{3,5}$/.test(cleanId)) {
+        cleanId = 'IPL-' + cleanId;
+      }
+      const room = this.getRoom(cleanId);
       if (!room) return { success: false, reason: 'not_found' };
 
       // Check if banned
@@ -835,18 +1130,33 @@
         return { success: false, reason: 'banned' };
       }
 
+      if (!room.players) room.players = {};
+
+      const myNormName = (userName || '').trim().toLowerCase();
+      // Check if user is ALREADY in room with an assigned team
+      let alreadyTeam = null;
+      for (const t of Object.keys(room.players)) {
+        const p = room.players[t];
+        const pNormName = (p.userName || '').trim().toLowerCase();
+        if (p.userId === userId || (myNormName && pNormName === myNormName)) {
+          alreadyTeam = t;
+          p.isOnline = true;
+          p.lastSeen = Date.now();
+          break;
+        }
+      }
+      if (alreadyTeam) {
+        this.saveRoom(room);
+        this.currentRoomId = room.roomId;
+        return { success: true, room, isSpectator: false, assignedTeam: alreadyTeam };
+      }
+
       // Check remaining teams count
       const takenTeams = Object.keys(room.players || {});
       const allTeams = ['CSK', 'MI', 'RCB', 'KKR', 'DC', 'PBKS', 'RR', 'SRH', 'GT', 'LSG'];
       const availableTeams = allTeams.filter(t => !takenTeams.includes(t));
 
-      // If no teams left, join as spectator!
-      if (availableTeams.length === 0 || !teamId || !availableTeams.includes(teamId)) {
-        if (!teamId && availableTeams.length > 0) {
-          // Player needs to pick from available teams
-          return { success: true, room, availableTeams, needTeamSelection: true };
-        }
-        // Spectator mode
+      if (availableTeams.length === 0) {
         return {
           success: true,
           room,
@@ -855,29 +1165,22 @@
         };
       }
 
-      // RELEASE any previous teams owned by this user in this room!
-      for (const t of Object.keys(room.players)) {
-        const p = room.players[t];
-        if (p.userId === userId || (userName && p.userName === userName)) {
-          delete room.players[t];
-        }
-      }
+      // If preferred team is available, use it; otherwise assign first available team!
+      let assignedTeam = (preferredTeamId && availableTeams.includes(preferredTeamId)) ? preferredTeamId : availableTeams[0];
 
-      // Assign player to their single chosen team
-      room.players[teamId] = {
+      room.players[assignedTeam] = {
         userId,
         userName,
-        teamId,
+        teamId: assignedTeam,
         isOnline: true,
+        lastSeen: Date.now(),
         joinedAt: new Date().toISOString()
       };
 
-      const db = this.getAllRoomsDB();
-      db[room.roomId] = room;
-      this.saveAllRoomsDB(db);
+      this.saveRoom(room);
       this.currentRoomId = room.roomId;
 
-      return { success: true, room, isSpectator: false, assignedTeam: teamId };
+      return { success: true, room, isSpectator: false, assignedTeam };
     }
 
     kickPlayer(roomId, userId, teamId) {
@@ -921,12 +1224,40 @@
       for (const t of Object.keys(room.players)) {
         if (room.players[t].userId === userId) {
           room.players[t].isOnline = !!isOnline;
+          room.players[t].lastSeen = isOnline ? Date.now() : 0;
           break;
         }
       }
 
       this.saveRoom(room);
       return { success: true, room };
+    }
+
+    updatePlayerHeartbeat(roomId, userId) {
+      if (!roomId || !userId) return;
+      const cleanId = String(roomId).trim().toUpperCase();
+      const room = this.getRoom(cleanId);
+      if (!room || !room.players) return;
+
+      let changed = false;
+      const myNormName = (this.currentUser?.userName || localStorage.getItem('ipl_user_name') || '').trim().toLowerCase();
+      for (const t of Object.keys(room.players)) {
+        const p = room.players[t];
+        const pNormName = (p?.userName || '').trim().toLowerCase();
+        if (p && (p.userId === userId || (myNormName && pNormName === myNormName))) {
+          p.isOnline = true;
+          p.lastSeen = Date.now();
+          changed = true;
+          break;
+        }
+      }
+
+      if (changed) {
+        const db = this.getAllRoomsDB();
+        db[cleanId] = room;
+        this.saveAllRoomsDB(db);
+        this.syncRoomToSupabase(room);
+      }
     }
 
     banPlayer(roomId, userId) {
@@ -1028,8 +1359,15 @@
     if (typeof global.StorageEngine.leaveRoom === 'function') global.StorageEngine.leaveRoom = global.StorageEngine.leaveRoom.bind(global.StorageEngine);
     if (typeof global.StorageEngine.sanitizeRoomTeams === 'function') global.StorageEngine.sanitizeRoomTeams = global.StorageEngine.sanitizeRoomTeams.bind(global.StorageEngine);
     if (typeof global.StorageEngine.saveRoom === 'function') global.StorageEngine.saveRoom = global.StorageEngine.saveRoom.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.syncRoomToSupabase === 'function') global.StorageEngine.syncRoomToSupabase = global.StorageEngine.syncRoomToSupabase.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.fetchRoomFromSupabase === 'function') global.StorageEngine.fetchRoomFromSupabase = global.StorageEngine.fetchRoomFromSupabase.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.fetchPublicRoomsFromSupabase === 'function') global.StorageEngine.fetchPublicRoomsFromSupabase = global.StorageEngine.fetchPublicRoomsFromSupabase.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.getSupabaseConfig === 'function') global.StorageEngine.getSupabaseConfig = global.StorageEngine.getSupabaseConfig.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.fetchRoomFromServer === 'function') global.StorageEngine.fetchRoomFromServer = global.StorageEngine.fetchRoomFromServer.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.fetchPublicRoomsFromServer === 'function') global.StorageEngine.fetchPublicRoomsFromServer = global.StorageEngine.fetchPublicRoomsFromServer.bind(global.StorageEngine);
     if (typeof global.StorageEngine.kickPlayer === 'function') global.StorageEngine.kickPlayer = global.StorageEngine.kickPlayer.bind(global.StorageEngine);
     if (typeof global.StorageEngine.setPlayerOnlineStatus === 'function') global.StorageEngine.setPlayerOnlineStatus = global.StorageEngine.setPlayerOnlineStatus.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.updatePlayerHeartbeat === 'function') global.StorageEngine.updatePlayerHeartbeat = global.StorageEngine.updatePlayerHeartbeat.bind(global.StorageEngine);
   }
 
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

@@ -267,7 +267,7 @@
 
           <!-- Share Link Box -->
           <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-2xl border border-slate-800">
-            <input type="text" id="inputLobbyShareLink" readonly class="bg-transparent text-xs text-amber-300 font-mono px-2 py-1 outline-none w-64 select-all" value="https://iplauctiongamehaswanthkodali88.workers.dev/?roomId=IPL-4821">
+            <input type="text" id="inputLobbyShareLink" readonly class="bg-transparent text-xs text-amber-300 font-mono px-2 py-1 outline-none w-64 select-all" placeholder="Generating room link..." value="">
             <button id="btnCopyLobbyLink" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition cursor-pointer">
               <span>📋</span> <span id="copyLobbyBtnText">Copy</span>
             </button>
@@ -1772,21 +1772,24 @@
 
   <!-- SCRIPTS LOAD ORDER -->
   <!-- 1. Data Definitions (Teams, Players, Sets, Increments) -->
-  <script src="data.js?v=1795203000"></script>
+  <script src="data.js?v=1795302980"></script>
   <!-- 2. Updated Player Stats, Team History & Valuation -->
   <script src="stats.js?v=1795203000"></script>
   <!-- 3. Player Portrait Images & Fallback SVG Vector Engine -->
-  <script src="player-images.js?v=1795203000"></script>
+  <script src="player-images.js?v=1795302980"></script>
   <!-- 4. Web Audio API Synthesizer -->
   <script src="auction-audio.js?v=1795203000"></script>
   <!-- 5. Enhanced Rating Engine (Playing XI, Backups, 40/60 Mini Formula) -->
   <script src="rating.js?v=1795203000"></script>
   <!-- 6. Core Auction Game Engine (Pause Fix, AI Logic) -->
   <script src="game.js?v=1795203000"></script>
-  <!-- 7. Persistent Server Storage, Relogin & Room Client -->
-  <script src="storage.js?v=1795203000"></script>
-  <!-- 8. Main Application Controller & UI View Bindings -->
-  <script src="app.js?v=1795203000"></script>
+  <!-- 7. Supabase Client SDK & Configuration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js?v=1795206000"></script>
+  <!-- 8. Persistent Server & Supabase Storage, Relogin & Room Client -->
+  <script src="storage.js?v=1795302980"></script>
+  <!-- 9. Main Application Controller & UI View Bindings -->
+  <script src="app.js?v=1795302980"></script>
 
 
   <!-- CHANGE FRANCHISE MODAL (LIVE IN-AUCTION SWITCHER) -->

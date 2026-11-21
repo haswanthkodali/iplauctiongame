@@ -85,6 +85,12 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
 
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -124,6 +130,12 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # API: Network Info & Private Link
+        if path == '/api/rooms/public':
+            db = load_db()
+            rooms = [r for r in db.get("multiplayer_rooms", {}).values() if r.get("visibility", "PUBLIC") == "PUBLIC"]
+            self._send_json(200, {"success": True, "rooms": rooms})
+            return
+
         if path == '/api/network-info':
             lan_ip = get_lan_ip()
             self._send_json(200, {
@@ -153,7 +165,9 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(200, {"success": True, "room": rooms[room_id]})
             return
 
-        # Fallback to static files
+        # Fallback to static files (support /auction rewrite)
+        if path == '/auction' or path == '/auction/':
+            self.path = '/index.html'
         super().do_GET()
 
     def do_POST(self):
@@ -334,11 +348,19 @@ class IPLAuctionRequestHandler(http.server.SimpleHTTPRequestHandler):
 
             db = load_db()
             if user_id not in db["users"]:
-                self._send_json(404, {"success": False, "error": "User not found"})
-                return
-
-            db["users"][user_id]["userName"] = new_name
-            db["users"][user_id]["lastActive"] = datetime.now().isoformat()
+                db["users"][user_id] = {
+                    "userId": user_id,
+                    "userName": new_name,
+                    "favoriteTeam": "RCB",
+                    "createdAt": datetime.now().isoformat(),
+                    "lastActive": datetime.now().isoformat(),
+                    "pastBids": [],
+                    "pastRatings": {},
+                    "pastSquads": []
+                }
+            else:
+                db["users"][user_id]["userName"] = new_name
+                db["users"][user_id]["lastActive"] = datetime.now().isoformat()
 
             # Also update any multiplayer room assignments
             room = db["multiplayer_rooms"].get("default", {})
@@ -356,28 +378,40 @@ def run_server(port=8000, use_https=False):
     load_db()
     cert_path = os.path.join(BASE_DIR, 'cert.pem')
     key_path = os.path.join(BASE_DIR, 'key.pem')
-
     lan_ip = get_lan_ip()
+    https_port = 8443
+
+    # Dual Server: Start HTTPS with SSL cert on port 8443 in background thread
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        import ssl
+        import threading
+        def start_https_worker():
+            try:
+                socketserver.TCPServer.allow_reuse_address = True
+                httpsd = socketserver.TCPServer(("", https_port), IPLAuctionRequestHandler)
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+                context.load_cert_chain(certfile=cert_path, keyfile=key_path)
+                httpsd.socket = context.wrap_socket(httpsd.socket, server_side=True)
+                print(f"🔒 HTTPS SECURE ROOMS ACTIVE (Port {https_port} with cert.pem)", flush=True)
+                print(f"👉 Secure HTTPS Local:  https://localhost:{https_port}", flush=True)
+                print(f"👉 Secure HTTPS Network: https://{lan_ip}:{https_port}", flush=True)
+                httpsd.serve_forever()
+            except Exception as e:
+                print(f"HTTPS notice: {e}", flush=True)
+
+        t = threading.Thread(target=start_https_worker, daemon=True)
+        t.start()
+
     socketserver.TCPServer.allow_reuse_address = True
     httpd = socketserver.TCPServer(("", port), IPLAuctionRequestHandler)
 
-    if use_https and os.path.exists(cert_path) and os.path.exists(key_path):
-        import ssl
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(certfile=cert_path, keyfile=key_path)
-        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
-        print(f"============================================================")
-        print(f"🏆 IPL AUCTION GAME SECURE SERVER (HTTPS)")
-        print(f"👉 Localhost Link:      https://localhost:{port}")
-        print(f"👉 Local IP Link:       https://127.0.0.1:{port}")
-        print(f"👉 Private Network Link: https://{lan_ip}:{port}")
-        print(f"============================================================", flush=True)
-    else:
-        print(f"============================================================")
-        print(f"🏆 IPL AUCTION GAME SERVER ACTIVE (HTTP)")
-        print(f"👉 Open in your browser: http://localhost:{port}")
-        print(f"👉 Network link:         http://{lan_ip}:{port}")
-        print(f"============================================================", flush=True)
+    print(f"============================================================")
+    print(f"🏆 IPL AUCTION GAME DUAL SERVER (HTTP & HTTPS ACTIVE)")
+    print(f"👉 Standard Browser: http://localhost:{port}")
+    print(f"👉 Network link:     http://{lan_ip}:{port}")
+    print(f"👉 Secure SSL Link:  https://localhost:{https_port}")
+    print(f"👉 Secure Network:   https://{lan_ip}:{https_port}")
+    print(f"============================================================", flush=True)
 
     httpd.serve_forever()
 

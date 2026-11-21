@@ -1,5 +1,36 @@
 {
-  "users": {},
+  "users": {
+    "user_1795110522708": {
+      "userId": "user_1795110522708",
+      "userName": "Manager",
+      "favoriteTeam": "RCB",
+      "createdAt": "2026-11-19T23:18:42.708570",
+      "lastActive": "2026-11-22T00:22:46.446923",
+      "pastBids": [],
+      "pastRatings": {},
+      "pastSquads": []
+    },
+    "user_1795180311522": {
+      "userId": "user_1795180311522",
+      "userName": "HASWANTH",
+      "favoriteTeam": "RCB",
+      "createdAt": "2026-11-20T18:41:51.523071",
+      "lastActive": "2026-11-22T01:54:20.108972",
+      "pastBids": [],
+      "pastRatings": {},
+      "pastSquads": [
+        {
+          "teamId": "KKR",
+          "teamName": "Kolkata Knight Riders",
+          "spent": 0,
+          "playersCount": 0,
+          "players": [],
+          "mode": "MEGA",
+          "savedAt": "2026-11-20T19:07:22.431866"
+        }
+      ]
+    }
+  },
   "multiplayer_rooms": {
     "default": {
       "roomId": "default",
@@ -19,8 +50,154 @@
       "roomId": "DEFAULT",
       "mode": "MEGA",
       "pin": null,
+      "humanManagers": {
+        "MI": {
+          "userId": "user_1795180311522",
+          "userName": "HASWANTH",
+          "joinedAt": "2026-11-22T01:53:02.049599"
+        },
+        "KKR": {
+          "userId": "user_1795026095883",
+          "userName": "Manager",
+          "joinedAt": "2026-11-22T00:28:43.856665"
+        },
+        "CSK": {
+          "userId": "user_1795180311522",
+          "userName": "HASWANTH",
+          "joinedAt": "2026-11-22T01:53:06.824387"
+        }
+      },
+      "lastUpdated": "2026-11-22T01:53:06.824454"
+    },
+    "IPL-8927": {
+      "roomId": "IPL-8927",
+      "roomName": "Private Room IPL-8927",
+      "pin": "123",
+      "mode": "MEGA",
       "humanManagers": {},
-      "lastUpdated": "2026-11-17T23:23:23.387335"
+      "createdAt": "2026-11-19T20:01:31.046962",
+      "lastUpdated": "2026-11-19T20:01:31.046988"
+    },
+    "IPL-2519": {
+      "roomId": "IPL-2519",
+      "roomName": "Private Room IPL-2519",
+      "pin": "143",
+      "mode": "MEGA",
+      "humanManagers": {},
+      "createdAt": "2026-11-19T22:12:36.806202",
+      "lastUpdated": "2026-11-19T22:12:36.806273"
+    },
+    "IPL-2027": {
+      "roomId": "IPL-2027",
+      "roomName": "TATA IPL 2027 Official Mini Auction",
+      "mode": "MINI",
+      "visibility": "PUBLIC",
+      "rules": {
+        "maxBidEnabled": false,
+        "maxBidAmount": 25,
+        "exceedLimitEnabled": true,
+        "exceedThreshold": 15,
+        "exceedMaxPlayers": 3,
+        "acceleratedEnabled": true,
+        "timer": 10
+      },
+      "players": {},
+      "banned": []
+    },
+    "IPL-3848": {
+      "roomId": "IPL-3848",
+      "roomName": "MEGA Auction Room IPL-3848",
+      "pin": null,
+      "mode": "MEGA",
+      "humanManagers": {},
+      "createdAt": "2026-11-20T18:42:27.571433",
+      "lastUpdated": "2026-11-20T18:42:27.571496"
+    },
+    "IPL-6996": {
+      "roomId": "IPL-6996",
+      "roomName": "MEGA Auction Room IPL-6996",
+      "pin": null,
+      "mode": "MEGA",
+      "humanManagers": {},
+      "createdAt": "2026-11-20T18:47:12.084021",
+      "lastUpdated": "2026-11-20T18:47:12.084113"
+    },
+    "IPL-2297": {
+      "roomId": "IPL-2297",
+      "roomName": "MINI Auction Room IPL-2297",
+      "pin": null,
+      "mode": "MINI",
+      "humanManagers": {},
+      "createdAt": "2026-11-20T19:02:20.927163",
+      "lastUpdated": "2026-11-20T19:02:20.927212"
+    },
+    "IPL-4182": {
+      "roomId": "IPL-4182",
+      "roomName": "MINI Auction Room IPL-4182",
+      "pin": null,
+      "mode": "MINI",
+      "humanManagers": {
+        "DC": {
+          "userId": "user_1795110522708",
+          "userName": "Manager",
+          "joinedAt": "2026-11-20T20:00:34.163751"
+        },
+        "RCB": {
+          "userId": "user_1795110522708",
+          "userName": "Manager",
+          "joinedAt": "2026-11-20T20:09:24.029417"
+        }
+      },
+      "createdAt": "2026-11-20T20:00:15.201914",
+      "lastUpdated": "2026-11-20T20:09:24.029435"
+    },
+    "IPL-6745": {
+      "roomId": "IPL-6745",
+      "roomName": "MEGA Auction Room IPL-6745",
+      "pin": null,
+      "mode": "MEGA",
+      "humanManagers": {},
+      "createdAt": "2026-11-21T00:05:28.551077",
+      "lastUpdated": "2026-11-21T00:05:28.551146"
+    },
+    "IPL-5828": {
+      "roomId": "IPL-5828",
+      "roomName": "MINI Auction Room IPL-5828",
+      "pin": null,
+      "mode": "MINI",
+      "humanManagers": {
+        "MI": {
+          "userId": "user_1795110522708",
+          "userName": "Manager",
+          "joinedAt": "2026-11-22T00:24:19.027475"
+        }
+      },
+      "createdAt": "2026-11-22T00:24:09.166549",
+      "lastUpdated": "2026-11-22T00:24:19.027510"
+    },
+    "IPL-8985": {
+      "roomId": "IPL-8985",
+      "roomName": "MEGA Auction Room IPL-8985",
+      "pin": null,
+      "mode": "MEGA",
+      "humanManagers": {},
+      "createdAt": "2026-11-22T01:49:23.180962",
+      "lastUpdated": "2026-11-22T01:49:23.181039"
+    },
+    "IPL-6577": {
+      "roomId": "IPL-6577",
+      "roomName": "MEGA Auction Room IPL-6577",
+      "pin": null,
+      "mode": "MEGA",
+      "humanManagers": {
+        "RCB": {
+          "userId": "user_1795180311522",
+          "userName": "HASWANTH",
+          "joinedAt": "2026-11-22T01:54:39.593203"
+        }
+      },
+      "createdAt": "2026-11-22T01:54:28.122213",
+      "lastUpdated": "2026-11-22T01:54:39.593220"
     }
   },
   "history": []

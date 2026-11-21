@@ -154,7 +154,9 @@
     async updateUserName(newUserName) {
       const cleanName = (newUserName || '').trim();
       if (!cleanName) return { success: false, error: 'Name cannot be empty' };
-      if (!this.currentUser) return { success: false, error: 'No user logged in' };
+      if (!this.currentUser) {
+        return await this.loginUser(cleanName);
+      }
 
       const oldName = this.currentUser.userName;
       this.currentUser.userName = cleanName;
@@ -173,11 +175,12 @@
 
       // Update in local DB
       const db = this.getLocalUsersDB();
-      if (db[this.currentUser.userId]) {
-        db[this.currentUser.userId].userName = cleanName;
-        db[this.currentUser.userId].lastActive = new Date().toISOString();
-        this.saveLocalUsersDB(db);
+      if (!db[this.currentUser.userId]) {
+        db[this.currentUser.userId] = { ...this.currentUser };
       }
+      db[this.currentUser.userId].userName = cleanName;
+      db[this.currentUser.userId].lastActive = new Date().toISOString();
+      this.saveLocalUsersDB(db);
       this.persistLocalUser(this.currentUser);
 
       // Update in multiplayer assignments
@@ -188,6 +191,24 @@
       }
 
       return { success: true, user: this.currentUser, oldName };
+    }
+
+    /**
+     * Update user's favorite / assigned franchise
+     */
+    updateUserTeam(teamId) {
+      if (!this.currentUser) return;
+      this.currentUser.teamId = teamId;
+      this.currentUser.favoriteTeam = teamId;
+      this.currentUser.lastActive = new Date().toISOString();
+      const db = this.getLocalUsersDB();
+      if (db[this.currentUser.userId]) {
+        db[this.currentUser.userId].favoriteTeam = teamId;
+        db[this.currentUser.userId].teamId = teamId;
+        db[this.currentUser.userId].lastActive = new Date().toISOString();
+        this.saveLocalUsersDB(db);
+      }
+      this.persistLocalUser(this.currentUser);
     }
 
     /**
@@ -241,6 +262,32 @@
       this.saveLocalUsersDB(db);
       this.currentUser = user;
       this.persistLocalUser(user);
+
+      // Also automatically save to cleaned auction history for instant persistence on refresh!
+      try {
+        const players = squadData?.players || [];
+        const sorted = players.slice().sort((a, b) => (Number(b.price || b.soldPrice || 0) - Number(a.price || a.soldPrice || 0)));
+        const top5 = sorted.slice(0, 5).map(p => ({
+          name: p.name,
+          amount: p.price || p.soldPrice || 0,
+          teamId: squadData?.teamId || 'Team'
+        }));
+
+        this.saveCleanedAuctionHistory({
+          roomId: squadData?.roomId || this.currentRoomId || 'IPL-2027',
+          auctioneerName: user.userName || 'Manager',
+          mode: squadData?.mode || 'Mini',
+          userTeam: squadData?.teamId || 'RCB',
+          totalSpent: squadData?.spent || 0,
+          squadCount: squadData?.playersCount || players.length,
+          aiRating: (ratingsData && ratingsData.score) ? ratingsData.score : 92.5,
+          userRating: (ratingsData && ratingsData.grade) ? ratingsData.grade : '9.5 ★',
+          top5Bids: top5,
+          allBuys: players
+        });
+      } catch (e) {
+        console.warn('Auto-save cleaned history notice:', e);
+      }
 
       return true;
     }
@@ -405,17 +452,12 @@
      * Get shareable Private LAN URL with room parameter
      */
     getPrivateRoomLink() {
-      const base = (this.networkInfo && this.networkInfo.privateLanUrl) 
-        ? this.networkInfo.privateLanUrl 
-        : (window.location.protocol + '//' + (window.location.hostname || 'localhost') + ':' + (window.location.port || '8443'));
-      const url = new URL(base);
-      if (this.currentRoomId && this.currentRoomId !== 'DEFAULT') {
-        url.searchParams.set('room', this.currentRoomId);
-      }
+      const room = (this.currentRoomId && this.currentRoomId !== 'DEFAULT') ? this.currentRoomId : 'MAIN';
+      let link = `https://iplauctiongame.haswanthkodali88.workers.dev/?room=${encodeURIComponent(room)}`;
       if (this.currentRoomPin) {
-        url.searchParams.set('pin', this.currentRoomPin);
+        link += `&pin=${encodeURIComponent(this.currentRoomPin)}`;
       }
-      return url.toString();
+      return link;
     }
 
     /**
@@ -457,7 +499,466 @@
       } catch (e) {}
     }
 
-    persistLocalUser(user) {
+
+    // =========================================================================
+    // AUCTION HISTORY (CLEANED: TOP 5 BIDS, SQUAD BUYS, RATINGS)
+    // =========================================================================
+    getAuctionHistory() {
+      let history = [];
+      try {
+        const raw = localStorage.getItem('ipl_auction_cleaned_history');
+        if (raw) history = JSON.parse(raw) || [];
+      } catch (e) {}
+
+      // If history is empty, check currentUser.pastSquads or users DB to restore past data!
+      if (history.length === 0) {
+        const user = this.currentUser || this.getCurrentUser();
+        const pastSquads = user?.pastSquads || [];
+        if (pastSquads.length > 0) {
+          history = pastSquads.map((sq, idx) => {
+            const players = sq.players || [];
+            const sortedByPrice = players.slice().sort((a, b) => (Number(b.price || b.soldPrice || 0) - Number(a.price || a.soldPrice || 0)));
+            const top5 = sortedByPrice.slice(0, 5).map(p => ({
+              name: p.name,
+              amount: p.price || p.soldPrice || 0,
+              teamId: sq.teamId || sq.teamName || 'Team'
+            }));
+
+            return {
+              id: 'auc_' + (sq.savedAt ? new Date(sq.savedAt).getTime() : (Date.now() - idx * 86400000)),
+              roomId: sq.roomId || 'IPL-2027',
+              auctioneerName: user?.userName || localStorage.getItem('ipl_user_name') || 'Manager',
+              date: sq.savedAt ? new Date(sq.savedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+              mode: sq.mode || 'Mini',
+              userTeam: sq.teamId || sq.teamName || 'RCB',
+              totalSpent: sq.spent || 0,
+              squadCount: sq.playersCount || players.length,
+              aiRating: sq.rating || (user?.pastRatings && user.pastRatings[sq.teamId]?.score) || 92.4,
+              userRating: (user?.pastRatings && user.pastRatings[sq.teamId]?.grade) || '9.5 ★',
+              top5Bids: top5,
+              allBuys: players
+            };
+          });
+
+          // Save restored history so it persists
+          try {
+            localStorage.setItem('ipl_auction_cleaned_history', JSON.stringify(history));
+          } catch (e) {}
+        }
+      }
+
+      return history;
+    }
+
+    saveCleanedAuctionHistory(entry) {
+      try {
+        const history = this.getAuctionHistory();
+        // Ensure entry has top 5 bids, team buys, rating, auctioneer name
+        const cleanEntry = {
+          id: entry.id || ('auc_' + Date.now()),
+          roomId: entry.roomId || this.currentRoomId || 'IPL-2027',
+          auctioneerName: entry.auctioneerName || (this.currentUser ? this.currentUser.userName : 'Manager'),
+          date: entry.date || new Date().toLocaleString(),
+          mode: entry.mode || 'MINI',
+          userTeam: entry.userTeam || 'RCB',
+          top5Bids: (entry.top5Bids || []).slice(0, 5),
+          allBuys: entry.allBuys || [],
+          ratings: entry.ratings || {},
+          aiRating: entry.aiRating || null,
+          userRating: entry.userRating || null,
+          totalSpent: entry.totalSpent || 0,
+          squadCount: entry.squadCount || 0
+        };
+
+        history.unshift(cleanEntry);
+        // Keep maximum 20 past auctions
+        const trimmed = history.slice(0, 20);
+        localStorage.setItem('ipl_auction_cleaned_history', JSON.stringify(trimmed));
+        return cleanEntry;
+      } catch (e) {
+        console.error('Failed to save cleaned auction history:', e);
+        return null;
+      }
+    }
+
+    // =========================================================================
+    // ROOM MANAGEMENT (PUBLIC / PRIVATE ROOMS, BANS, RULES & SPECTATORS)
+    // =========================================================================
+    getAllRoomsDB() {
+      try {
+        const raw = localStorage.getItem('ipl_all_active_rooms');
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return {
+        'IPL-2027': {
+          roomId: 'IPL-2027',
+          roomName: 'TATA IPL 2027 Official Mini Auction',
+          mode: 'MINI',
+          visibility: 'PUBLIC',
+          hostId: 'host_system',
+          hostName: 'BCCI Official',
+          rules: {
+            maxBidEnabled: false,
+            maxBidAmount: 25,
+            exceedLimitEnabled: true,
+            exceedThreshold: 15,
+            exceedMaxPlayers: 3,
+            acceleratedEnabled: true,
+            timer: 10
+          },
+          players: {
+            'CSK': { userId: 'player_dhoni', userName: 'MS Dhoni', teamId: 'CSK', isOnline: true },
+            'MI': { userId: 'player_rohit', userName: 'Rohit Sharma', teamId: 'MI', isOnline: true }
+          },
+          banned: [],
+          status: 'waiting',
+          createdAt: new Date().toISOString()
+        },
+        'IPL-MEGA': {
+          roomId: 'IPL-MEGA',
+          roomName: 'Grand Mega Rebuild 2027',
+          mode: 'MEGA',
+          visibility: 'PUBLIC',
+          hostId: 'host_mega',
+          hostName: 'Franchise Board',
+          rules: {
+            maxBidEnabled: true,
+            maxBidAmount: 25,
+            exceedLimitEnabled: false,
+            exceedThreshold: 15,
+            exceedMaxPlayers: 3,
+            acceleratedEnabled: true,
+            timer: 10
+          },
+          players: {
+            'KKR': { userId: 'player_srk', userName: 'King Khan', teamId: 'KKR', isOnline: true }
+          },
+          banned: [],
+          status: 'waiting',
+          createdAt: new Date().toISOString()
+        }
+      };
+    }
+
+    saveAllRoomsDB(db) {
+      try {
+        localStorage.setItem('ipl_all_active_rooms', JSON.stringify(db));
+      } catch (e) {}
+    }
+
+    getPublicRooms() {
+      const db = this.getAllRoomsDB();
+      return Object.values(db).filter(r => r.visibility === 'PUBLIC');
+    }
+
+    getRoom(roomId) {
+      if (!roomId) return null;
+      const cleanId = roomId.trim().toUpperCase();
+      const db = this.getAllRoomsDB();
+      return db[cleanId] || null;
+    }
+
+    createAuctionRoom(config) {
+      const db = this.getAllRoomsDB();
+      const roomId = 'IPL-' + Math.floor(1000 + Math.random() * 9000);
+      const user = this.currentUser || { userId: 'user_' + Date.now(), userName: 'Manager' };
+
+      const newRoom = {
+        roomId,
+        roomName: config.roomName || (`${config.mode || 'Mini'} Auction Room ${roomId}`),
+        mode: config.mode || 'MINI',
+        visibility: config.visibility || 'PUBLIC',
+        hostId: user.userId,
+        hostName: user.userName,
+        rules: {
+          maxBidEnabled: !!config.maxBidEnabled,
+          maxBidAmount: Number(config.maxBidAmount) || 25,
+          exceedLimitEnabled: !!config.exceedLimitEnabled,
+          exceedThreshold: Number(config.exceedThreshold) || 15,
+          exceedMaxPlayers: Number(config.exceedMaxPlayers) || 3,
+          acceleratedEnabled: !!config.acceleratedEnabled,
+          timer: Number(config.timer) || 10
+        },
+        players: {},
+        banned: [],
+        status: 'waiting',
+        createdAt: new Date().toISOString()
+      };
+
+      // Assign host to their chosen team
+      const hostTeam = config.hostTeam || 'RCB';
+      newRoom.hostTeam = hostTeam;
+      newRoom.players[hostTeam] = {
+        userId: user.userId,
+        userName: user.userName,
+        teamId: hostTeam,
+        isHost: true,
+        isOnline: true,
+        joinedAt: new Date().toISOString()
+      };
+
+      db[roomId] = newRoom;
+      this.saveAllRoomsDB(db);
+      this.currentRoomId = roomId;
+
+      // Broadcast room creation to server if online
+      if (this.isServerConnected) {
+        fetch('/api/multiplayer/room/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newRoom)
+        }).catch(() => {});
+      }
+
+      return newRoom;
+    }
+
+    changeRoomTeam(roomId, userId, oldTeamId, newTeamId) {
+      const room = this.getRoom(roomId);
+      if (!room) return { success: false, reason: 'room_not_found' };
+      if (!room.players) room.players = {};
+
+      const user = this.currentUser || { userId, userName: localStorage.getItem('ipl_user_name') || 'Manager' };
+      const myNormName = (user.userName || '').trim().toLowerCase();
+
+      // Check if newTeamId is taken by another player
+      if (room.players[newTeamId]) {
+        const existing = room.players[newTeamId];
+        const existingNormName = (existing.userName || '').trim().toLowerCase();
+        if (existing.userId !== userId && (!myNormName || existingNormName !== myNormName)) {
+          return { success: false, reason: 'team_taken', takenBy: existing.userName };
+        }
+      }
+
+      // RELEASE all previous teams owned by this user in this room!
+      const isHost = (room.hostId === userId) || (myNormName && (room.hostName || '').trim().toLowerCase() === myNormName) || (!room.hostId);
+      for (const t of Object.keys(room.players)) {
+        const p = room.players[t];
+        const pNormName = (p.userName || '').trim().toLowerCase();
+        if (p.userId === userId || (myNormName && pNormName === myNormName) || (isHost && p.isHost)) {
+          delete room.players[t];
+        }
+      }
+
+      // Assign new single team
+      room.players[newTeamId] = {
+        userId,
+        userName: user.userName,
+        teamId: newTeamId,
+        status: 'online',
+        isOnline: true,
+        isHost: isHost,
+        joinedAt: new Date().toISOString()
+      };
+
+      // If user was host, update hostTeam
+      if (isHost) {
+        room.hostTeam = newTeamId;
+        room.hostId = userId;
+        room.hostName = user.userName;
+      }
+
+      this.saveRoom(room);
+      return { success: true, room };
+    }
+
+    saveRoom(room) {
+      if (!room || !room.roomId) return null;
+      const cleanId = room.roomId.trim().toUpperCase();
+      const db = this.getAllRoomsDB();
+      db[cleanId] = room;
+      this.saveAllRoomsDB(db);
+      try {
+        localStorage.setItem('ipl_auction_rooms', JSON.stringify(db));
+      } catch (e) {}
+      return room;
+    }
+
+    leaveRoom(roomId, userId) {
+      const room = this.getRoom(roomId);
+      if (!room || !room.players) return { success: false };
+      const user = this.currentUser || { userId, userName: '' };
+      for (const t of Object.keys(room.players)) {
+        const p = room.players[t];
+        if (p.userId === userId || (user.userName && p.userName === user.userName)) {
+          delete room.players[t];
+        }
+      }
+      this.saveRoom(room);
+      return { success: true, room };
+    }
+
+    sanitizeRoomTeams(room) {
+      if (!room || !room.players) return room;
+      // Deduplicate: each unique user (by userId or userName) can only hold AT MOST ONE franchise!
+      // If a user owns multiple teams, keep only their current active team or hostTeam, and delete the rest so they become AVAILABLE.
+      const seenUsers = new Map();
+      const activeUserTeam = (typeof window !== 'undefined' && window.AppState && window.AppState.userTeamId) ? window.AppState.userTeamId : null;
+
+      for (const teamId of Object.keys(room.players)) {
+        const p = room.players[teamId];
+        const key = p.userId || p.userName || 'unknown';
+        if (!seenUsers.has(key)) {
+          seenUsers.set(key, []);
+        }
+        seenUsers.get(key).push({ teamId, player: p });
+      }
+
+      for (const [key, entries] of seenUsers.entries()) {
+        if (entries.length > 1) {
+          let keepTeam = null;
+          const matchActive = entries.find(e => e.teamId === activeUserTeam);
+          if (matchActive) {
+            keepTeam = matchActive.teamId;
+          } else if (room.hostTeam && entries.some(e => e.teamId === room.hostTeam)) {
+            keepTeam = room.hostTeam;
+          } else {
+            keepTeam = entries[entries.length - 1].teamId;
+          }
+          for (const e of entries) {
+            if (e.teamId !== keepTeam) {
+              delete room.players[e.teamId];
+            }
+          }
+        }
+      }
+      this.saveRoom(room);
+      return room;
+    }
+
+    joinRoom(roomId, teamId, userId, userName) {
+      const room = this.getRoom(roomId);
+      if (!room) return { success: false, reason: 'not_found' };
+
+      // Check if banned
+      if (room.banned && room.banned.includes(userId)) {
+        return { success: false, reason: 'banned' };
+      }
+
+      // Check remaining teams count
+      const takenTeams = Object.keys(room.players || {});
+      const allTeams = ['CSK', 'MI', 'RCB', 'KKR', 'DC', 'PBKS', 'RR', 'SRH', 'GT', 'LSG'];
+      const availableTeams = allTeams.filter(t => !takenTeams.includes(t));
+
+      // If no teams left, join as spectator!
+      if (availableTeams.length === 0 || !teamId || !availableTeams.includes(teamId)) {
+        if (!teamId && availableTeams.length > 0) {
+          // Player needs to pick from available teams
+          return { success: true, room, availableTeams, needTeamSelection: true };
+        }
+        // Spectator mode
+        return {
+          success: true,
+          room,
+          isSpectator: true,
+          message: 'All 10 franchises are taken. You have joined as a spectator.'
+        };
+      }
+
+      // RELEASE any previous teams owned by this user in this room!
+      for (const t of Object.keys(room.players)) {
+        const p = room.players[t];
+        if (p.userId === userId || (userName && p.userName === userName)) {
+          delete room.players[t];
+        }
+      }
+
+      // Assign player to their single chosen team
+      room.players[teamId] = {
+        userId,
+        userName,
+        teamId,
+        isOnline: true,
+        joinedAt: new Date().toISOString()
+      };
+
+      const db = this.getAllRoomsDB();
+      db[room.roomId] = room;
+      this.saveAllRoomsDB(db);
+      this.currentRoomId = room.roomId;
+
+      return { success: true, room, isSpectator: false, assignedTeam: teamId };
+    }
+
+    kickPlayer(roomId, userId, teamId) {
+      const room = this.getRoom(roomId);
+      if (!room) return { success: false, reason: 'room_not_found' };
+      if (!room.players) room.players = {};
+
+      let freedTeam = teamId || null;
+
+      if (teamId && room.players[teamId] && room.players[teamId].userId === userId) {
+        delete room.players[teamId];
+        freedTeam = teamId;
+      } else {
+        // Search by userId across players
+        for (const t of Object.keys(room.players)) {
+          if (room.players[t].userId === userId) {
+            freedTeam = t;
+            delete room.players[t];
+            break;
+          }
+        }
+      }
+
+      // If user was host and kicked, reset host
+      if (room.hostId === userId) {
+        const remainingKeys = Object.keys(room.players);
+        if (remainingKeys.length > 0) {
+          room.hostId = room.players[remainingKeys[0]].userId;
+          room.hostName = room.players[remainingKeys[0]].userName;
+        }
+      }
+
+      this.saveRoom(room);
+      return { success: true, room, freedTeam };
+    }
+
+    setPlayerOnlineStatus(roomId, userId, isOnline) {
+      const room = this.getRoom(roomId);
+      if (!room || !room.players) return { success: false };
+
+      for (const t of Object.keys(room.players)) {
+        if (room.players[t].userId === userId) {
+          room.players[t].isOnline = !!isOnline;
+          break;
+        }
+      }
+
+      this.saveRoom(room);
+      return { success: true, room };
+    }
+
+    banPlayer(roomId, userId) {
+      const room = this.getRoom(roomId);
+      if (!room) return false;
+      room.banned = room.banned || [];
+      if (!room.banned.includes(userId)) {
+        room.banned.push(userId);
+      }
+      // Unassign team
+      for (const tId in room.players) {
+        if (room.players[tId].userId === userId) {
+          delete room.players[tId];
+        }
+      }
+      const db = this.getAllRoomsDB();
+      db[room.roomId] = room;
+      this.saveAllRoomsDB(db);
+      return true;
+    }
+
+    updateRoomTimer(roomId, seconds) {
+      const room = this.getRoom(roomId);
+      if (!room) return;
+      room.rules = room.rules || {};
+      room.rules.timer = seconds;
+      const db = this.getAllRoomsDB();
+      db[room.roomId] = room;
+      this.saveAllRoomsDB(db);
+    }
+
+        persistLocalUser(user) {
       try {
         localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
       } catch (e) {}
@@ -519,5 +1020,16 @@
 
   // Global instance
   global.StorageEngine = new StorageManager();
+
+
+  // Ensure all methods are directly attached to StorageEngine instance
+  if (global.StorageEngine) {
+    if (typeof global.StorageEngine.changeRoomTeam === 'function') global.StorageEngine.changeRoomTeam = global.StorageEngine.changeRoomTeam.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.leaveRoom === 'function') global.StorageEngine.leaveRoom = global.StorageEngine.leaveRoom.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.sanitizeRoomTeams === 'function') global.StorageEngine.sanitizeRoomTeams = global.StorageEngine.sanitizeRoomTeams.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.saveRoom === 'function') global.StorageEngine.saveRoom = global.StorageEngine.saveRoom.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.kickPlayer === 'function') global.StorageEngine.kickPlayer = global.StorageEngine.kickPlayer.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.setPlayerOnlineStatus === 'function') global.StorageEngine.setPlayerOnlineStatus = global.StorageEngine.setPlayerOnlineStatus.bind(global.StorageEngine);
+  }
 
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

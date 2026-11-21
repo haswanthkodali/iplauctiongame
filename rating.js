@@ -596,6 +596,7 @@ const RatingEngine = {
             xi,
             filledCount,
             totalRating: finalRating,
+            finalRating: finalRating,
             battingDepthScore,
             bowlingDepthScore,
             skillScore,
@@ -1150,24 +1151,61 @@ const RatingEngine = {
             const backups     = this.selectBackups(squad, bestXI, db);
 
             // Identify MVP & worst purchase
-            let mvp  = { player: "N/A", value: "N/A" };
+            // MVP formula: 75% role-specific rating (Bowler -> Bowling, Batter/WK -> Batting, AR -> Combined) + 25% price value
+            let mvp = { player: "N/A", value: "N/A", score: 0, roleRating: 0, price: 0 };
             let worst = { player: "N/A", value: "N/A" };
-            let bestValueRatio  = -Infinity;
+            let highestMvpScore = -Infinity;
             let worstValueRatio = Infinity;
 
             for (const p of squad) {
-                const stats  = db[p.name] || {};
-                const rating = stats.overallRating || p.rating || p.overallRating || 50;
-                const price  = p.price || 0.5;
-                const ratio  = rating / price;
+                const stats = db[p.name] || {};
+                const role = (p.role || '').toUpperCase();
+                const price = Number(p.soldPrice !== undefined ? p.soldPrice : (p.price !== undefined ? p.price : 0.5));
 
-                if (ratio > bestValueRatio) {
-                    bestValueRatio = ratio;
-                    mvp = { player: p.name, value: ratio > 20 ? "Steal" : ratio > 12 ? "Excellent" : "Good" };
+                // 75% Role-Specific Rating:
+                // - If Bowler: evaluate bowlingRating
+                // - If Batter or Wicketkeeper: evaluate battingRating
+                // - If All-Rounder: weighted combination of batting and bowling
+                let roleRating = 75;
+                if (role.includes('BOWL')) {
+                    roleRating = stats.bowlingRating || p.bowlingRating || p.rating || stats.overallRating || 75;
+                } else if (role.includes('BAT') || role.includes('WK') || role.includes('WICKET')) {
+                    roleRating = stats.battingRating || p.battingRating || p.rating || stats.overallRating || 75;
+                } else if (role.includes('ALL') || role === 'AR') {
+                    const batR = stats.battingRating || p.battingRating || p.rating || 75;
+                    const bowlR = stats.bowlingRating || p.bowlingRating || p.rating || 75;
+                    roleRating = Math.max(batR, bowlR) * 0.6 + Math.min(batR, bowlR) * 0.4;
+                } else {
+                    roleRating = p.rating || stats.overallRating || 75;
                 }
-                if (ratio < worstValueRatio && price > 1) {
+
+                // 25% Price Factor (0-100 scale: lower price = higher efficiency score)
+                // Benchmark: ₹0.30 Cr base gives 100 pts, ₹25 Cr gives 20 pts
+                const priceScore = Math.max(10, Math.min(100, 100 - ((price - 0.3) / 24.7) * 80));
+
+                // Final MVP score = 75% role rating + 25% price efficiency
+                const mvpScore = (roleRating * 0.75) + (priceScore * 0.25);
+
+                if (mvpScore > highestMvpScore) {
+                    highestMvpScore = mvpScore;
+                    const valueTag = mvpScore >= 83 ? "Elite Steal" : mvpScore >= 75 ? "Top Value" : mvpScore >= 68 ? "Good Buy" : "Star Asset";
+                    mvp = {
+                        player: p.name,
+                        value: `${valueTag} (₹${price.toFixed(2)} Cr)`,
+                        score: Math.round(mvpScore),
+                        roleRating: Math.round(roleRating),
+                        price: price
+                    };
+                }
+
+                // Value ratio for worst purchase
+                const ratio = roleRating / Math.max(0.3, price);
+                if (ratio < worstValueRatio && price > 2.0) {
                     worstValueRatio = ratio;
-                    worst = { player: p.name, value: ratio < 4 ? "Massively Overpaid" : ratio < 7 ? "Overpaid" : "Slightly Overpaid" };
+                    worst = {
+                        player: p.name,
+                        value: price > 15 ? "Massively Overpaid" : "High Premium"
+                    };
                 }
             }
 

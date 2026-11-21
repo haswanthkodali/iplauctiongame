@@ -193,6 +193,10 @@
     return on('stateChange', callback);
   }
 
+  function getState() {
+    return GameState;
+  }
+
   function addLog(entry) {
     const logItem = {
       id: Date.now() + Math.random().toString(36).substr(2, 5),
@@ -347,13 +351,15 @@
     GameState.currentPlayerIndex = 0;
     GameState.currentBid = 0;
     GameState.currentBidder = null;
-    GameState.timeLeft = 15;
+    GameState.timeLeft = GameState.bidDuration || 10;
     GameState.isPaused = false;
     GameState.isSold = false;
     GameState.isUnsold = false;
     GameState.auctionLog = [];
     GameState.speed = Math.max(1, Math.min(3, config.speed || 1));
-    GameState.auctionMode = (config.auctionMode || 'MEGA').toUpperCase();
+    const defaultMode = ((typeof window !== 'undefined' && window.AppState && window.AppState.auctionMode) ? window.AppState.auctionMode : 'MINI');
+    GameState.auctionMode = (config.auctionMode || GameState.auctionMode || defaultMode).toUpperCase();
+    GameState.poolSize = config.poolSize || GameState.poolSize || 'quick';
     GameState.aiBiddingEnabled = config.aiBidding === true; // AI bidding removed by default
 
     // Deep clone teams with tracking properties
@@ -397,10 +403,15 @@
         let spentOnRetentions = 0;
 
         retainedList.forEach((playerName, index) => {
-          const matchedPlayer = rawPlayers.find(p => p.name.toLowerCase() === playerName.toLowerCase());
+          const cleanName = playerName.trim().toLowerCase();
+          const matchedPlayer = rawPlayers.find(p => p.name.trim().toLowerCase() === cleanName)
+            || rawPlayers.find(p => p.name.toLowerCase().includes(cleanName) || cleanName.includes(p.name.toLowerCase()));
           const cost = retentionSlabs[index] || 10;
           spentOnRetentions += cost;
-          retainedPlayerNames.add(playerName.toLowerCase());
+          retainedPlayerNames.add(cleanName);
+          if (matchedPlayer) {
+            retainedPlayerNames.add(matchedPlayer.name.trim().toLowerCase());
+          }
 
           const retainedObj = matchedPlayer ? {
             ...matchedPlayer,
@@ -411,7 +422,7 @@
           } : {
             id: 'ret-' + team.id + '-' + index,
             name: playerName,
-            role: 'Batsman',
+            role: playerName.includes('Dhoni') || playerName.includes('Jurel') ? 'Wicket-Keeper' : (playerName.includes('Parag') ? 'All-Rounder' : 'Batsman'),
             rating: 85,
             retained: true,
             soldPrice: cost,
@@ -430,12 +441,13 @@
       });
     }
 
-    // Filter available pool (in Mini Auction, exclude retained players)
+    // Filter available pool (in Mini Auction, strictly exclude all retained players!)
     let availablePlayers = GameState.auctionMode === 'MINI'
-      ? rawPlayers.filter(p => !retainedPlayerNames.has(p.name.toLowerCase()))
+      ? rawPlayers.filter(p => !retainedPlayerNames.has(p.name.trim().toLowerCase()))
       : rawPlayers;
 
-    if (config.poolSize === 'quick') {
+    const activePoolSize = config.poolSize || GameState.poolSize || 'quick';
+    if (activePoolSize === 'quick') {
       // Quick mode: top marquee and star players (Sets 1-3 or high rating)
       availablePlayers = availablePlayers.filter(p => (p.set && p.set <= 3) || p.rating >= 84);
     }
@@ -457,6 +469,15 @@
   /**
    * 2. selectTeam(teamId) - User selects their franchise
    */
+  function changeUserTeam(newTeamId) {
+    const team = getTeam(newTeamId);
+    if (!team) return false;
+    GameState.userTeamId = newTeamId;
+    saveGameState();
+    emit('stateChange', { state: getState() });
+    return true;
+  }
+
   function selectTeam(teamId) {
     const team = getTeam(teamId);
     if (!team) {
@@ -493,7 +514,7 @@
     GameState.currentBidder = null;
     GameState.isSold = false;
     GameState.isUnsold = false;
-    GameState.timeLeft = 15;
+    GameState.timeLeft = GameState.bidDuration || 10;
     GameState.auctionLog = [];
     GameState.results = null;
 
@@ -506,13 +527,12 @@
       });
     }
 
-    // Re-initialize the auction pool
-    if (!GameState.auctionPool || GameState.auctionPool.length === 0) {
-      initGame();
-    } else {
-      // Re-init to get a fresh pool and teams with proper retentions
-      initGame();
-    }
+    // Re-initialize the auction pool with the active mode & team
+    initGame({
+      auctionMode: GameState.auctionMode || 'MINI',
+      userTeamId: GameState.userTeamId,
+      poolSize: GameState.poolSize || 'quick'
+    });
 
     if (!GameState.userTeamId && GameState.teams.length > 0) {
       GameState.userTeamId = GameState.teams[0].id;
@@ -524,7 +544,7 @@
 
     addLog({
       type: 'startAuction',
-      message: `Mega Auction started! First set: ${getSetName(1)}.`
+      message: `${GameState.auctionMode === 'MINI' ? '2027 Mini' : 'Mega'} Auction started! First set: ${getSetName(1)}.`
     });
 
     emit('auctionStart', { state: GameState });
@@ -601,7 +621,7 @@
     GameState.currentBidder = null;
     GameState.isSold = false;
     GameState.isUnsold = false;
-    GameState.timeLeft = 15;
+    GameState.timeLeft = GameState.bidDuration || 10;
 
     addLog({
       type: 'newPlayer',
@@ -617,7 +637,7 @@
     emit('stateChange', GameState);
 
     if (!GameState.isPaused) {
-      startTimer(15);
+      startTimer(GameState.bidDuration || 10);
     }
   }
 
@@ -677,7 +697,7 @@
     if (typeof seconds === 'number') {
       GameState.timeLeft = seconds;
     } else if (typeof GameState.timeLeft !== 'number' || GameState.timeLeft <= 0) {
-      GameState.timeLeft = 15;
+      GameState.timeLeft = GameState.bidDuration || 10;
     }
 
     const intervalMs = Math.max(80, Math.floor(1000 / (GameState.speed || 1)));
@@ -847,12 +867,43 @@
       return false;
     }
 
+    // Spectator Check (Spectators cannot place bids)
+    if (typeof window !== 'undefined' && window.AppState && window.AppState.isSpectator) {
+      if (typeof window.showBiddingRuleAlert === 'function') {
+        window.showBiddingRuleAlert('Spectators cannot place bids in the auction.');
+      }
+      return false;
+    }
+
+    // Room Rule 1: Maximum Bid Amount Limit
+    if (typeof window !== 'undefined' && window.RoomRules && window.RoomRules.maxBidEnabled && window.RoomRules.maxBidAmount) {
+      if (nextBid > window.RoomRules.maxBidAmount) {
+        if (typeof window.showBiddingRuleAlert === 'function') {
+          window.showBiddingRuleAlert(`Bid ₹${Number(nextBid).toFixed(2)} Cr exceeds room maximum ceiling of ₹${window.RoomRules.maxBidAmount}.00 Cr!`);
+        }
+        return false;
+      }
+    }
+
+    // Room Rule 2: Limit on number of players exceeding threshold amount
+    if (typeof window !== 'undefined' && window.RoomRules && window.RoomRules.exceedLimitEnabled && window.RoomRules.exceedThreshold && window.RoomRules.exceedMaxPlayers) {
+      if (nextBid > window.RoomRules.exceedThreshold) {
+        const countExceed = (team.players || []).filter(p => (p.soldPrice || p.price || 0) > window.RoomRules.exceedThreshold).length;
+        if (countExceed >= window.RoomRules.exceedMaxPlayers) {
+          if (typeof window.showBiddingRuleAlert === 'function') {
+            window.showBiddingRuleAlert(`${team.shortName || team.name} reached max limit of ${window.RoomRules.exceedMaxPlayers} players above ₹${window.RoomRules.exceedThreshold}.00 Cr!`);
+          }
+          return false;
+        }
+      }
+    }
+
     // Update auction state
     GameState.currentBid = nextBid;
     GameState.currentBidder = bidderId;
 
-    // Reset countdown to allow counter-bids
-    GameState.timeLeft = 10;
+    // Reset countdown to allow counter-bids based on host timer
+    GameState.timeLeft = GameState.bidDuration || 10;
 
     addLog({
       type: 'bid',
@@ -993,9 +1044,13 @@
    * Evaluates AI bidding across all non-highest-bidder AI teams during an auction tick.
    */
   function evaluateAIBidding() {
-    // Completely removed auto-bidding: Only human & multiplayer bids allowed
-    return;
     if (GameState.isPaused || GameState.isSold || GameState.isUnsold) return;
+
+    // Check player-specific or global AI Bidding Mode
+    const aiMode = GameState.aiBiddingMode || 'all';
+    if (aiMode === 'human_only' || aiMode === 'off' || aiMode === 'force_pass') {
+      return; // Human and multiplayer paddles only
+    }
 
     const player = getCurrentPlayer();
     if (!player) return;
@@ -1006,7 +1061,7 @@
       ...Object.keys(GameState.humanTeams || {})
     ]);
 
-    const candidates = GameState.teams.filter(t =>
+    let candidates = GameState.teams.filter(t =>
       t.id !== GameState.currentBidder &&
       !humanTeamIds.has(t.id)
     );
@@ -1014,13 +1069,26 @@
     if (candidates.length === 0) return;
 
     const nextBid = getNextBidAmount();
-    const interested = [];
+    let interested = [];
 
     for (const team of candidates) {
       const decision = aiDecision(team, player);
+      // Adjust valuation ceiling based on selected AI mode
+      if (aiMode === 'aggressive') {
+        decision.maxBid = roundCr(decision.maxBid * 1.30);
+      } else if (aiMode === 'conservative') {
+        decision.maxBid = roundCr(decision.maxBid * 0.70);
+      }
+
       if (decision.shouldBid && decision.maxBid >= nextBid) {
         interested.push({ team, decision });
       }
+    }
+
+    // If rivals_only mode, restrict to top 2 highest interested teams
+    if (aiMode === 'rivals_only' && interested.length > 2) {
+      interested.sort((a, b) => b.decision.maxBid - a.decision.maxBid);
+      interested = interested.slice(0, 2);
     }
 
     if (interested.length === 0) return;
@@ -1758,6 +1826,23 @@
   }
 
   // ==========================================================================
+  // ==========================================================================
+  // MULTIPLAYER HUMAN TEAMS MANAGER
+  // ==========================================================================
+  function setHumanTeam(teamId, manager) {
+    if (!GameState.humanTeams) GameState.humanTeams = {};
+    if (manager) {
+      GameState.humanTeams[teamId] = manager;
+    } else {
+      delete GameState.humanTeams[teamId];
+    }
+    emit('stateChange', { state: getState() });
+  }
+
+  function getHumanTeams() {
+    return GameState.humanTeams || {};
+  }
+
   // 16. LEADERBOARD & SUMMARY UTILITIES
   // ==========================================================================
 
@@ -1806,17 +1891,298 @@
   }
 
   // ==========================================================================
+  // 16B. LIVE AUCTION STATE PERSISTENCE (localStorage)
+  // Save full auction state so refresh / tab-close preserves everything
+  // ==========================================================================
+
+  const SAVE_KEY = 'ipl_auction_live_state';
+  let _autoSaveTimer = null;
+
+  function saveGameState() {
+    try {
+      const snapshot = {
+        v: 2,
+        ts: Date.now(),
+        phase: GameState.phase,
+        userTeamId: GameState.userTeamId,
+        currentPlayerIndex: GameState.currentPlayerIndex,
+        currentBid: GameState.currentBid,
+        currentBidder: GameState.currentBidder,
+        timeLeft: GameState.timeLeft,
+        isPaused: GameState.isPaused,
+        isSold: GameState.isSold,
+        isUnsold: GameState.isUnsold,
+        speed: GameState.speed,
+        auctionMode: GameState.auctionMode,
+        aiBiddingEnabled: GameState.aiBiddingEnabled,
+        aiBiddingMode: GameState.aiBiddingMode,
+        auctionLog: (GameState.auctionLog || []).slice(0, 100),
+        results: GameState.results || null,
+        // Save teams with their purchased players
+        teams: (GameState.teams || []).map(t => ({
+          id: t.id,
+          players: (t.players || []).map(p => ({
+            id: p.id, name: p.name, role: p.role, rating: p.rating,
+            basePrice: p.basePrice, soldPrice: p.soldPrice, price: p.price,
+            overseas: p.overseas, country: p.country, set: p.set,
+            battingRating: p.battingRating, bowlingRating: p.bowlingRating,
+            fieldingRating: p.fieldingRating, retained: p.retained,
+            speciality: p.speciality, bowlingType: p.bowlingType,
+            battingStyle: p.battingStyle, soldTo: p.soldTo, initials: p.initials
+          })),
+          spent: t.spent || 0,
+          overseas: t.overseas || 0
+        })),
+        // Save full auction pool order (player ids only)
+        auctionPoolIds: (GameState.auctionPool || []).map(p => p.id)
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+    } catch (e) {
+      console.warn('[IPL Auction] Failed to save state:', e);
+    }
+  }
+
+  function clearSavedState() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  }
+
+  function getSavedState() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      const snap = JSON.parse(raw);
+      // Reject saves older than 24h
+      if (snap.ts && (Date.now() - snap.ts) > 86400000) {
+        clearSavedState();
+        return null;
+      }
+      return snap;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Restore a saved auction session. Returns true if restored successfully.
+   */
+  function restoreGameState() {
+    const snap = getSavedState();
+    if (!snap || !snap.teams || snap.teams.length === 0) return false;
+    if (!snap.phase || snap.phase === 'home') return false;
+
+    const { teams: rawTeams, players: rawPlayers } = getGlobalData();
+
+    // Build a lookup of all raw players by id
+    const playerById = {};
+    rawPlayers.forEach(p => { playerById[p.id] = p; });
+
+    // Rebuild teams from raw data + saved purchases
+    GameState.teams = rawTeams.map(rawT => {
+      const purse = rawT.purse !== undefined ? rawT.purse : 120;
+      const personality = TEAM_PERSONALITIES[rawT.id] || {
+        aggression: 1.0, marqueePreference: 1.1, riskTolerance: 1.0,
+        roleWeights: { 'Batsman': 1.0, 'Bowler': 1.0, 'All-Rounder': 1.0, 'Wicket-Keeper': 1.0 }
+      };
+
+      const savedTeam = snap.teams.find(st => st.id === rawT.id);
+      const restoredPlayers = [];
+      let spent = 0;
+      let overseas = 0;
+
+      if (savedTeam && savedTeam.players) {
+        savedTeam.players.forEach(sp => {
+          // Merge full player data from raw pool + saved purchase info
+          const fullPlayer = playerById[sp.id] ? { ...playerById[sp.id] } : { ...sp };
+          fullPlayer.soldPrice = sp.soldPrice;
+          fullPlayer.price = sp.price || sp.soldPrice;
+          fullPlayer.soldTo = rawT.id;
+          if (sp.retained) fullPlayer.retained = true;
+          restoredPlayers.push(fullPlayer);
+          spent += (sp.soldPrice || sp.price || 0);
+          if (fullPlayer.overseas) overseas++;
+        });
+      }
+
+      return {
+        ...rawT,
+        purse, maxPlayers: rawT.maxPlayers || 25,
+        minPlayers: rawT.minPlayers || 18,
+        maxOverseas: rawT.maxOverseas || 8,
+        players: restoredPlayers,
+        spent: savedTeam ? (savedTeam.spent || spent) : 0,
+        overseas: savedTeam ? (savedTeam.overseas || overseas) : 0,
+        personality
+      };
+    });
+
+    // Rebuild auction pool from saved order
+    if (snap.auctionPoolIds && snap.auctionPoolIds.length > 0) {
+      const soldPlayerIds = new Set();
+      GameState.teams.forEach(t => t.players.forEach(p => soldPlayerIds.add(p.id)));
+
+      GameState.auctionPool = [];
+      snap.auctionPoolIds.forEach(pid => {
+        const p = playerById[pid];
+        if (p) GameState.auctionPool.push({ ...p });
+      });
+    }
+
+    // Restore scalar state
+    GameState.phase = snap.phase;
+    GameState.userTeamId = snap.userTeamId;
+    GameState.currentPlayerIndex = snap.currentPlayerIndex || 0;
+    GameState.currentBid = snap.currentBid || 0;
+    GameState.currentBidder = snap.currentBidder || null;
+    GameState.timeLeft = snap.timeLeft || 15;
+    GameState.isPaused = true; // Always pause on restore so user can resume
+    GameState.isSold = false;
+    GameState.isUnsold = false;
+    GameState.speed = snap.speed || 1;
+    GameState.auctionMode = snap.auctionMode || 'MEGA';
+    GameState.aiBiddingEnabled = snap.aiBiddingEnabled !== undefined ? snap.aiBiddingEnabled : false;
+    GameState.aiBiddingMode = snap.aiBiddingMode || 'all';
+    GameState.auctionLog = snap.auctionLog || [];
+    GameState.results = snap.results || null;
+    GameState.timer = null;
+
+    addLog({
+      type: 'restore',
+      message: '🔄 Auction session restored from save! Click Resume to continue.'
+    });
+
+    emit('stateChange', GameState);
+    return true;
+  }
+
+  // Auto-save on every state change and player sold/unsold
+  function startAutoSave() {
+    if (_autoSaveTimer) clearInterval(_autoSaveTimer);
+    // Save every 3 seconds during active auction
+    _autoSaveTimer = setInterval(() => {
+      if (GameState.phase === 'auction' || GameState.phase === 'results') {
+        saveGameState();
+      }
+    }, 3000);
+  }
+
+  // Also save on key events
+  on('playerSold', () => saveGameState());
+  on('playerUnsold', () => saveGameState());
+  on('auctionEnd', () => saveGameState());
+  on('stateChange', () => {
+    // Debounced quick save
+    if (GameState.phase === 'auction' || GameState.phase === 'results') {
+      saveGameState();
+    }
+  });
+
+  // Save before page unload
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+      if (GameState.phase === 'auction' || GameState.phase === 'results') {
+        saveGameState();
+      }
+    });
+  }
+
+  startAutoSave();
+
+  function setAuctionMode(mode) {
+    if (!mode) return;
+    const m = String(mode).toUpperCase();
+    if (m === 'MINI' || m === 'MEGA') {
+      GameState.auctionMode = m;
+      emit('stateChange', GameState);
+    }
+  }
+
+  function getAuctionMode() {
+    return GameState.auctionMode || 'MINI';
+  }
+
+  // ==========================================================================
   // 17. PUBLIC API DEFINITION
   // ==========================================================================
+
+  
+  function setBidDuration(seconds) {
+    GameState.bidDuration = Math.max(5, Math.min(60, Number(seconds) || 10));
+    GameState.timeLeft = GameState.bidDuration;
+    emit('bidDurationChange', { duration: GameState.bidDuration });
+  }
+
+  function getBidDuration() {
+    return GameState.bidDuration || 10;
+  }
+
+  /**
+   * Release player from a team squad (refunds amount to team purse)
+   * Note: Pre-retained players in Mini Auction cannot be released!
+   */
+  function releasePlayerFromTeam(teamId, playerId) {
+    const team = getTeam(teamId);
+    if (!team) return { success: false, error: 'Team not found' };
+
+    const pIdx = team.players.findIndex(p => (p.id === playerId || p.name === playerId));
+    if (pIdx === -1) return { success: false, error: 'Player not in team' };
+
+    const player = team.players[pIdx];
+    // Check if retained player
+    if (player.isRetained) {
+      return { success: false, error: 'Pre-retained core players cannot be released.' };
+    }
+
+    const refundAmount = player.soldPrice || player.price || 0;
+    team.spent = roundCr(Math.max(0, (team.spent || 0) - refundAmount));
+    if (player.overseas) {
+      team.overseas = Math.max(0, (team.overseas || 0) - 1);
+    }
+    team.players.splice(pIdx, 1);
+
+    // Return player to unsold pool at base price
+    player.status = 'unsold';
+    player.soldPrice = 0;
+    delete player.soldTo;
+
+    if (!GameState.unsold.find(p => p.id === player.id)) {
+      GameState.unsold.push(player);
+    }
+
+    addLog({
+      type: 'release',
+      message: `💸 ${team.shortName || team.name} released ${player.name} (₹${refundAmount.toFixed(2)} Cr refunded to purse)`
+    });
+
+    emit('playerReleased', { team, player, refundAmount });
+    emit('stateChange', GameState);
+    return { success: true, refundAmount, team, player };
+  }
+
+  function nominateUnsoldPlayer(playerId) {
+    const uIdx = GameState.unsold.findIndex(p => (p.id === playerId || p.name === playerId));
+    if (uIdx === -1) return false;
+    const player = GameState.unsold.splice(uIdx, 1)[0];
+    player.status = 'pool';
+    GameState.pool.push(player);
+    emit('stateChange', GameState);
+    return true;
+  }
 
   const Game = {
     // State
     GameState,
     getState: () => GameState,
+    setAuctionMode,
+    getAuctionMode,
+    setBidDuration,
+    getBidDuration,
+    releasePlayerFromTeam,
+    nominateUnsoldPlayer,
 
     // Core Functions
     initGame,
     selectTeam,
+    changeUserTeam,
     startAuction,
     nextPlayer,
     placeBid,
@@ -1834,7 +2200,11 @@
     aiDecision,
     getBestPlayingXI,
     rateSquad,
+    setHumanTeam,
+    getHumanTeams,
     setAiBidding: (enabled) => { GameState.aiBiddingEnabled = !!enabled; return GameState.aiBiddingEnabled; },
+    setAiBiddingMode: (mode) => { GameState.aiBiddingMode = mode || 'all'; return GameState.aiBiddingMode; },
+    getAiBiddingMode: () => GameState.aiBiddingMode || 'all',
 
     // Helpers & UI Getters
     getCurrentPlayer,
@@ -1855,6 +2225,12 @@
     getSetName,
     TEAM_PERSONALITIES,
 
+    // Persistence
+    saveGameState,
+    restoreGameState,
+    clearSavedState,
+    getSavedState,
+
     // Reactive Events
     on,
     off,
@@ -1872,6 +2248,7 @@
     window.GameState = GameState;
     window.initGame = initGame;
     window.selectTeam = selectTeam;
+    window.changeUserTeam = changeUserTeam;
     window.getCurrentPlayer = getCurrentPlayer;
     window.getUserTeam = getUserTeam;
     window.getTeam = getTeam;
@@ -1889,7 +2266,14 @@
     window.aiDecision = aiDecision;
     window.getBestPlayingXI = getBestPlayingXI;
     window.rateSquad = rateSquad;
+    window.setHumanTeam = setHumanTeam;
+    window.getHumanTeams = getHumanTeams;
     window.powerJump = powerJump;
+    window.setAuctionMode = setAuctionMode;
+  window.setBidDuration = setBidDuration;
+  window.releasePlayerFromTeam = releasePlayerFromTeam;
+  window.nominateUnsoldPlayer = nominateUnsoldPlayer;
+    window.getAuctionMode = getAuctionMode;
     window.finishFast = finishFast;
     window.shuffleUpcomingPool = shuffleUpcomingPool;
   }
@@ -1900,12 +2284,15 @@
     globalThis.GameState = GameState;
     globalThis.initGame = initGame;
     globalThis.selectTeam = selectTeam;
+    globalThis.changeUserTeam = changeUserTeam;
     globalThis.getTeam = getTeam;
     globalThis.getTeams = getTeams;
     globalThis.startAuction = startAuction;
     globalThis.nextPlayer = nextPlayer;
     globalThis.placeBid = placeBid;
     globalThis.powerJump = powerJump;
+    globalThis.setAuctionMode = setAuctionMode;
+    globalThis.getAuctionMode = getAuctionMode;
     globalThis.finishFast = finishFast;
     globalThis.getBidIncrement = getBidIncrement;
     globalThis.startTimer = startTimer;
@@ -1917,6 +2304,8 @@
     globalThis.aiDecision = aiDecision;
     globalThis.getBestPlayingXI = getBestPlayingXI;
     globalThis.rateSquad = rateSquad;
+    globalThis.setHumanTeam = setHumanTeam;
+    globalThis.getHumanTeams = getHumanTeams;
     globalThis.shuffleUpcomingPool = shuffleUpcomingPool;
   }
 

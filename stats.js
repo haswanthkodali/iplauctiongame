@@ -1692,7 +1692,7 @@ const TEAM_HISTORY = {
         ],
         historicalStrength: "Young Indian talent development, pace bowling",
         pastAuctionStrategy: "Invest in young Indian core, overseas pace support",
-        retentionHistory2024: ["Axar Patel", "Kuldeep Yadav", "Tristan Stubbs", "Abhishek Porel"],
+        retentionHistory2024: ["Axar Patel", "Kuldeep Yadav", "Tristan Stubbs", "Abishek Porel"],
         teamRating: 68
     },
 
@@ -1709,7 +1709,7 @@ const TEAM_HISTORY = {
         ],
         historicalStrength: "Aggressive auction strategy, underdog spirit",
         pastAuctionStrategy: "Big spending on marquee overseas, inconsistent strategy across seasons",
-        retentionHistory2024: ["Shikhar Dhawan", "Prabhsimran Singh"],
+        retentionHistory2024: ["Prabhsimran Singh", "Shashank Singh"],
         teamRating: 62
     },
 

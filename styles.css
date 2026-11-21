@@ -49,15 +49,15 @@
   --font-family-headline: 'Teko', sans-serif;
   --font-family-numbers: 'Orbitron', monospace;
 
-  --fs-xs: clamp(0.72rem, 0.68rem + 0.2vw, 0.82rem);
-  --fs-sm: clamp(0.82rem, 0.78rem + 0.25vw, 0.94rem);
-  --fs-base: clamp(0.95rem, 0.9rem + 0.3vw, 1.08rem);
-  --fs-md: clamp(1.1rem, 1.02rem + 0.45vw, 1.3rem);
-  --fs-lg: clamp(1.3rem, 1.18rem + 0.7vw, 1.65rem);
-  --fs-xl: clamp(1.65rem, 1.45rem + 1.1vw, 2.2rem);
-  --fs-2xl: clamp(2.1rem, 1.75rem + 1.8vw, 3.1rem);
-  --fs-hero: clamp(2.8rem, 2.2rem + 3.2vw, 4.8rem);
-  --fs-mega: clamp(3.6rem, 2.8rem + 4.5vw, 6.5rem);
+  --fs-xs: clamp(0.7rem, 0.68rem + 0.1vw, 0.78rem);
+  --fs-sm: clamp(0.78rem, 0.75rem + 0.15vw, 0.88rem);
+  --fs-base: clamp(0.88rem, 0.84rem + 0.2vw, 0.98rem);
+  --fs-md: clamp(1.02rem, 0.96rem + 0.3vw, 1.18rem);
+  --fs-lg: clamp(1.18rem, 1.1rem + 0.45vw, 1.45rem);
+  --fs-xl: clamp(1.45rem, 1.3rem + 0.7vw, 1.85rem);
+  --fs-2xl: clamp(1.85rem, 1.6rem + 1.2vw, 2.5rem);
+  --fs-hero: clamp(2.4rem, 2.0rem + 2.0vw, 3.8rem);
+  --fs-mega: clamp(3.0rem, 2.4rem + 2.8vw, 5.0rem);
 
   /* Text Colors */
   --text-high-contrast: #ffffff;
@@ -2639,5 +2639,130 @@ body::before {
 
   .confetti-piece {
     display: none;
+  }
+}
+
+
+/* ==========================================================================
+   GLOBAL SCREEN SCALING OPTIMIZATIONS (PC Sleek Density & Mobile Optimal Fit)
+   ========================================================================== */
+
+/* 1. PC / DESKTOP (Slightly decreased size, sleek & compact dashboard density) */
+@media (min-width: 1024px) {
+  html {
+    font-size: 14px; /* Sleek ~12.5% reduction for all rem-based Tailwind sizes */
+  }
+
+  .max-w-7xl {
+    max-width: 1220px;
+  }
+
+  /* Compact padding in auction arena & cards */
+  #activePlayerCard {
+    padding: 1.25rem;
+  }
+
+  /* Compact bidding controls */
+  #btnUserBid {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  html {
+    font-size: 14.25px;
+  }
+  .max-w-7xl {
+    max-width: 1260px;
+  }
+}
+
+/* 2. TABLET (641px - 1023px) */
+@media (min-width: 641px) and (max-width: 1023px) {
+  html {
+    font-size: 13.5px;
+  }
+}
+
+/* 3. MOBILE PHONES (<= 640px) - BEST SIZE & TOUCH OPTIMIZATION */
+@media (max-width: 640px) {
+  html {
+    font-size: 13.5px;
+  }
+
+  body {
+    padding: 0;
+  }
+
+  /* Maximum edge-to-edge space with neat 8px gutter */
+  .max-w-7xl {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  /* Playing 11 Turf 3-column layout on phone (3+3+3+2 in 4 clean rows) */
+  #playing11FieldGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.35rem !important;
+  }
+
+  /* Turf container compact height */
+  .cricket-turf {
+    min-height: 400px !important;
+    padding: 0.6rem !important;
+  }
+
+  /* Slot card on turf */
+  #playing11FieldGrid > div {
+    padding: 0.35rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  /* Active player card on mobile */
+  #activePlayerCard {
+    padding: 0.75rem !important;
+    border-radius: 1.25rem !important;
+  }
+
+  /* Player portrait spotlight on phone */
+  #activePlayerCard .group > div:first-child {
+    width: 110px !important;
+    height: 140px !important;
+  }
+
+  #playerName {
+    font-size: 1.35rem !important;
+    line-height: 1.2 !important;
+  }
+
+  #currentBidDisplay {
+    font-size: 1.75rem !important;
+  }
+
+  /* Career stats 3-column grid */
+  #activePlayerCard .grid-cols-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.35rem !important;
+  }
+
+  /* Main bid button full-width */
+  #btnUserBid {
+    padding: 0.85rem 1rem !important;
+    font-size: 1.15rem !important;
+  }
+
+  /* Modals: fit mobile viewport cleanly with scroll */
+  .fixed.inset-0 > div[class*="max-w-"] {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    padding: 1rem !important;
+    border-radius: 1.25rem !important;
+  }
+
+  /* Chat Drawer: 100% width on phone */
+  #multiplayerChatDrawer {
+    width: 100% !important;
   }
 }

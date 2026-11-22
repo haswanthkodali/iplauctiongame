@@ -501,7 +501,7 @@
   /**
    * 3. startAuction() - Begin the live auction (clears ALL previous state)
    */
-  function startAuction() {
+  function startAuction(customPoolIds) {
     // ---- CLEAR ALL PREVIOUS AUCTION STATE ----
     // Stop any running timer
     if (GameState.timer) {
@@ -533,6 +533,23 @@
       userTeamId: GameState.userTeamId,
       poolSize: GameState.poolSize || 'quick'
     });
+
+    // Synchronize pool order if customPoolIds or room.pool is provided
+    const poolIds = customPoolIds || (typeof window !== 'undefined' && window.CurrentRoom && window.CurrentRoom.pool);
+    if (Array.isArray(poolIds) && poolIds.length > 0) {
+      const poolMap = new Map();
+      GameState.auctionPool.forEach(p => poolMap.set(p.id, p));
+      const orderedPool = [];
+      poolIds.forEach(id => {
+        if (poolMap.has(id)) {
+          orderedPool.push(poolMap.get(id));
+          poolMap.delete(id);
+        }
+      });
+      // Append any leftovers
+      poolMap.forEach(p => orderedPool.push(p));
+      GameState.auctionPool = orderedPool;
+    }
 
     if (!GameState.userTeamId && GameState.teams.length > 0) {
       GameState.userTeamId = GameState.teams[0].id;
@@ -825,7 +842,7 @@
   /**
    * 5. placeBid(teamId) - Place a bid (user or AI)
    */
-  function placeBid(teamId, customAmount) {
+  function placeBid(teamId, customAmount, isRemote = false) {
     if (GameState.phase !== 'auction') return false;
     if (GameState.isPaused) return false;
     if (GameState.isSold || GameState.isUnsold) return false;
@@ -931,8 +948,8 @@
     emit('stateChange', GameState);
 
     try {
-      if (typeof StorageEngine !== 'undefined' && StorageEngine.broadcastBid) {
-        StorageEngine.broadcastBid(bidderId, nextBid);
+      if (!isRemote && typeof StorageEngine !== 'undefined' && StorageEngine.broadcastBid) {
+        StorageEngine.broadcastBid(bidderId, nextBid, GameState.currentPlayerIndex);
       }
     } catch (e) {}
 
@@ -1035,11 +1052,14 @@
     emit('stateChange', GameState);
   }
 
-  function passPlayer() {
+  function passPlayer(isRemote = false) {
     // Accelerates countdown if user decides not to bid
     if (GameState.phase === 'auction' && !GameState.isPaused && GameState.timeLeft > 3) {
       GameState.timeLeft = 3;
       emit('timerTick', { timeLeft: GameState.timeLeft, player: getCurrentPlayer() });
+      if (!isRemote && typeof StorageEngine !== 'undefined' && StorageEngine.broadcastPass) {
+        StorageEngine.broadcastPass();
+      }
     }
   }
 

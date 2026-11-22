@@ -282,7 +282,7 @@
 
         <!-- Room Rules Display Banner -->
         <div id="lobbyRulesBanner" class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-center text-xs">
             <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Format</span>
               <strong class="text-amber-400" id="ruleDisplayFormat">2027 Mini Auction</strong>
@@ -299,6 +299,10 @@
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Accelerated Auction</span>
               <strong class="text-emerald-400" id="ruleDisplayAccelerated">Enabled (ON)</strong>
             </div>
+            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 col-span-2 sm:col-span-1">
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Bid Countdown</span>
+              <strong class="text-amber-400" id="ruleDisplayTimer">10s (Default)</strong>
+            </div>
           </div>
 
           <!-- HOST EDIT SETTINGS BUTTON (only visible to host) -->
@@ -313,6 +317,11 @@
             <div class="flex items-center justify-between">
               <h4 class="text-sm font-bold text-amber-300 flex items-center gap-2"><span>⚙️</span> Edit Room Rules</h4>
               <span class="text-[10px] text-slate-500">Format cannot be changed after creation</span>
+            </div>
+
+            <!-- Notice when auction is live: only Accelerated Round can be toggled -->
+            <div id="lobbySettingsLiveLockNotice" class="hidden p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+              <span>🔒</span> <span>Auction is live: Max Bid & Player Limits are locked. Only <strong>Accelerated Auction Round</strong> can be enabled or disabled.</span>
             </div>
 
             <!-- Max Bid Ceiling -->
@@ -472,14 +481,9 @@
             </h2>
             <p class="text-xs text-slate-400">Click any public room to jump in and choose your franchise.</p>
           </div>
-          <div class="flex items-center gap-2">
-            <button id="btnRefreshPublicRooms" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
-              <span>🔄</span> <span>Refresh List</span>
-            </button>
-            <button id="btnClearAllPublicRooms" class="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-xs text-red-300 border border-red-800/50 transition flex items-center gap-1.5 cursor-pointer" title="Wipe local room cache and sync fresh from cloud">
-              <span>🗑️</span> <span>Clear Stale Rooms</span>
-            </button>
-          </div>
+          <button id="btnRefreshPublicRooms" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
+            <span>🔄</span> <span>Refresh List</span>
+          </button>
         </div>
 
         <div id="publicRoomsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -612,6 +616,7 @@
             <button id="btnHostTimer5s" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold" title="Set bid timer to 5 seconds">5s</button>
             <button id="btnHostTimer10s" class="px-2 py-1 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-bold" title="Set bid timer to 10 seconds">10s</button>
             <button id="btnHostPauseResume" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 text-[11px] font-bold">⏸️ Pause</button>
+            <button id="btnHostToggleAccelerated" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-400 border border-emerald-500/40 text-[11px] font-bold transition cursor-pointer" title="Toggle Accelerated Auction Round ON or OFF during auction">⚡ Accelerated: ON</button>
           </div>
 
           <div class="flex items-center gap-2">
@@ -1792,9 +1797,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=1795206000"></script>
   <!-- 8. Persistent Server & Supabase Storage, Relogin & Room Client -->
-  <script src="storage.js?v=1795307600"></script>
+  <script src="storage.js?v=1795311000"></script>
   <!-- 9. Main Application Controller & UI View Bindings -->
-  <script src="app.js?v=1795307600"></script>
+  <script src="app.js?v=1795311000"></script>
 
 
   <!-- CHANGE FRANCHISE MODAL (LIVE IN-AUCTION SWITCHER) -->

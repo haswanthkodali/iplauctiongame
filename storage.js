@@ -975,6 +975,8 @@
         body: JSON.stringify(newRoom)
       }).then(r => { if (r.ok) this.isServerConnected = true; }).catch(() => {});
 
+      this.switchRoomChannel(roomId);
+
       return newRoom;
     }
 
@@ -1024,6 +1026,7 @@
       }
 
       this.saveRoom(room);
+      this.broadcastRoomUpdate(room);
       return { success: true, room };
     }
 
@@ -1061,6 +1064,7 @@
         }
       }
       this.saveRoom(room);
+      this.broadcastRoomUpdate(room);
       return { success: true, room };
     }
 
@@ -1138,6 +1142,8 @@
       if (alreadyTeam) {
         this.saveRoom(room);
         this.currentRoomId = room.roomId;
+        this.switchRoomChannel(room.roomId);
+        this.broadcastRoomUpdate(room);
         return { success: true, room, isSpectator: false, assignedTeam: alreadyTeam };
       }
 
@@ -1169,6 +1175,8 @@
 
       this.saveRoom(room);
       this.currentRoomId = room.roomId;
+      this.switchRoomChannel(room.roomId);
+      this.broadcastRoomUpdate(room);
 
       return { success: true, room, isSpectator: false, assignedTeam };
     }
@@ -1204,6 +1212,7 @@
       }
 
       this.saveRoom(room);
+      this.broadcastRoomUpdate(room);
       return { success: true, room, freedTeam };
     }
 
@@ -1263,9 +1272,8 @@
           delete room.players[tId];
         }
       }
-      const db = this.getAllRoomsDB();
-      db[room.roomId] = room;
-      this.saveAllRoomsDB(db);
+      this.saveRoom(room);
+      this.broadcastRoomUpdate(room);
       return true;
     }
 
@@ -1274,9 +1282,8 @@
       if (!room) return;
       room.rules = room.rules || {};
       room.rules.timer = seconds;
-      const db = this.getAllRoomsDB();
-      db[room.roomId] = room;
-      this.saveAllRoomsDB(db);
+      this.saveRoom(room);
+      this.broadcastRoomUpdate(room);
     }
 
         persistLocalUser(user) {
@@ -1299,38 +1306,145 @@
 
       try {
         this.supabase = window.supabase.createClient(url, key);
-        this.supabaseChannel = this.supabase.channel(`auction-room-${this.currentRoomId}`, {
+        this.isServerConnected = true;
+        if (this.currentRoomId) {
+          this.switchRoomChannel(this.currentRoomId);
+        }
+        return this.supabase;
+      } catch (err) {
+        console.warn('[Supabase Realtime] Init warning:', err);
+        return null;
+      }
+    }
+
+    /**
+     * Switch Supabase Realtime Channel to a specific room
+     */
+    switchRoomChannel(newRoomId) {
+      if (!newRoomId) return;
+      let cleanId = String(newRoomId).trim().toUpperCase();
+      if (/^\d{3,5}$/.test(cleanId)) cleanId = 'IPL-' + cleanId;
+      this.currentRoomId = cleanId;
+
+      const cfg = this.getSupabaseConfig();
+      if (!cfg.url || !cfg.anonKey || typeof window === 'undefined' || typeof window.supabase === 'undefined') {
+        return;
+      }
+
+      if (!this.supabase) {
+        try {
+          this.supabase = window.supabase.createClient(cfg.url, cfg.anonKey);
+        } catch (e) {
+          console.warn('[Supabase Realtime] createClient failed:', e);
+          return;
+        }
+      }
+
+      // Unsubscribe existing channel if any
+      if (this.supabaseChannel) {
+        try {
+          this.supabase.removeChannel(this.supabaseChannel);
+        } catch (e) {}
+        this.supabaseChannel = null;
+      }
+
+      try {
+        const channelName = uction-room-;
+        this.supabaseChannel = this.supabase.channel(channelName, {
           config: { broadcast: { self: false } }
         });
 
         this.supabaseChannel
           .on('broadcast', { event: 'bid' }, payload => {
-            if (payload && payload.payload && window.Game) {
-              const { teamId, amount } = payload.payload;
-              window.Game.placeBid(teamId, amount);
+            if (payload && payload.payload) {
+              const { teamId, amount, playerIndex } = payload.payload;
+              if (typeof window !== 'undefined' && window.onRemoteBid) {
+                window.onRemoteBid(payload.payload);
+              } else if (typeof window !== 'undefined' && window.Game && window.Game.placeBid) {
+                window.Game.placeBid(teamId, amount, true);
+              }
             }
           })
-          .on('broadcast', { event: 'pass' }, () => {
-            if (window.Game) window.Game.passPlayer();
+          .on('broadcast', { event: 'pass' }, payload => {
+            if (typeof window !== 'undefined' && window.onRemotePass) {
+              window.onRemotePass(payload?.payload);
+            } else if (typeof window !== 'undefined' && window.Game && window.Game.passPlayer) {
+              window.Game.passPlayer(true);
+            }
           })
-          .subscribe();
+          .on('broadcast', { event: 'room_update' }, payload => {
+            if (payload && payload.payload && payload.payload.room) {
+              const updatedRoom = payload.payload.room;
+              if (typeof window !== 'undefined' && window.onRemoteRoomUpdate) {
+                window.onRemoteRoomUpdate(updatedRoom);
+              }
+            }
+          })
+          .on('broadcast', { event: 'auction_start' }, payload => {
+            if (typeof window !== 'undefined' && window.onRemoteAuctionStart) {
+              window.onRemoteAuctionStart(payload?.payload);
+            }
+          })
+          .subscribe((status) => {
+            console.log([Supabase Realtime] Room channel  status:, status);
+          });
 
-        console.log(`[Supabase Realtime] Connected to room channel: auction-room-${this.currentRoomId}`);
+        console.log([Supabase Realtime] Connected to room channel: );
         this.isServerConnected = true;
-        return this.supabase;
       } catch (err) {
-        console.warn('[Supabase Realtime] Connection warning:', err);
-        return null;
+        console.warn([Supabase Realtime] Connection error for room :, err);
       }
     }
 
-    broadcastBid(teamId, amount) {
-      if (this.supabaseChannel) {
+    broadcastRoomUpdate(room) {
+      if (!room || !this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'room_update',
+          payload: { room, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] room_update error:', e);
+      }
+    }
+
+    broadcastAuctionStart(room, pool) {
+      if (!this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'auction_start',
+          payload: { room, pool, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] auction_start error:', e);
+      }
+    }
+
+    broadcastBid(teamId, amount, playerIndex) {
+      if (!this.supabaseChannel) return;
+      try {
         this.supabaseChannel.send({
           type: 'broadcast',
           event: 'bid',
-          payload: { teamId, amount, timestamp: Date.now() }
+          payload: { teamId, amount, playerIndex, timestamp: Date.now() }
         });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] bid error:', e);
+      }
+    }
+
+    broadcastPass() {
+      if (!this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'pass',
+          payload: { timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] pass error:', e);
       }
     }
   }
@@ -1359,6 +1473,11 @@
     if (typeof global.StorageEngine.setPlayerOnlineStatus === 'function') global.StorageEngine.setPlayerOnlineStatus = global.StorageEngine.setPlayerOnlineStatus.bind(global.StorageEngine);
     if (typeof global.StorageEngine.updatePlayerHeartbeat === 'function') global.StorageEngine.updatePlayerHeartbeat = global.StorageEngine.updatePlayerHeartbeat.bind(global.StorageEngine);
     if (typeof global.StorageEngine.clearAllRooms === 'function') global.StorageEngine.clearAllRooms = global.StorageEngine.clearAllRooms.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.switchRoomChannel === 'function') global.StorageEngine.switchRoomChannel = global.StorageEngine.switchRoomChannel.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastRoomUpdate === 'function') global.StorageEngine.broadcastRoomUpdate = global.StorageEngine.broadcastRoomUpdate.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastAuctionStart === 'function') global.StorageEngine.broadcastAuctionStart = global.StorageEngine.broadcastAuctionStart.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastBid === 'function') global.StorageEngine.broadcastBid = global.StorageEngine.broadcastBid.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastPass === 'function') global.StorageEngine.broadcastPass = global.StorageEngine.broadcastPass.bind(global.StorageEngine);
   }
 
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

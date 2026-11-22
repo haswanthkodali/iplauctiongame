@@ -2335,7 +2335,7 @@
       AuctionAudio.playBidPaddle();
       setTimeout(() => {
         if (DOM.copyLinkBtnText) DOM.copyLinkBtnText.textContent = 'Copy Link';
-      }, 2500);
+      }, 1500);
     } catch (e) {
       if (DOM.inputPrivateShareLink) {
         DOM.inputPrivateShareLink.focus();
@@ -2344,7 +2344,7 @@
         if (DOM.copyLinkBtnText) DOM.copyLinkBtnText.textContent = 'Copied! ✓';
         setTimeout(() => {
           if (DOM.copyLinkBtnText) DOM.copyLinkBtnText.textContent = 'Copy Link';
-        }, 2500);
+        }, 1500);
       }
     }
   }
@@ -2570,62 +2570,108 @@
 
   function setAuctionMode(mode) {
     AppState.auctionMode = mode;
-    AuctionAudio.playBidPaddle();
+    try {
+      if (typeof AuctionAudio !== 'undefined' && AuctionAudio.playBidPaddle) {
+        AuctionAudio.playBidPaddle();
+      }
+    } catch (e) {}
 
     if (mode === 'MINI') {
-      if (DOM.cardModeMini) DOM.cardModeMini.classList.add('border-amber-400', 'shadow-amber-500/10');
-      DOM.cardModeMini.classList.remove('border-slate-800');
-      if (DOM.radioCheckMini) DOM.radioCheckMini.textContent = '✓';
-      DOM.radioCheckMini.className = 'w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black';
+      if (DOM.cardModeMini) {
+        DOM.cardModeMini.classList.add('border-amber-400', 'shadow-amber-500/10');
+        DOM.cardModeMini.classList.remove('border-slate-800');
+      }
+      if (DOM.radioCheckMini) {
+        DOM.radioCheckMini.textContent = '✓';
+        DOM.radioCheckMini.className = 'w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black';
+      }
 
-      if (DOM.cardModeMega) DOM.cardModeMega.classList.remove('border-amber-400', 'shadow-amber-500/10');
-      DOM.cardModeMega.classList.add('border-slate-800');
-      if (DOM.radioCheckMega) DOM.radioCheckMega.textContent = '○';
-      DOM.radioCheckMega.className = 'w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-black';
+      if (DOM.cardModeMega) {
+        DOM.cardModeMega.classList.remove('border-amber-400', 'shadow-amber-500/10');
+        DOM.cardModeMega.classList.add('border-slate-800');
+      }
+      if (DOM.radioCheckMega) {
+        DOM.radioCheckMega.textContent = '○';
+        DOM.radioCheckMega.className = 'w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-black';
+      }
       
-      DOM.auctionModeBadge.textContent = 'MINI AUCTION (40/60)';
-      DOM.auctionModeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-purple-900/60 text-purple-300 border border-purple-700/50';
+      if (DOM.auctionModeBadge) {
+        DOM.auctionModeBadge.textContent = 'MINI AUCTION (40/60)';
+        DOM.auctionModeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-purple-900/60 text-purple-300 border border-purple-700/50';
+      }
     } else {
-      if (DOM.cardModeMega) DOM.cardModeMega.classList.add('border-amber-400', 'shadow-amber-500/10');
-      DOM.cardModeMega.classList.remove('border-slate-800');
-      if (DOM.radioCheckMega) DOM.radioCheckMega.textContent = '✓';
-      DOM.radioCheckMega.className = 'w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black';
+      if (DOM.cardModeMega) {
+        DOM.cardModeMega.classList.add('border-amber-400', 'shadow-amber-500/10');
+        DOM.cardModeMega.classList.remove('border-slate-800');
+      }
+      if (DOM.radioCheckMega) {
+        DOM.radioCheckMega.textContent = '✓';
+        DOM.radioCheckMega.className = 'w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black';
+      }
 
-      if (DOM.cardModeMini) DOM.cardModeMini.classList.remove('border-amber-400', 'shadow-amber-500/10');
-      DOM.cardModeMini.classList.add('border-slate-800');
-      if (DOM.radioCheckMini) DOM.radioCheckMini.textContent = '○';
-      DOM.radioCheckMini.className = 'w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-black';
+      if (DOM.cardModeMini) {
+        DOM.cardModeMini.classList.remove('border-amber-400', 'shadow-amber-500/10');
+        DOM.cardModeMini.classList.add('border-slate-800');
+      }
+      if (DOM.radioCheckMini) {
+        DOM.radioCheckMini.textContent = '○';
+        DOM.radioCheckMini.className = 'w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-black';
+      }
 
-      DOM.auctionModeBadge.textContent = 'MEGA AUCTION';
-      DOM.auctionModeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-blue-900/60 text-blue-300 border border-blue-700/50';
+      if (DOM.auctionModeBadge) {
+        DOM.auctionModeBadge.textContent = 'MEGA AUCTION';
+        DOM.auctionModeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-blue-900/60 text-blue-300 border border-blue-700/50';
+      }
     }
 
-    renderLandingPage();
+    if (typeof renderLandingPage === 'function') {
+      try { renderLandingPage(); } catch (e) {}
+    }
   }
 
   function setPoolSize(size) {
     AppState.poolSize = size;
-    AuctionAudio.playBidPaddle();
+    try {
+      if (typeof AuctionAudio !== 'undefined' && AuctionAudio.playBidPaddle) {
+        AuctionAudio.playBidPaddle();
+      }
+    } catch (e) {}
     if (size === 'quick') {
-      if (DOM.btnPoolQuick) DOM.btnPoolQuick.classList.add('border-amber-400');
-      DOM.btnPoolQuick.classList.remove('border-slate-800');
-      if (DOM.badgePoolQuick) DOM.badgePoolQuick.textContent = 'SELECTED';
-      DOM.badgePoolQuick.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700';
+      if (DOM.btnPoolQuick) {
+        DOM.btnPoolQuick.classList.add('border-amber-400');
+        DOM.btnPoolQuick.classList.remove('border-slate-800');
+      }
+      if (DOM.badgePoolQuick) {
+        DOM.badgePoolQuick.textContent = 'SELECTED';
+        DOM.badgePoolQuick.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700';
+      }
 
-      if (DOM.btnPoolFull) DOM.btnPoolFull.classList.remove('border-amber-400');
-      DOM.btnPoolFull.classList.add('border-slate-800');
-      if (DOM.badgePoolFull) DOM.badgePoolFull.textContent = 'FULL';
-      DOM.badgePoolFull.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+      if (DOM.btnPoolFull) {
+        DOM.btnPoolFull.classList.remove('border-amber-400');
+        DOM.btnPoolFull.classList.add('border-slate-800');
+      }
+      if (DOM.badgePoolFull) {
+        DOM.badgePoolFull.textContent = 'FULL';
+        DOM.badgePoolFull.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+      }
     } else {
-      if (DOM.btnPoolFull) DOM.btnPoolFull.classList.add('border-amber-400');
-      DOM.btnPoolFull.classList.remove('border-slate-800');
-      if (DOM.badgePoolFull) DOM.badgePoolFull.textContent = 'SELECTED';
-      DOM.badgePoolFull.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700';
+      if (DOM.btnPoolFull) {
+        DOM.btnPoolFull.classList.add('border-amber-400');
+        DOM.btnPoolFull.classList.remove('border-slate-800');
+      }
+      if (DOM.badgePoolFull) {
+        DOM.badgePoolFull.textContent = 'SELECTED';
+        DOM.badgePoolFull.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700';
+      }
 
-      if (DOM.btnPoolQuick) DOM.btnPoolQuick.classList.remove('border-amber-400');
-      DOM.btnPoolQuick.classList.add('border-slate-800');
-      if (DOM.badgePoolQuick) DOM.badgePoolQuick.textContent = 'QUICK';
-      DOM.badgePoolQuick.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+      if (DOM.btnPoolQuick) {
+        DOM.btnPoolQuick.classList.remove('border-amber-400');
+        DOM.btnPoolQuick.classList.add('border-slate-800');
+      }
+      if (DOM.badgePoolQuick) {
+        DOM.badgePoolQuick.textContent = 'QUICK';
+        DOM.badgePoolQuick.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+      }
     }
   }
 
@@ -4766,6 +4812,118 @@
     }
   }
 
+  // ==========================================================================
+  // REAL-TIME ROOM RULES & MULTIPLAYER BROADCAST HOOKS
+  // ==========================================================================
+  function renderRoomLobbyRules(room) {
+    if (!room) return;
+    const rules = room.rules || {};
+    window.RoomRules = rules;
+
+    const rFormat = document.getElementById('ruleDisplayFormat');
+    if (rFormat) rFormat.textContent = room.mode === 'MINI' ? '2027 Mini Auction' : 'Mega Auction';
+
+    const rMax = document.getElementById('ruleDisplayMaxBid');
+    if (rMax) rMax.textContent = rules.maxBidEnabled ? `Max ₹${rules.maxBidAmount}.00 Cr` : 'None (No Cap)';
+
+    const rExceed = document.getElementById('ruleDisplayExceedLimit');
+    if (rExceed) rExceed.textContent = rules.exceedLimitEnabled ? `Max ${rules.exceedMaxPlayers} > ₹${rules.exceedThreshold} Cr` : 'Unlimited';
+
+    const rAcc = document.getElementById('ruleDisplayAccelerated');
+    if (rAcc) rAcc.textContent = rules.acceleratedEnabled ? 'Enabled (ON)' : 'Disabled (OFF)';
+
+    const rTimer = document.getElementById('ruleDisplayTimer');
+    const timerSec = rules.timer === 5 ? 5 : 10;
+    if (rTimer) rTimer.textContent = timerSec === 5 ? '5s (Fast)' : '10s (Default)';
+
+    // Update Host Controls Timer Button highlights if visible
+    const btn5s = document.getElementById('btnLobbyTimer5s');
+    const btn10s = document.getElementById('btnLobbyTimer10s');
+    if (btn5s && btn10s) {
+      if (timerSec === 5) {
+        btn5s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-bold transition cursor-pointer';
+        btn10s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer';
+      } else {
+        btn10s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-bold transition cursor-pointer';
+        btn5s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer';
+      }
+    }
+
+    if (typeof Game !== 'undefined' && Game.setBidDuration) {
+      Game.setBidDuration(timerSec);
+    }
+  }
+
+  window.onRemoteRoomUpdate = function(updatedRoom) {
+    if (!updatedRoom || !window.CurrentRoom || updatedRoom.roomId !== window.CurrentRoom.roomId) return;
+    window.CurrentRoom = updatedRoom;
+    renderRoomLobbyRules(updatedRoom);
+    renderLobbyTeamsGrid(updatedRoom);
+    renderLobbyPlayersList(updatedRoom);
+    updateLobbyHostControlsUI(updatedRoom);
+  };
+
+  window.onRemoteAuctionStart = function(payload) {
+    const startRoom = payload?.room || window.CurrentRoom;
+    if (!startRoom) return;
+    if (window.AuctionStarted) return;
+    window.AuctionStarted = true;
+    window.CurrentRoom = startRoom;
+    if (startRoom.rules) window.RoomRules = startRoom.rules;
+
+    // Stop lobby sync interval as auction has now begun
+    if (window._lobbySyncInterval) {
+      clearInterval(window._lobbySyncInterval);
+      window._lobbySyncInterval = null;
+    }
+
+    // Synchronize user team
+    const currentUser = StorageEngine?.currentUser;
+    const myId = currentUser?.userId;
+    const myUserName = (currentUser?.userName || localStorage.getItem('ipl_user_name') || '').trim().toLowerCase();
+    let myAssignedTeam = AppState.userTeamId;
+    if (startRoom.players) {
+      for (const t of Object.keys(startRoom.players)) {
+        const p = startRoom.players[t];
+        const pName = (p && p.userName ? p.userName.trim().toLowerCase() : '');
+        if (p && ((myId && p.userId === myId) || (myUserName && pName === myUserName))) {
+          myAssignedTeam = t;
+          break;
+        }
+      }
+    }
+    AppState.userTeamId = myAssignedTeam;
+    AppState.selectedLandingTeamId = myAssignedTeam;
+    AppState.selectedPlaying11TeamId = myAssignedTeam;
+    AppState.selectedReviewTeamId = myAssignedTeam;
+
+    if (typeof setAuctionMode === 'function') setAuctionMode(startRoom.mode || 'MINI');
+    if (typeof Game !== 'undefined') {
+      if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(myAssignedTeam);
+      else if (typeof Game.selectTeam === 'function') Game.selectTeam(myAssignedTeam);
+      if (Game.setBidDuration) Game.setBidDuration(window.RoomRules.timer || 10);
+      Game.startAuction(payload?.pool || startRoom.pool);
+    }
+    if (typeof updateTopBar === 'function') updateTopBar();
+    window.switchTab('auction');
+    switchArenaTab('bidding');
+    try { AuctionAudio.playHammerHit(); } catch (e) {}
+  };
+
+  window.onRemoteBid = function(payload) {
+    if (!payload || !window.Game) return;
+    const { teamId, amount } = payload;
+    if (typeof window.Game.placeBid === 'function') {
+      window.Game.placeBid(teamId, amount, true);
+    }
+  };
+
+  window.onRemotePass = function(payload) {
+    if (window.Game && typeof window.Game.passPlayer === 'function') {
+      window.Game.passPlayer(true);
+    }
+  };
+
   // Open Room Lobby UI
   function openRoomLobbyUI(room) {
     if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.sanitizeRoomTeams === 'function') {
@@ -4892,18 +5050,13 @@
       };
     }
 
-    // Rules display
-    const rFormat = document.getElementById('ruleDisplayFormat');
-    if (rFormat) rFormat.textContent = room.mode === 'MINI' ? '2027 Mini Auction' : 'Mega Auction';
+    // Connect to room channel for real-time live events & options synchronization
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.switchRoomChannel === 'function') {
+      StorageEngine.switchRoomChannel(room.roomId);
+    }
 
-    const rMax = document.getElementById('ruleDisplayMaxBid');
-    if (rMax) rMax.textContent = room.rules?.maxBidEnabled ? `Max ₹${room.rules.maxBidAmount}.00 Cr` : 'None (No Cap)';
-
-    const rExceed = document.getElementById('ruleDisplayExceedLimit');
-    if (rExceed) rExceed.textContent = room.rules?.exceedLimitEnabled ? `Max ${room.rules.exceedMaxPlayers} > ₹${room.rules.exceedThreshold} Cr` : 'Unlimited';
-
-    const rAcc = document.getElementById('ruleDisplayAccelerated');
-    if (rAcc) rAcc.textContent = room.rules?.acceleratedEnabled ? 'Enabled (ON)' : 'Disabled (OFF)';
+    // Rules & Options live display
+    renderRoomLobbyRules(room);
 
     // Render 10 Teams Grid for Room (Lock already taken teams)
     renderLobbyTeamsGrid(room);
@@ -4987,8 +5140,9 @@
               return;
             }
 
-            // Update local room reference & re-render lobby teams and players
+            // Update local room reference & re-render lobby teams, players, and options
             window.CurrentRoom = freshRoom;
+            renderRoomLobbyRules(freshRoom);
             renderLobbyTeamsGrid(freshRoom);
             renderLobbyPlayersList(freshRoom);
             updateLobbyHostControlsUI(freshRoom);
@@ -5021,7 +5175,7 @@
           console.warn('[Lobby Sync] Fetch error:', e);
         }
       }
-    }, 2500);
+    }, 1500);
   }
 
   // =========================================================================
@@ -5109,9 +5263,13 @@
         room.rules = newRules;
         if (window.CurrentRoom) window.CurrentRoom.rules = newRules;
 
-        // Persist to storage
+        // Update room rules live in lobby
+        renderRoomLobbyRules(room);
+
+        // Persist to storage & broadcast immediately to all connected players
         if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
           StorageEngine.saveRoom(room);
+          if (typeof StorageEngine.broadcastRoomUpdate === 'function') StorageEngine.broadcastRoomUpdate(room);
         } else {
           try {
             const db = JSON.parse(localStorage.getItem('ipl_auction_rooms') || localStorage.getItem('ipl_all_active_rooms') || '{}');
@@ -5120,16 +5278,6 @@
             localStorage.setItem('ipl_auction_rooms', JSON.stringify(db));
           } catch (e) {}
         }
-
-        // Update display badges immediately
-        const rMax = document.getElementById('ruleDisplayMaxBid');
-        if (rMax) rMax.textContent = newRules.maxBidEnabled ? 'Max ₹' + newRules.maxBidAmount + '.00 Cr' : 'None (No Cap)';
-
-        const rExceed = document.getElementById('ruleDisplayExceedLimit');
-        if (rExceed) rExceed.textContent = newRules.exceedLimitEnabled ? 'Max ' + newRules.exceedMaxPlayers + ' > ₹' + newRules.exceedThreshold + ' Cr' : 'Unlimited';
-
-        const rAcc = document.getElementById('ruleDisplayAccelerated');
-        if (rAcc) rAcc.textContent = newRules.acceleratedEnabled ? 'Enabled (ON)' : 'Disabled (OFF)';
 
         // Also update live Game engine rules if auction is running
         try {
@@ -5331,88 +5479,142 @@
 
     if (btn5s) {
       btn5s.onclick = () => {
-        btn5s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-bold transition cursor-pointer';
-        if (btn10s) btn10s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer';
+        room.rules = room.rules || {};
+        room.rules.timer = 5;
         window.RoomRules.timer = 5;
-        if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(5);
+        renderRoomLobbyRules(room);
+        if (typeof StorageEngine !== 'undefined') {
+          StorageEngine.saveRoom(room);
+          if (typeof StorageEngine.broadcastRoomUpdate === 'function') StorageEngine.broadcastRoomUpdate(room);
+        }
       };
     }
 
     if (btn10s) {
       btn10s.onclick = () => {
-        btn10s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-bold transition cursor-pointer';
-        if (btn5s) btn5s.className = 'btn-timer-opt px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer';
+        room.rules = room.rules || {};
+        room.rules.timer = 10;
         window.RoomRules.timer = 10;
-        if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(10);
+        renderRoomLobbyRules(room);
+        if (typeof StorageEngine !== 'undefined') {
+          StorageEngine.saveRoom(room);
+          if (typeof StorageEngine.broadcastRoomUpdate === 'function') StorageEngine.broadcastRoomUpdate(room);
+        }
       };
     }
 
     if (btnStart) {
       btnStart.onclick = () => {
-        if (!room.players || Object.keys(room.players).length < 2) {
-          alert('At least 2 players must join before the auction can start.');
-          return;
-        }
-        // Ensure user's team in Game matches room team!
-        let activeTeam = room.hostTeam;
-        const myId = StorageEngine?.currentUser?.userId;
-        const myName = StorageEngine?.currentUser?.userName || localStorage.getItem('ipl_user_name');
-        if (room.players) {
-          for (const tId of Object.keys(room.players)) {
-            const p = room.players[tId];
-            if (p && (p.isHost || p.userId === room.hostId || p.userId === myId || (myName && p.userName === myName))) {
-              activeTeam = tId;
-              break;
+        try {
+          btnStart.disabled = true;
+          btnStart.innerHTML = '<span>🚀</span> <span>Starting Auction...</span>';
+
+          // If room.players is empty, ensure host is registered
+          if (!room.players || Object.keys(room.players).length === 0) {
+            const myId = StorageEngine?.currentUser?.userId || 'user_host';
+            const myName = StorageEngine?.currentUser?.userName || localStorage.getItem('ipl_user_name') || 'Host';
+            const hostT = room.hostTeam || 'MI';
+            room.players = room.players || {};
+            room.players[hostT] = {
+              userId: myId,
+              userName: myName,
+              teamId: hostT,
+              isHost: true,
+              isOnline: true,
+              lastSeen: Date.now()
+            };
+          }
+
+          // Ensure user's team in Game matches room team!
+          let activeTeam = room.hostTeam;
+          const myId = StorageEngine?.currentUser?.userId;
+          const myName = StorageEngine?.currentUser?.userName || localStorage.getItem('ipl_user_name');
+          if (room.players) {
+            for (const tId of Object.keys(room.players)) {
+              const p = room.players[tId];
+              if (p && (p.isHost || p.userId === room.hostId || p.userId === myId || (myName && p.userName === myName))) {
+                activeTeam = tId;
+                break;
+              }
             }
           }
-        }
-        if (!activeTeam) {
-          activeTeam = AppState.userTeamId || (typeof Game !== 'undefined' && Game.getState ? Game.getState().userTeamId : 'RCB');
-        }
+          if (!activeTeam) {
+            activeTeam = AppState.userTeamId || (typeof Game !== 'undefined' && Game.getState ? Game.getState().userTeamId : 'RCB');
+          }
 
-        AppState.userTeamId = activeTeam;
-        AppState.selectedLandingTeamId = activeTeam;
-        AppState.selectedPlaying11TeamId = activeTeam;
-        AppState.selectedReviewTeamId = activeTeam;
+          AppState.userTeamId = activeTeam;
+          AppState.selectedLandingTeamId = activeTeam;
+          AppState.selectedPlaying11TeamId = activeTeam;
+          AppState.selectedReviewTeamId = activeTeam;
 
-        // Apply auction mode & start
-        if (typeof setAuctionMode === 'function') {
-          setAuctionMode(room.mode || 'MINI');
+          // Apply auction mode & start
+          try {
+            if (typeof setAuctionMode === 'function') {
+              setAuctionMode(room.mode || 'MINI');
+            }
+          } catch (modeErr) {
+            console.warn('[setAuctionMode Error]:', modeErr);
+          }
+
+          if (typeof Game !== 'undefined') {
+            try {
+              if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(activeTeam);
+              else if (typeof Game.selectTeam === 'function') Game.selectTeam(activeTeam);
+              else if (Game.getState) Game.getState().userTeamId = activeTeam;
+
+              if (Game.setBidDuration) Game.setBidDuration(window.RoomRules.timer || 10);
+              Game.startAuction();
+            } catch (gameErr) {
+              console.warn('[Game.startAuction Error]:', gameErr);
+            }
+          }
+
+          // Stop lobby sync interval as auction has now begun
+          if (window._lobbySyncInterval) {
+            clearInterval(window._lobbySyncInterval);
+            window._lobbySyncInterval = null;
+          }
+
+          // ── LOCK SETTINGS: Hide settings editor after auction starts ──
+          window.AuctionStarted = true;
+          room.status = 'started';
+
+          // Extract exact pool order from Game so all players are synchronized on identical player sequence
+          const poolIds = (typeof Game !== 'undefined' && Game.getState && Game.getState().auctionPool)
+            ? Game.getState().auctionPool.map(p => p.id)
+            : null;
+          if (poolIds) room.pool = poolIds;
+
+          if (window.CurrentRoom) {
+            window.CurrentRoom.status = 'started';
+            if (poolIds) window.CurrentRoom.pool = poolIds;
+          }
+
+          // Hide the edit settings button & editor
+          const editBtn = document.getElementById('lobbyEditSettingsBtn');
+          const settingsEditor = document.getElementById('lobbySettingsEditor');
+          if (editBtn) editBtn.classList.add('hidden');
+          if (settingsEditor) settingsEditor.classList.add('hidden');
+
+          // Persist started status to cloud & broadcast so all guests & spectators are redirected immediately
+          if (typeof StorageEngine !== 'undefined') {
+            if (typeof StorageEngine.saveRoom === 'function') StorageEngine.saveRoom(room);
+            if (typeof StorageEngine.broadcastAuctionStart === 'function') StorageEngine.broadcastAuctionStart(room, poolIds);
+          }
+          // ── END LOCK SETTINGS ──
+
+          if (typeof updateTopBar === 'function') updateTopBar();
+          window.switchTab('auction');
+          switchArenaTab('bidding');
+          try { AuctionAudio.playHammerHit(); } catch (e) {}
+        } catch (err) {
+          console.error('[Start Auction Exception]:', err);
+          window.switchTab('auction');
+          switchArenaTab('bidding');
+        } finally {
+          btnStart.disabled = false;
+          btnStart.innerHTML = '<span>🚀 START AUCTION NOW</span> <span>→</span>';
         }
-        if (typeof Game !== 'undefined') {
-          if (typeof Game.changeUserTeam === 'function') Game.changeUserTeam(activeTeam);
-          else if (typeof Game.selectTeam === 'function') Game.selectTeam(activeTeam);
-          else if (Game.getState) Game.getState().userTeamId = activeTeam;
-
-          if (Game.setBidDuration) Game.setBidDuration(window.RoomRules.timer || 10);
-          Game.startAuction();
-        }
-
-        // Stop lobby sync interval as auction has now begun
-        if (window._lobbySyncInterval) {
-          clearInterval(window._lobbySyncInterval);
-          window._lobbySyncInterval = null;
-        }
-
-        // ── LOCK SETTINGS: Hide settings editor after auction starts ──
-        window.AuctionStarted = true;
-        room.status = 'started';
-        if (window.CurrentRoom) window.CurrentRoom.status = 'started';
-        // Hide the edit settings button & editor
-        const editBtn = document.getElementById('lobbyEditSettingsBtn');
-        const settingsEditor = document.getElementById('lobbySettingsEditor');
-        if (editBtn) editBtn.classList.add('hidden');
-        if (settingsEditor) settingsEditor.classList.add('hidden');
-        // Persist started status
-        if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
-          StorageEngine.saveRoom(room);
-        }
-        // ── END LOCK SETTINGS ──
-
-        if (typeof updateTopBar === 'function') updateTopBar();
-        window.switchTab('auction');
-        switchArenaTab('bidding');
-        AuctionAudio.playHammerHit();
       };
     }
   }
@@ -5617,25 +5819,13 @@
       };
     }
 
-    // 3. Refresh & Clear Public Rooms
+    // 3. Refresh Public Rooms
     const btnRefPub = document.getElementById('btnRefreshPublicRooms');
     if (btnRefPub) {
       btnRefPub.onclick = async () => {
         btnRefPub.innerHTML = '<span>🔄</span> <span>Refreshing...</span>';
         await renderPublicRoomsList();
         btnRefPub.innerHTML = '<span>🔄</span> <span>Refresh List</span>';
-      };
-    }
-    const btnClearRooms = document.getElementById('btnClearAllPublicRooms');
-    if (btnClearRooms) {
-      btnClearRooms.onclick = async () => {
-        if (confirm('Clear all local room cache and refresh from cloud?')) {
-          if (typeof StorageEngine !== 'undefined' && StorageEngine.clearAllRooms) {
-            StorageEngine.clearAllRooms();
-          }
-          await renderPublicRoomsList();
-          alert('✅ Local rooms cache cleared!');
-        }
       };
     }
 

@@ -567,6 +567,13 @@
     wasInTransition = false;
 
     if (index >= GameState.auctionPool.length) {
+      const isAcc = GameState.acceleratedEnabled || (typeof window !== 'undefined' && window.RoomRules && window.RoomRules.acceleratedEnabled);
+      if (isAcc && GameState.unsold && GameState.unsold.length > 0 && !GameState.hasCompletedAccelerated) {
+        GameState.hasCompletedAccelerated = true;
+        GameState.phase = 'accelerated';
+        emit('acceleratedPhaseTriggered', { unsold: GameState.unsold });
+        return;
+      }
       endAuction();
       return;
     }
@@ -1431,6 +1438,13 @@
     GameState.currentPlayerIndex++;
 
     if (GameState.currentPlayerIndex >= GameState.auctionPool.length) {
+      const isAcc = GameState.acceleratedEnabled || (typeof window !== 'undefined' && window.RoomRules && window.RoomRules.acceleratedEnabled);
+      if (isAcc && GameState.unsold && GameState.unsold.length > 0 && !GameState.hasCompletedAccelerated) {
+        GameState.hasCompletedAccelerated = true;
+        GameState.phase = 'accelerated';
+        emit('acceleratedPhaseTriggered', { unsold: GameState.unsold });
+        return;
+      }
       endAuction();
       return;
     }
@@ -2163,7 +2177,10 @@
     if (uIdx === -1) return false;
     const player = GameState.unsold.splice(uIdx, 1)[0];
     player.status = 'pool';
-    GameState.pool.push(player);
+    player.set = 10;
+    player.setName = 'Accelerated Round';
+    if (!GameState.auctionPool) GameState.auctionPool = [];
+    GameState.auctionPool.push(player);
     emit('stateChange', GameState);
     return true;
   }
@@ -2172,6 +2189,7 @@
     // State
     GameState,
     getState: () => GameState,
+    loadPlayer,
     setAuctionMode,
     getAuctionMode,
     setBidDuration,

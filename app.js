@@ -4581,6 +4581,7 @@
   }
 
   // Handle Joining Specific Room via Link or Code
+  // Handle Joining Specific Room via Link or Code
   async function handleJoinSpecificRoom(roomId) {
     if (!roomId) return;
     let cleanId = decodeURIComponent(String(roomId)).trim().toUpperCase();
@@ -4594,6 +4595,41 @@
       cleanId = 'IPL-' + cleanId;
     }
 
+    // MANDATORY NAME CHECK: Ensure real user name is provided before joining ANY room!
+    const rawSaved = localStorage.getItem('ipl_user_name') || localStorage.getItem('ipl_manager_name') || (StorageEngine?.currentUser?.userName);
+    const hasValidName = rawSaved && rawSaved.trim() && rawSaved.trim().toLowerCase() !== 'manager';
+
+    if (!hasValidName) {
+      const welcomeModal = document.getElementById('welcomeNewUserModal');
+      const inputWelcomeName = document.getElementById('inputWelcomeUserName');
+      const btnSubmitWelcome = document.getElementById('btnSubmitWelcomeName');
+      if (welcomeModal) {
+        welcomeModal.classList.remove('hidden');
+        if (inputWelcomeName) {
+          inputWelcomeName.value = '';
+          inputWelcomeName.placeholder = 'Enter your real name (e.g. Haswanth Kodali)';
+          setTimeout(() => inputWelcomeName.focus(), 150);
+        }
+        if (btnSubmitWelcome) {
+          btnSubmitWelcome.onclick = async () => {
+            const val = (inputWelcomeName?.value || '').trim();
+            if (!val || val.toLowerCase() === 'manager') {
+              alert('Please enter your name to join the room.');
+              return;
+            }
+            localStorage.setItem('ipl_user_name', val);
+            localStorage.setItem('ipl_manager_name', val);
+            if (typeof StorageEngine !== 'undefined') {
+              await StorageEngine.loginUser(val, AppState.userTeamId || 'RCB');
+            }
+            welcomeModal.classList.add('hidden');
+            await handleJoinSpecificRoom(cleanId);
+          };
+        }
+        return;
+      }
+    }
+
     // 1. Fetch latest room state from cloud / server (vital for cross-device links!)
     if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.fetchRoomFromServer === 'function') {
       try {
@@ -4603,13 +4639,25 @@
       }
     }
 
-    const user = StorageEngine.currentUser || { userId: 'user_' + Date.now(), userName: localStorage.getItem('ipl_user_name') || 'Manager' };
-    const res = StorageEngine.joinRoom(cleanId, AppState.userTeamId, user.userId, user.userName);
+    const curUser = StorageEngine?.currentUser;
+    const finalName = (curUser?.userName || localStorage.getItem('ipl_user_name') || '').trim();
+    const finalId = curUser?.userId || ('user_' + Date.now());
+
+    if (!finalName || finalName.toLowerCase() === 'manager') {
+      alert('Please enter your name first.');
+      return;
+    }
+
+    const res = StorageEngine.joinRoom(cleanId, AppState.userTeamId, finalId, finalName);
 
     if (!res.success) {
       if (res.reason === 'banned') {
         alert('🚫 You have been banned from this room by the host.');
         window.switchTab('home');
+        return;
+      }
+      if (res.reason === 'name_required') {
+        alert('Please enter your real name before joining.');
         return;
       }
       alert('Room not found or expired.');
@@ -4637,10 +4685,28 @@
     const myNorm = myName.toLowerCase();
     const hostNorm = (targetRoom.hostName || '').trim().toLowerCase();
 
-    if (myId && targetRoom.hostId && myId === targetRoom.hostId) return true;
-    if (myNorm && hostNorm && myNorm === hostNorm) return true;
-    if (targetRoom.hostId === 'user_host' || !targetRoom.hostId) return true;
+    // 1. Host ID match
+    if (myId && targetRoom.hostId && myId === targetRoom.hostId) {
+      if (roomId) localStorage.setItem('ipl_host_room_' + roomId, 'true');
+      return true;
+    }
+    // 2. Host Name match (case-insensitive)
+    if (myNorm && hostNorm && myNorm === hostNorm) {
+      if (roomId) localStorage.setItem('ipl_host_room_' + roomId, 'true');
+      return true;
+    }
+    // 3. Fallback host IDs
+    if (targetRoom.hostId === 'user_host' || !targetRoom.hostId) {
+      if (roomId) localStorage.setItem('ipl_host_room_' + roomId, 'true');
+      return true;
+    }
+    // 4. Host team match
+    if (targetRoom.hostTeam && AppState.userTeamId && targetRoom.hostTeam === AppState.userTeamId) {
+      if (roomId) localStorage.setItem('ipl_host_room_' + roomId, 'true');
+      return true;
+    }
 
+    // 5. Room players check
     if (targetRoom.players) {
       for (const t of Object.keys(targetRoom.players)) {
         const p = targetRoom.players[t];
@@ -4648,6 +4714,7 @@
         const pNorm = (p.userName || '').trim().toLowerCase();
         const matches = (myId && p.userId === myId) || (myNorm && pNorm && myNorm === pNorm);
         if (matches && (p.isHost === true || t === targetRoom.hostTeam)) {
+          if (roomId) localStorage.setItem('ipl_host_room_' + roomId, 'true');
           return true;
         }
       }
@@ -4934,6 +5001,21 @@
                 StorageEngine.updatePlayerHeartbeat(freshRoom.roomId, myUserId);
               }
             }
+          } else {
+            // Room was deleted or closed in cloud: exit gracefully
+            if (window._lobbySyncInterval) {
+              clearInterval(window._lobbySyncInterval);
+              window._lobbySyncInterval = null;
+            }
+            window.CurrentRoom = null;
+            if (curLobby) curLobby.classList.add('hidden');
+            const heroBanner = document.getElementById('homeHeroBanner');
+            const publicRoomsSec = document.getElementById('homePublicRoomsSection');
+            if (heroBanner) heroBanner.classList.remove('hidden');
+            if (publicRoomsSec) publicRoomsSec.classList.remove('hidden');
+            if (typeof window.switchTab === 'function') window.switchTab('home');
+            if (typeof renderPublicRoomsList === 'function') renderPublicRoomsList();
+            return;
           }
         } catch (e) {
           console.warn('[Lobby Sync] Fetch error:', e);
@@ -5535,10 +5617,26 @@
       };
     }
 
-    // 3. Refresh Public Rooms
+    // 3. Refresh & Clear Public Rooms
     const btnRefPub = document.getElementById('btnRefreshPublicRooms');
     if (btnRefPub) {
-      btnRefPub.onclick = () => renderPublicRoomsList();
+      btnRefPub.onclick = async () => {
+        btnRefPub.innerHTML = '<span>🔄</span> <span>Refreshing...</span>';
+        await renderPublicRoomsList();
+        btnRefPub.innerHTML = '<span>🔄</span> <span>Refresh List</span>';
+      };
+    }
+    const btnClearRooms = document.getElementById('btnClearAllPublicRooms');
+    if (btnClearRooms) {
+      btnClearRooms.onclick = async () => {
+        if (confirm('Clear all local room cache and refresh from cloud?')) {
+          if (typeof StorageEngine !== 'undefined' && StorageEngine.clearAllRooms) {
+            StorageEngine.clearAllRooms();
+          }
+          await renderPublicRoomsList();
+          alert('✅ Local rooms cache cleared!');
+        }
+      };
     }
 
     // 4. Arena Sub-Tabs Navigation Buttons
@@ -5592,7 +5690,9 @@
 
     grid.innerHTML = '';
 
-    const rooms = StorageEngine.getPublicRooms();
+    const allRooms = (typeof StorageEngine !== 'undefined' && StorageEngine.getPublicRooms) ? StorageEngine.getPublicRooms() : [];
+    const rooms = allRooms.filter(r => r && r.roomId && r.roomId !== 'DEFAULT' && r.roomId !== 'IPL-7476' && r.roomId !== 'IPL-2027' && r.roomId !== 'IPL-MEGA');
+
     if (rooms.length === 0) {
       grid.innerHTML = '<div class="col-span-3 text-slate-500 text-center py-6 text-xs">No public rooms active right now. Click "Create Auction Room" above to start one!</div>';
       return;

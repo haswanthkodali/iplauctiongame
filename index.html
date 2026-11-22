@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=1795308000">
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@600;700;800&display=swap');
@@ -472,9 +472,14 @@
             </h2>
             <p class="text-xs text-slate-400">Click any public room to jump in and choose your franchise.</p>
           </div>
-          <button id="btnRefreshPublicRooms" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
-            <span>🔄</span> <span>Refresh List</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <button id="btnRefreshPublicRooms" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 border border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
+              <span>🔄</span> <span>Refresh List</span>
+            </button>
+            <button id="btnClearAllPublicRooms" class="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-xs text-red-300 border border-red-800/50 transition flex items-center gap-1.5 cursor-pointer" title="Wipe local room cache and sync fresh from cloud">
+              <span>🗑️</span> <span>Clear Stale Rooms</span>
+            </button>
+          </div>
         </div>
 
         <div id="publicRoomsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1787,9 +1792,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=1795206000"></script>
   <!-- 8. Persistent Server & Supabase Storage, Relogin & Room Client -->
-  <script src="storage.js?v=1795306607"></script>
+  <script src="storage.js?v=1795307600"></script>
   <!-- 9. Main Application Controller & UI View Bindings -->
-  <script src="app.js?v=1795306607"></script>
+  <script src="app.js?v=1795307600"></script>
 
 
   <!-- CHANGE FRANCHISE MODAL (LIVE IN-AUCTION SWITCHER) -->

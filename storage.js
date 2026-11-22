@@ -642,69 +642,52 @@
     // =========================================================================
     getAllRoomsDB() {
       try {
-        const raw = localStorage.getItem('ipl_all_active_rooms');
-        if (raw) return JSON.parse(raw);
-      } catch (e) {}
-      return {
-        'IPL-2027': {
-          roomId: 'IPL-2027',
-          roomName: 'TATA IPL 2027 Official Mini Auction',
-          mode: 'MINI',
-          visibility: 'PUBLIC',
-          hostId: 'host_system',
-          hostName: 'BCCI Official',
-          rules: {
-            maxBidEnabled: false,
-            maxBidAmount: 25,
-            exceedLimitEnabled: true,
-            exceedThreshold: 15,
-            exceedMaxPlayers: 3,
-            acceleratedEnabled: true,
-            timer: 10
-          },
-          players: {
-            'CSK': { userId: 'player_dhoni', userName: 'MS Dhoni', teamId: 'CSK', isOnline: true },
-            'MI': { userId: 'player_rohit', userName: 'Rohit Sharma', teamId: 'MI', isOnline: true }
-          },
-          banned: [],
-          status: 'waiting',
-          createdAt: new Date().toISOString()
-        },
-        'IPL-MEGA': {
-          roomId: 'IPL-MEGA',
-          roomName: 'Grand Mega Rebuild 2027',
-          mode: 'MEGA',
-          visibility: 'PUBLIC',
-          hostId: 'host_mega',
-          hostName: 'Franchise Board',
-          rules: {
-            maxBidEnabled: true,
-            maxBidAmount: 25,
-            exceedLimitEnabled: false,
-            exceedThreshold: 15,
-            exceedMaxPlayers: 3,
-            acceleratedEnabled: true,
-            timer: 10
-          },
-          players: {
-            'KKR': { userId: 'player_srk', userName: 'King Khan', teamId: 'KKR', isOnline: true }
-          },
-          banned: [],
-          status: 'waiting',
-          createdAt: new Date().toISOString()
+        const raw = localStorage.getItem('ipl_all_active_rooms') || localStorage.getItem('ipl_auction_rooms');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            // Filter out old test/dummy mock rooms (IPL-2027, IPL-MEGA, IPL-7476, etc.)
+            delete parsed['IPL-2027'];
+            delete parsed['IPL-MEGA'];
+            delete parsed['IPL-7476'];
+            delete parsed['DEFAULT'];
+            return parsed;
+          }
         }
-      };
+      } catch (e) {}
+      return {};
     }
 
     saveAllRoomsDB(db) {
       try {
-        localStorage.setItem('ipl_all_active_rooms', JSON.stringify(db));
+        if (db && typeof db === 'object') {
+          delete db['IPL-2027'];
+          delete db['IPL-MEGA'];
+          delete db['IPL-7476'];
+          delete db['DEFAULT'];
+        }
+        localStorage.setItem('ipl_all_active_rooms', JSON.stringify(db || {}));
+        localStorage.setItem('ipl_auction_rooms', JSON.stringify(db || {}));
       } catch (e) {}
+    }
+
+    clearAllRooms() {
+      try {
+        localStorage.removeItem('ipl_all_active_rooms');
+        localStorage.removeItem('ipl_auction_rooms');
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('ipl_host_room_')) {
+            localStorage.removeItem(k);
+          }
+        }
+      } catch (e) {}
+      return true;
     }
 
     getPublicRooms() {
       const db = this.getAllRoomsDB();
-      return Object.values(db).filter(r => r.visibility === 'PUBLIC');
+      return Object.values(db).filter(r => r && r.roomId && r.roomId !== 'DEFAULT' && r.visibility === 'PUBLIC');
     }
 
     getSupabaseConfig() {
@@ -823,23 +806,22 @@
             const db = {};
             const resultList = [];
             list.forEach(row => {
+              if (!row || !row.id || row.id === 'DEFAULT' || row.id === 'IPL-7476') return;
               let r = null;
               try {
                 r = JSON.parse(row.name);
               } catch (e) {
-                if (row.id && row.id !== 'DEFAULT') {
-                  r = {
-                    roomId: row.id,
-                    roomName: row.name || row.id,
-                    mode: row.mode || 'MINI',
-                    visibility: 'PUBLIC',
-                    status: row.status || 'waiting',
-                    rules: {},
-                    players: {}
-                  };
-                }
+                r = {
+                  roomId: row.id,
+                  roomName: row.name || row.id,
+                  mode: row.mode || 'MINI',
+                  visibility: 'PUBLIC',
+                  status: row.status || 'waiting',
+                  rules: {},
+                  players: {}
+                };
               }
-              if (r && r.roomId) {
+              if (r && r.roomId && r.roomId !== 'DEFAULT' && r.roomId !== 'IPL-7476') {
                 db[r.roomId] = r;
                 if (r.visibility !== 'PRIVATE') {
                   resultList.push(r);
@@ -1122,6 +1104,10 @@
 
     joinRoom(roomId, preferredTeamId, userId, userName) {
       if (!roomId) return { success: false, reason: 'not_found' };
+      const cleanName = (userName || '').trim();
+      if (!cleanName || cleanName.toLowerCase() === 'manager') {
+        return { success: false, reason: 'name_required' };
+      }
       let cleanId = String(roomId).trim().toUpperCase();
       if (/^\d{3,5}$/.test(cleanId)) {
         cleanId = 'IPL-' + cleanId;
@@ -1372,6 +1358,7 @@
     if (typeof global.StorageEngine.kickPlayer === 'function') global.StorageEngine.kickPlayer = global.StorageEngine.kickPlayer.bind(global.StorageEngine);
     if (typeof global.StorageEngine.setPlayerOnlineStatus === 'function') global.StorageEngine.setPlayerOnlineStatus = global.StorageEngine.setPlayerOnlineStatus.bind(global.StorageEngine);
     if (typeof global.StorageEngine.updatePlayerHeartbeat === 'function') global.StorageEngine.updatePlayerHeartbeat = global.StorageEngine.updatePlayerHeartbeat.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.clearAllRooms === 'function') global.StorageEngine.clearAllRooms = global.StorageEngine.clearAllRooms.bind(global.StorageEngine);
   }
 
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

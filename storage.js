@@ -818,8 +818,9 @@
         });
         if (res.ok) {
           const list = await res.json();
-          if (Array.isArray(list) && list.length > 0) {
-            const db = this.getAllRoomsDB();
+          if (Array.isArray(list)) {
+            // Fresh sync: reflect current cloud state exactly (removes deleted test rooms)
+            const db = {};
             const resultList = [];
             list.forEach(row => {
               let r = null;
@@ -859,8 +860,8 @@
       // 1. First fetch from Supabase Cloud (works everywhere worldwide: GitHub Pages, Workers, phones, PC)
       try {
         const supaRooms = await this.fetchPublicRoomsFromSupabase();
-        if (supaRooms && supaRooms.length > 0) {
-          return this.getPublicRooms();
+        if (Array.isArray(supaRooms)) {
+          return supaRooms;
         }
       } catch (e) {}
 
@@ -969,6 +970,9 @@
       db[roomId] = newRoom;
       this.saveAllRoomsDB(db);
       this.currentRoomId = roomId;
+      try {
+        localStorage.setItem('ipl_host_room_' + roomId, 'true');
+      } catch (e) {}
 
       // 1. Sync to Supabase Cloud so all devices worldwide can join immediately
       try {

@@ -1349,7 +1349,7 @@
       }
 
       try {
-        const channelName = uction-room-;
+        const channelName = 'auction-room-' + cleanId;
         this.supabaseChannel = this.supabase.channel(channelName, {
           config: { broadcast: { self: false } }
         });
@@ -1386,13 +1386,13 @@
             }
           })
           .subscribe((status) => {
-            console.log([Supabase Realtime] Room channel  status:, status);
+            console.log('[Supabase Realtime] Room channel ' + channelName + ' status:', status);
           });
 
-        console.log([Supabase Realtime] Connected to room channel: );
+        console.log('[Supabase Realtime] Connected to room channel: ' + channelName);
         this.isServerConnected = true;
       } catch (err) {
-        console.warn([Supabase Realtime] Connection error for room :, err);
+        console.warn('[Supabase Realtime] Connection error for room ' + cleanId + ':', err);
       }
     }
 

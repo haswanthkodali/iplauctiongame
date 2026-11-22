@@ -1028,6 +1028,7 @@
     if (tabKey === 'franchises') renderFranchisesView();
     if (tabKey === 'catalog') renderCatalogGrid();
     if (tabKey === 'ratings') renderRatingsView();
+    if (tabKey === 'auction') updateArenaHostControlsVisibility();
     saveAppState();
   }
 
@@ -4793,16 +4794,7 @@
 
       if (hostPanel) hostPanel.classList.remove('hidden');
       if (waitingNotice) waitingNotice.classList.add('hidden');
-      if (editSettingsBtn) {
-        const isAuctionLive = window.AuctionStarted || targetRoom.status === 'started' || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
-        if (isAuctionLive) {
-          editSettingsBtn.classList.add('hidden');
-          const editor = document.getElementById('lobbySettingsEditor');
-          if (editor) editor.classList.add('hidden');
-        } else {
-          editSettingsBtn.classList.remove('hidden');
-        }
-      }
+      if (editSettingsBtn) editSettingsBtn.classList.remove('hidden');
       initLobbyHostControls(targetRoom);
       initLobbySettingsEditor(targetRoom);
     } else {
@@ -5183,26 +5175,41 @@
   // Allows host to change Max Bid Ceiling, Exceed Limit, Accelerated Auction
   // Format (Mini/Mega) is NOT changeable after room creation
   // =========================================================================
+  function updateArenaAcceleratedBtnUI(isEnabled) {
+    const btn = document.getElementById('btnHostToggleAccelerated');
+    if (!btn) return;
+    if (isEnabled) {
+      btn.className = 'px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-400 border border-emerald-500/40 text-[11px] font-bold transition cursor-pointer';
+      btn.innerHTML = '⚡ Accelerated: ON';
+    } else {
+      btn.className = 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 text-[11px] font-bold transition cursor-pointer';
+      btn.innerHTML = '⚡ Accelerated: OFF';
+    }
+  }
+
+  function updateArenaHostControlsVisibility() {
+    const hostControls = document.getElementById('arenaHostControls');
+    if (!hostControls) return;
+    const room = window.CurrentRoom;
+    const isHost = isCurrentUserRoomHost(room);
+    if (isHost) {
+      hostControls.classList.remove('hidden');
+      const isAcc = !!(window.RoomRules && window.RoomRules.acceleratedEnabled);
+      updateArenaAcceleratedBtnUI(isAcc);
+    } else {
+      hostControls.classList.add('hidden');
+    }
+  }
+
   function initLobbySettingsEditor(room) {
     const toggleBtn = document.getElementById('btnToggleLobbySettings');
     const editor = document.getElementById('lobbySettingsEditor');
     const saveBtn = document.getElementById('btnSaveLobbySettings');
     const cancelBtn = document.getElementById('btnCancelLobbySettings');
     const statusMsg = document.getElementById('settingsSaveStatus');
+    const lockNotice = document.getElementById('lobbySettingsLiveLockNotice');
     if (!toggleBtn || !editor) return;
 
-    // ── LOCK CHECK: If auction already started, hide settings editor completely ──
-    const isAuctionLive = window.AuctionStarted || room.status === 'started' || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
-    if (isAuctionLive) {
-      const editBtn = document.getElementById('lobbyEditSettingsBtn');
-      if (editBtn) editBtn.classList.add('hidden');
-      editor.classList.add('hidden');
-      return; // Strictly lock out any editing once auction starts
-    }
-    // ── END LOCK CHECK ──
-
-    // Populate editor fields from current room rules
-    const rules = room.rules || {};
     const chkMaxBid = document.getElementById('editMaxBidEnabled');
     const inpMaxBid = document.getElementById('editMaxBidAmount');
     const chkExceed = document.getElementById('editExceedLimitEnabled');
@@ -5210,21 +5217,60 @@
     const inpExceedThreshold = document.getElementById('editExceedThreshold');
     const chkAccelerated = document.getElementById('editAcceleratedEnabled');
 
-    if (chkMaxBid) chkMaxBid.checked = !!rules.maxBidEnabled;
-    if (inpMaxBid) inpMaxBid.value = rules.maxBidAmount || 25;
-    if (chkExceed) chkExceed.checked = !!rules.exceedLimitEnabled;
-    if (inpExceedMax) inpExceedMax.value = rules.exceedMaxPlayers || 3;
-    if (inpExceedThreshold) inpExceedThreshold.value = rules.exceedThreshold || 15;
-    if (chkAccelerated) chkAccelerated.checked = !!rules.acceleratedEnabled;
+    const isAuctionLive = window.AuctionStarted || (room && room.status === 'started') || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
 
-    // Toggle editor visibility
+    // Policy:
+    // Before auction starts: ALL settings are accessible and can be changed.
+    // When auction starts: ONLY accelerated auction can be enabled/disabled. Max bid & player limits are locked.
+    if (isAuctionLive) {
+      if (lockNotice) lockNotice.classList.remove('hidden');
+      if (chkMaxBid) chkMaxBid.disabled = true;
+      if (inpMaxBid) inpMaxBid.disabled = true;
+      if (chkExceed) chkExceed.disabled = true;
+      if (inpExceedMax) inpExceedMax.disabled = true;
+      if (inpExceedThreshold) inpExceedThreshold.disabled = true;
+      // Accelerated round can still be toggled during live auction!
+      if (chkAccelerated) chkAccelerated.disabled = false;
+    } else {
+      if (lockNotice) lockNotice.classList.add('hidden');
+      if (chkMaxBid) chkMaxBid.disabled = false;
+      if (inpMaxBid) inpMaxBid.disabled = false;
+      if (chkExceed) chkExceed.disabled = false;
+      if (inpExceedMax) inpExceedMax.disabled = false;
+      if (inpExceedThreshold) inpExceedThreshold.disabled = false;
+      if (chkAccelerated) chkAccelerated.disabled = false;
+    }
+
+    // Function to populate inputs from room.rules
+    function populateEditorFields() {
+      const rules = (room && room.rules) || (window.CurrentRoom && window.CurrentRoom.rules) || window.RoomRules || {};
+      if (chkMaxBid) chkMaxBid.checked = !!rules.maxBidEnabled;
+      if (inpMaxBid) inpMaxBid.value = rules.maxBidAmount || 25;
+      if (chkExceed) chkExceed.checked = !!rules.exceedLimitEnabled;
+      if (inpExceedMax) inpExceedMax.value = rules.exceedMaxPlayers || 3;
+      if (inpExceedThreshold) inpExceedThreshold.value = rules.exceedThreshold || 15;
+      if (chkAccelerated) chkAccelerated.checked = !!rules.acceleratedEnabled;
+    }
+
+    // ── CRITICAL FIX FOR INPUT OVERWRITING / RESETTING ──
+    // DO NOT re-populate values while the host has the editor open or is actively typing!
+    const isEditorOpen = !editor.classList.contains('hidden');
+    const isInputFocused = editor.contains(document.activeElement);
+    if (!isEditorOpen && !isInputFocused) {
+      populateEditorFields();
+    }
+
+    // Toggle button handler
     toggleBtn.onclick = () => {
       if (editor.classList.contains('hidden')) {
+        populateEditorFields();
         editor.classList.remove('hidden');
-        toggleBtn.querySelector('span:last-child').textContent = 'Close Settings Editor';
+        const spanText = toggleBtn.querySelector('span:last-child');
+        if (spanText) spanText.textContent = 'Close Settings Editor';
       } else {
         editor.classList.add('hidden');
-        toggleBtn.querySelector('span:last-child').textContent = 'Edit Room Settings (Host Only)';
+        const spanText = toggleBtn.querySelector('span:last-child');
+        if (spanText) spanText.textContent = isAuctionLive ? 'Settings & Rules (Host Only)' : 'Edit Room Settings (Host Only)';
       }
     };
 
@@ -5232,54 +5278,47 @@
     if (cancelBtn) {
       cancelBtn.onclick = () => {
         editor.classList.add('hidden');
-        toggleBtn.querySelector('span:last-child').textContent = 'Edit Room Settings (Host Only)';
+        const spanText = toggleBtn.querySelector('span:last-child');
+        if (spanText) spanText.textContent = isAuctionLive ? 'Settings & Rules (Host Only)' : 'Edit Room Settings (Host Only)';
       };
     }
 
     // Save button
     if (saveBtn) {
       saveBtn.onclick = () => {
-        const isLive = window.AuctionStarted || room.status === 'started' || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
-        if (isLive) {
-          alert('⚠️ Room settings can only be changed before the auction starts. Modifying rules is locked once bidding begins.');
-          editor.classList.add('hidden');
-          const editBtn = document.getElementById('lobbyEditSettingsBtn');
-          if (editBtn) editBtn.classList.add('hidden');
-          return;
-        }
+        const liveNow = window.AuctionStarted || (room && room.status === 'started') || (typeof Game !== 'undefined' && Game.getState && Game.getState().phase !== 'home');
 
-        // Read values from editor
-        const newRules = {
-          maxBidEnabled: chkMaxBid ? chkMaxBid.checked : false,
-          maxBidAmount: inpMaxBid ? Number(inpMaxBid.value) || 25 : 25,
-          exceedLimitEnabled: chkExceed ? chkExceed.checked : false,
-          exceedThreshold: inpExceedThreshold ? Number(inpExceedThreshold.value) || 15 : 15,
-          exceedMaxPlayers: inpExceedMax ? Number(inpExceedMax.value) || 3 : 3,
-          acceleratedEnabled: chkAccelerated ? chkAccelerated.checked : false,
-          timer: rules.timer || 10
-        };
-
-        // Update room object
-        room.rules = newRules;
-        if (window.CurrentRoom) window.CurrentRoom.rules = newRules;
-
-        // Update room rules live in lobby
-        renderRoomLobbyRules(room);
-
-        // Persist to storage & broadcast immediately to all connected players
-        if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
-          StorageEngine.saveRoom(room);
-          if (typeof StorageEngine.broadcastRoomUpdate === 'function') StorageEngine.broadcastRoomUpdate(room);
+        let newRules;
+        if (liveNow) {
+          // When auction is live: ONLY accelerated auction can be enabled/disabled
+          newRules = {
+            ...((room && room.rules) || (window.CurrentRoom && window.CurrentRoom.rules) || window.RoomRules || {}),
+            acceleratedEnabled: chkAccelerated ? chkAccelerated.checked : false
+          };
         } else {
-          try {
-            const db = JSON.parse(localStorage.getItem('ipl_auction_rooms') || localStorage.getItem('ipl_all_active_rooms') || '{}');
-            db[room.roomId] = room;
-            localStorage.setItem('ipl_all_active_rooms', JSON.stringify(db));
-            localStorage.setItem('ipl_auction_rooms', JSON.stringify(db));
-          } catch (e) {}
+          // Before auction starts: all settings are editable
+          newRules = {
+            maxBidEnabled: chkMaxBid ? chkMaxBid.checked : false,
+            maxBidAmount: inpMaxBid ? Number(inpMaxBid.value) || 25 : 25,
+            exceedLimitEnabled: chkExceed ? chkExceed.checked : false,
+            exceedThreshold: inpExceedThreshold ? Number(inpExceedThreshold.value) || 15 : 15,
+            exceedMaxPlayers: inpExceedMax ? Number(inpExceedMax.value) || 3 : 3,
+            acceleratedEnabled: chkAccelerated ? chkAccelerated.checked : false,
+            timer: (room && room.rules && room.rules.timer) || (window.RoomRules && window.RoomRules.timer) || 10
+          };
         }
 
-        // Also update live Game engine rules if auction is running
+        // Update room object & global references
+        if (room) room.rules = newRules;
+        if (window.CurrentRoom) window.CurrentRoom.rules = newRules;
+        window.RoomRules = newRules;
+
+        // Update display badges & arena buttons
+        if (room) renderRoomLobbyRules(room);
+        else if (window.CurrentRoom) renderRoomLobbyRules(window.CurrentRoom);
+        updateArenaAcceleratedBtnUI(newRules.acceleratedEnabled);
+
+        // Update live Game engine rules
         try {
           if (typeof Game !== 'undefined' && Game.getState) {
             const gs = Game.getState();
@@ -5294,25 +5333,41 @@
           }
         } catch (e) {}
 
-        // Show success feedback
+        // Persist to storage & broadcast immediately
+        const targetRoom = room || window.CurrentRoom;
+        if (targetRoom && typeof StorageEngine !== 'undefined' && typeof StorageEngine.saveRoom === 'function') {
+          StorageEngine.saveRoom(targetRoom);
+          if (typeof StorageEngine.broadcastRoomUpdate === 'function') {
+            StorageEngine.broadcastRoomUpdate(targetRoom);
+          }
+        } else if (targetRoom) {
+          try {
+            const db = JSON.parse(localStorage.getItem('ipl_auction_rooms') || localStorage.getItem('ipl_all_active_rooms') || '{}');
+            db[targetRoom.roomId] = targetRoom;
+            localStorage.setItem('ipl_all_active_rooms', JSON.stringify(db));
+            localStorage.setItem('ipl_auction_rooms', JSON.stringify(db));
+          } catch (e) {}
+        }
+
+        // Show feedback message
         if (statusMsg) {
           statusMsg.classList.remove('hidden');
-          statusMsg.textContent = '✅ Settings updated!';
+          statusMsg.textContent = liveNow ? '✅ Accelerated Round setting updated!' : '✅ Room settings saved & synchronized!';
           setTimeout(() => {
             if (statusMsg) statusMsg.classList.add('hidden');
-          }, 3000);
+          }, 2500);
         }
 
         // Close editor
         editor.classList.add('hidden');
-        toggleBtn.querySelector('span:last-child').textContent = 'Edit Room Settings (Host Only)';
+        const spanText = toggleBtn.querySelector('span:last-child');
+        if (spanText) spanText.textContent = liveNow ? 'Settings & Rules (Host Only)' : 'Edit Room Settings (Host Only)';
 
-        console.log('[IPL Auction] Room rules updated:', newRules);
+        console.log('[IPL Auction] Room rules saved successfully:', newRules);
       };
     }
   }
 
-  // Render Lobby Teams Grid (Disables taken teams, lets user pick remaining)
   function renderLobbyTeamsGrid(room) {
     const grid = document.getElementById('lobbyTeamsGrid');
     if (!grid) return;
@@ -5590,10 +5645,8 @@
             if (poolIds) window.CurrentRoom.pool = poolIds;
           }
 
-          // Hide the edit settings button & editor
-          const editBtn = document.getElementById('lobbyEditSettingsBtn');
+          // Close settings editor if open, but keep settings button accessible
           const settingsEditor = document.getElementById('lobbySettingsEditor');
-          if (editBtn) editBtn.classList.add('hidden');
           if (settingsEditor) settingsEditor.classList.add('hidden');
 
           // Persist started status to cloud & broadcast so all guests & spectators are redirected immediately
@@ -5837,16 +5890,28 @@
       };
     });
 
-    // 5. Host Arena Timer & Pause Controls
+    // 5. Host Arena Timer, Pause & Accelerated Auction Controls
     const btnH5 = document.getElementById('btnHostTimer5s');
     const btnH10 = document.getElementById('btnHostTimer10s');
     const btnHPause = document.getElementById('btnHostPauseResume');
+    const btnHAcc = document.getElementById('btnHostToggleAccelerated');
 
     if (btnH5) {
       btnH5.onclick = () => {
         if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(5);
         btnH5.className = 'px-2 py-1 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-bold';
         if (btnH10) btnH10.className = 'px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold';
+        if (window.CurrentRoom) {
+          window.CurrentRoom.rules = window.CurrentRoom.rules || {};
+          window.CurrentRoom.rules.timer = 5;
+          window.RoomRules = window.RoomRules || {};
+          window.RoomRules.timer = 5;
+          renderRoomLobbyRules(window.CurrentRoom);
+          if (typeof StorageEngine !== 'undefined') {
+            StorageEngine.saveRoom(window.CurrentRoom);
+            if (typeof StorageEngine.broadcastRoomUpdate === 'function') StorageEngine.broadcastRoomUpdate(window.CurrentRoom);
+          }
+        }
       };
     }
     if (btnH10) {
@@ -5854,6 +5919,17 @@
         if (typeof Game !== 'undefined' && Game.setBidDuration) Game.setBidDuration(10);
         btnH10.className = 'px-2 py-1 rounded-lg bg-amber-500 text-slate-950 text-[11px] font-bold';
         if (btnH5) btnH5.className = 'px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold';
+        if (window.CurrentRoom) {
+          window.CurrentRoom.rules = window.CurrentRoom.rules || {};
+          window.CurrentRoom.rules.timer = 10;
+          window.RoomRules = window.RoomRules || {};
+          window.RoomRules.timer = 10;
+          renderRoomLobbyRules(window.CurrentRoom);
+          if (typeof StorageEngine !== 'undefined') {
+            StorageEngine.saveRoom(window.CurrentRoom);
+            if (typeof StorageEngine.broadcastRoomUpdate === 'function') StorageEngine.broadcastRoomUpdate(window.CurrentRoom);
+          }
+        }
       };
     }
     if (btnHPause) {
@@ -5861,6 +5937,33 @@
         if (typeof Game !== 'undefined' && Game.togglePause) {
           const paused = Game.togglePause();
           btnHPause.textContent = paused ? '▶️ Resume' : '⏸️ Pause';
+        }
+      };
+    }
+    if (btnHAcc) {
+      btnHAcc.onclick = () => {
+        const room = window.CurrentRoom || {};
+        room.rules = room.rules || {};
+        const newState = !room.rules.acceleratedEnabled;
+        room.rules.acceleratedEnabled = newState;
+        window.RoomRules = window.RoomRules || {};
+        window.RoomRules.acceleratedEnabled = newState;
+        if (typeof Game !== 'undefined' && Game.getState) {
+          Game.getState().acceleratedEnabled = newState;
+        }
+
+        updateArenaAcceleratedBtnUI(newState);
+        renderRoomLobbyRules(room);
+
+        if (typeof StorageEngine !== 'undefined') {
+          StorageEngine.saveRoom(room);
+          if (typeof StorageEngine.broadcastRoomUpdate === 'function') {
+            StorageEngine.broadcastRoomUpdate(room);
+          }
+        }
+
+        if (typeof showBiddingRuleAlert === 'function') {
+          showBiddingRuleAlert(newState ? '⚡ Accelerated Auction Round is now ENABLED' : '⚡ Accelerated Auction Round is now DISABLED');
         }
       };
     }

@@ -9,6 +9,15 @@
 (function () {
   'use strict';
 
+  // One-time localStorage room cache clear (bumped per deploy)
+  const _ROOM_CACHE_VER = 'v1795735000';
+  if (localStorage.getItem('ipl_room_cache_ver') !== _ROOM_CACHE_VER) {
+    localStorage.removeItem('ipl_all_active_rooms');
+    localStorage.removeItem('ipl_auction_rooms');
+    localStorage.setItem('ipl_room_cache_ver', _ROOM_CACHE_VER);
+    console.log('[IPL] Cleared stale room cache for', _ROOM_CACHE_VER);
+  }
+
   // Application State
   const AppState = {
     currentTab: 'home', // Start on lobby/mode selector

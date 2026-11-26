@@ -10,12 +10,17 @@
   'use strict';
 
   // One-time localStorage room cache clear (bumped per deploy)
-  const _ROOM_CACHE_VER = 'v1795735000';
+  const _ROOM_CACHE_VER = 'v1795736000';
   if (localStorage.getItem('ipl_room_cache_ver') !== _ROOM_CACHE_VER) {
-    localStorage.removeItem('ipl_all_active_rooms');
-    localStorage.removeItem('ipl_auction_rooms');
+    // Full data wipe for fresh testing
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('ipl_')) keysToRemove.push(k);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
     localStorage.setItem('ipl_room_cache_ver', _ROOM_CACHE_VER);
-    console.log('[IPL] Cleared stale room cache for', _ROOM_CACHE_VER);
+    console.log('[IPL] Full data wipe — cleared', keysToRemove.length, 'keys for', _ROOM_CACHE_VER);
   }
 
   // Application State

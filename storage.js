@@ -1357,7 +1357,7 @@
         this.supabaseChannel
           .on('broadcast', { event: 'bid' }, payload => {
             if (payload && payload.payload) {
-              const { teamId, amount, playerIndex } = payload.payload;
+              const { teamId, amount, playerIndex, playerId } = payload.payload;
               if (typeof window !== 'undefined' && window.onRemoteBid) {
                 window.onRemoteBid(payload.payload);
               } else if (typeof window !== 'undefined' && window.Game && window.Game.placeBid) {
@@ -1383,6 +1383,26 @@
           .on('broadcast', { event: 'auction_start' }, payload => {
             if (typeof window !== 'undefined' && window.onRemoteAuctionStart) {
               window.onRemoteAuctionStart(payload?.payload);
+            }
+          })
+          .on('broadcast', { event: 'pool_sync' }, payload => {
+            if (payload && payload.payload && typeof window !== 'undefined' && window.onRemotePoolSync) {
+              window.onRemotePoolSync(payload.payload);
+            }
+          })
+          .on('broadcast', { event: 'stage_sync' }, payload => {
+            if (payload && payload.payload && typeof window !== 'undefined' && window.onRemoteStageSync) {
+              window.onRemoteStageSync(payload.payload);
+            }
+          })
+          .on('broadcast', { event: 'player_resolved' }, payload => {
+            if (payload && payload.payload && typeof window !== 'undefined' && window.onRemotePlayerResolved) {
+              window.onRemotePlayerResolved(payload.payload);
+            }
+          })
+          .on('broadcast', { event: 'pause_sync' }, payload => {
+            if (payload && payload.payload && typeof window !== 'undefined' && window.onRemotePauseSync) {
+              window.onRemotePauseSync(payload.payload);
             }
           })
           .subscribe((status) => {
@@ -1422,26 +1442,78 @@
       }
     }
 
-    broadcastBid(teamId, amount, playerIndex) {
+    broadcastPoolSync(pool, currentPlayerIndex, poolVersion, reason = 'manual') {
+      if (!this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'pool_sync',
+          payload: { pool, currentPlayerIndex, poolVersion, reason, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] pool_sync error:', e);
+      }
+    }
+
+    broadcastStageSync(stageData) {
+      if (!this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'stage_sync',
+          payload: { ...stageData, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] stage_sync error:', e);
+      }
+    }
+
+    broadcastPlayerResolved(resolveData) {
+      if (!this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'player_resolved',
+          payload: { ...resolveData, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] player_resolved error:', e);
+      }
+    }
+
+    broadcastPauseSync(isPaused, timeLeft, playerIndex) {
+      if (!this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'pause_sync',
+          payload: { isPaused, timeLeft, playerIndex, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] pause_sync error:', e);
+      }
+    }
+
+    broadcastBid(teamId, amount, playerIndex, playerId) {
       if (!this.supabaseChannel) return;
       try {
         this.supabaseChannel.send({
           type: 'broadcast',
           event: 'bid',
-          payload: { teamId, amount, playerIndex, timestamp: Date.now() }
+          payload: { teamId, amount, playerIndex, playerId, timestamp: Date.now() }
         });
       } catch (e) {
         console.warn('[Realtime Broadcast] bid error:', e);
       }
     }
 
-    broadcastPass() {
+    broadcastPass(playerIndex) {
       if (!this.supabaseChannel) return;
       try {
         this.supabaseChannel.send({
           type: 'broadcast',
           event: 'pass',
-          payload: { timestamp: Date.now() }
+          payload: { playerIndex, timestamp: Date.now() }
         });
       } catch (e) {
         console.warn('[Realtime Broadcast] pass error:', e);
@@ -1476,6 +1548,10 @@
     if (typeof global.StorageEngine.switchRoomChannel === 'function') global.StorageEngine.switchRoomChannel = global.StorageEngine.switchRoomChannel.bind(global.StorageEngine);
     if (typeof global.StorageEngine.broadcastRoomUpdate === 'function') global.StorageEngine.broadcastRoomUpdate = global.StorageEngine.broadcastRoomUpdate.bind(global.StorageEngine);
     if (typeof global.StorageEngine.broadcastAuctionStart === 'function') global.StorageEngine.broadcastAuctionStart = global.StorageEngine.broadcastAuctionStart.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastPoolSync === 'function') global.StorageEngine.broadcastPoolSync = global.StorageEngine.broadcastPoolSync.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastStageSync === 'function') global.StorageEngine.broadcastStageSync = global.StorageEngine.broadcastStageSync.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastPlayerResolved === 'function') global.StorageEngine.broadcastPlayerResolved = global.StorageEngine.broadcastPlayerResolved.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastPauseSync === 'function') global.StorageEngine.broadcastPauseSync = global.StorageEngine.broadcastPauseSync.bind(global.StorageEngine);
     if (typeof global.StorageEngine.broadcastBid === 'function') global.StorageEngine.broadcastBid = global.StorageEngine.broadcastBid.bind(global.StorageEngine);
     if (typeof global.StorageEngine.broadcastPass === 'function') global.StorageEngine.broadcastPass = global.StorageEngine.broadcastPass.bind(global.StorageEngine);
   }

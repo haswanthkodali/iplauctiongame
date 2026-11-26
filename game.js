@@ -147,6 +147,9 @@
     currentBid: 0,
     currentBidder: null,      // teamId of highest current bidder
     auctionPool: [],          // shuffled within sets
+    unsold: [],               // unsold players for accelerated round
+    hasCompletedAccelerated: false,
+    poolVersion: 0,           // monotonically increments whenever pool order is shuffled
     timer: null,              // interval id
     timeLeft: 15,             // countdown seconds
     isPaused: false,
@@ -155,6 +158,36 @@
     auctionLog: [],
     speed: 1                  // 1x, 2x, 3x
   };
+
+  function isInMultiplayerRoom() {
+    return typeof window !== 'undefined' && window.CurrentRoom && window.CurrentRoom.roomId && window.CurrentRoom.roomId !== 'DEFAULT';
+  }
+
+  function isMultiplayerHost() {
+    if (!isInMultiplayerRoom()) return true;
+    if (typeof window.isCurrentUserRoomHost === 'function') {
+      return window.isCurrentUserRoomHost(window.CurrentRoom);
+    }
+    return false;
+  }
+
+  /**
+   * Resolves a list of player IDs cleanly against the master PLAYERS catalog
+   * so all clients construct the exact same player array regardless of poolSize filter.
+   */
+  function buildPoolFromIds(poolIds) {
+    if (!Array.isArray(poolIds) || poolIds.length === 0) return [];
+    const { players: rawPlayers } = getGlobalData();
+    const rawMap = new Map();
+    rawPlayers.forEach(p => rawMap.set(p.id, p));
+    const ordered = [];
+    poolIds.forEach(id => {
+      if (rawMap.has(id)) {
+        ordered.push({ ...rawMap.get(id) });
+      }
+    });
+    return ordered;
+  }
 
   // Internal transition state helpers
   let transitionTimeout = null;
@@ -355,6 +388,9 @@
     GameState.isPaused = false;
     GameState.isSold = false;
     GameState.isUnsold = false;
+    GameState.unsold = [];
+    GameState.hasCompletedAccelerated = false;
+    GameState.poolVersion = 0;
     GameState.auctionLog = [];
     GameState.speed = Math.max(1, Math.min(3, config.speed || 1));
     const defaultMode = ((typeof window !== 'undefined' && window.AppState && window.AppState.auctionMode) ? window.AppState.auctionMode : 'MINI');
@@ -501,7 +537,7 @@
   /**
    * 3. startAuction() - Begin the live auction (clears ALL previous state)
    */
-  function startAuction(customPoolIds) {
+  function startAuction(customPoolIds, startingIndex = 0, liveSnapshot = null) {
     // ---- CLEAR ALL PREVIOUS AUCTION STATE ----
     // Stop any running timer
     if (GameState.timer) {
@@ -514,6 +550,8 @@
     GameState.currentBidder = null;
     GameState.isSold = false;
     GameState.isUnsold = false;
+    GameState.unsold = [];
+    GameState.hasCompletedAccelerated = false;
     GameState.timeLeft = GameState.bidDuration || 10;
     GameState.auctionLog = [];
     GameState.results = null;
@@ -534,29 +572,30 @@
       poolSize: GameState.poolSize || 'quick'
     });
 
-    // Synchronize pool order if customPoolIds or room.pool is provided
+    // Synchronize pool order if customPoolIds or room.pool is provided (resolved from master catalog!)
     const poolIds = customPoolIds || (typeof window !== 'undefined' && window.CurrentRoom && window.CurrentRoom.pool);
     if (Array.isArray(poolIds) && poolIds.length > 0) {
-      const poolMap = new Map();
-      GameState.auctionPool.forEach(p => poolMap.set(p.id, p));
-      const orderedPool = [];
-      poolIds.forEach(id => {
-        if (poolMap.has(id)) {
-          orderedPool.push(poolMap.get(id));
-          poolMap.delete(id);
-        }
-      });
-      // Append any leftovers
-      poolMap.forEach(p => orderedPool.push(p));
-      GameState.auctionPool = orderedPool;
+      const orderedPool = buildPoolFromIds(poolIds);
+      if (orderedPool.length > 0) {
+        GameState.auctionPool = orderedPool;
+      }
+    }
+
+    GameState.poolVersion = (liveSnapshot && typeof liveSnapshot.poolVersion === 'number')
+      ? liveSnapshot.poolVersion
+      : ((typeof window !== 'undefined' && window.CurrentRoom && typeof window.CurrentRoom.poolVersion === 'number') ? window.CurrentRoom.poolVersion : 1);
+
+    if (liveSnapshot && Array.isArray(liveSnapshot.purchases)) {
+      applyTeamPurchasesSnapshot(liveSnapshot.purchases, liveSnapshot.unsoldIds);
     }
 
     if (!GameState.userTeamId && GameState.teams.length > 0) {
       GameState.userTeamId = GameState.teams[0].id;
     }
 
+    const startIdx = (typeof startingIndex === 'number' && startingIndex >= 0) ? startingIndex : 0;
     GameState.phase = 'auction';
-    GameState.currentPlayerIndex = 0;
+    GameState.currentPlayerIndex = startIdx;
     GameState.isPaused = false;
 
     addLog({
@@ -565,14 +604,55 @@
     });
 
     emit('auctionStart', { state: GameState });
-    loadPlayer(0);
+    const isGuestRemote = isInMultiplayerRoom() && !isMultiplayerHost();
+    loadPlayer(startIdx, {
+      isRemote: !!customPoolIds || isGuestRemote,
+      currentBid: liveSnapshot?.currentBid,
+      currentBidder: liveSnapshot?.currentBidder,
+      timeLeft: liveSnapshot?.timeLeft,
+      isPaused: liveSnapshot?.isPaused,
+      isSold: liveSnapshot?.isSold,
+      isUnsold: liveSnapshot?.isUnsold
+    });
     return true;
+  }
+
+  /**
+   * Broadcasts authoritative current stage & pool state from Host to all Guests
+   */
+  function syncMultiplayerStage(skipCloudSync = false) {
+    if (!isInMultiplayerRoom() || !isMultiplayerHost()) return;
+    const player = getCurrentPlayer();
+    const poolIds = (GameState.auctionPool || []).map(p => p.id);
+    if (window.CurrentRoom) {
+      window.CurrentRoom.pool = poolIds;
+      window.CurrentRoom.poolVersion = GameState.poolVersion || 1;
+    }
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.broadcastStageSync === 'function') {
+      StorageEngine.broadcastStageSync({
+        playerIndex: GameState.currentPlayerIndex,
+        playerId: player ? player.id : null,
+        pool: poolIds,
+        poolVersion: GameState.poolVersion || 1,
+        currentBid: GameState.currentBid || 0,
+        currentBidder: GameState.currentBidder || null,
+        timeLeft: GameState.timeLeft,
+        bidDuration: GameState.bidDuration || 10,
+        isPaused: !!GameState.isPaused,
+        isSold: !!GameState.isSold,
+        isUnsold: !!GameState.isUnsold,
+        phase: GameState.phase
+      });
+    }
+    if (!skipCloudSync && typeof window !== 'undefined' && typeof window.syncRoomLiveStateToCloud === 'function') {
+      window.syncRoomLiveStateToCloud(true);
+    }
   }
 
   /**
    * Loads a player from the pool onto the auction stage
    */
-  function loadPlayer(index) {
+  function loadPlayer(index, options = {}) {
     if (GameState.timer) {
       clearInterval(GameState.timer);
       GameState.timer = null;
@@ -589,6 +669,7 @@
         GameState.hasCompletedAccelerated = true;
         GameState.phase = 'accelerated';
         emit('acceleratedPhaseTriggered', { unsold: GameState.unsold });
+        if (!options.isRemote) syncMultiplayerStage();
         return;
       }
       endAuction();
@@ -600,7 +681,6 @@
       const prevPlayer = GameState.auctionPool[index - 1];
       const nextP = GameState.auctionPool[index];
       if (prevPlayer && nextP && prevPlayer.set !== nextP.set) {
-        // Swapping to a new set! Thoroughly and clearly shuffle all remaining players in this set
         const currentSet = nextP.set;
         const setIndices = [];
         for (let k = index; k < GameState.auctionPool.length; k++) {
@@ -611,8 +691,10 @@
           }
         }
 
-        // Fisher-Yates random shuffle on all players in this new set
-        if (setIndices.length > 1) {
+        // Only perform local random Fisher-Yates shuffle on set swap in single-player mode!
+        // In multiplayer, every set is pre-shuffled cleanly by the Host at start (or via Host Reshuffle)
+        // so all devices stay 100% locked onto identical cricketer cards at every set change.
+        if (!isInMultiplayerRoom() && setIndices.length > 1) {
           for (let i = setIndices.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             const idxA = setIndices[i];
@@ -625,7 +707,7 @@
 
         addLog({
           type: 'setSwap',
-          message: `🔀 SET SWAP: Entering Set ${nextP.set} (${getSetName(nextP.set)})! All ${setIndices.length} players have been clearly randomized & shuffled.`
+          message: `🔀 SET SWAP: Entering Set ${nextP.set} (${getSetName(nextP.set)})! (${setIndices.length} players)`
         });
 
         emit('setSwap', {
@@ -641,11 +723,14 @@
     GameState.currentPlayerIndex = index;
     const player = GameState.auctionPool[index];
 
-    GameState.currentBid = 0; // Starts at 0 before any bid is made
-    GameState.currentBidder = null;
-    GameState.isSold = false;
-    GameState.isUnsold = false;
-    GameState.timeLeft = GameState.bidDuration || 10;
+    GameState.currentBid = (options.isRemote && typeof options.currentBid === 'number') ? options.currentBid : 0;
+    GameState.currentBidder = (options.isRemote && options.currentBidder !== undefined) ? options.currentBidder : null;
+    GameState.isSold = (options.isRemote && typeof options.isSold === 'boolean') ? options.isSold : false;
+    GameState.isUnsold = (options.isRemote && typeof options.isUnsold === 'boolean') ? options.isUnsold : false;
+    GameState.timeLeft = (options.isRemote && typeof options.timeLeft === 'number') ? options.timeLeft : (GameState.bidDuration || 10);
+    if (options.isRemote && typeof options.isPaused === 'boolean') {
+      GameState.isPaused = options.isPaused;
+    }
 
     addLog({
       type: 'newPlayer',
@@ -660,15 +745,24 @@
     });
     emit('stateChange', GameState);
 
-    if (!GameState.isPaused) {
-      startTimer(GameState.bidDuration || 10);
+    // Host broadcasts the newly loaded player & pool immediately so all guests move in sync
+    if (!options.isRemote && isInMultiplayerRoom() && isMultiplayerHost()) {
+      syncMultiplayerStage();
+    }
+
+    if (!GameState.isPaused && !GameState.isSold && !GameState.isUnsold) {
+      startTimer(GameState.timeLeft);
     }
   }
 
   /**
    * Clearly shuffle all upcoming players in remaining sets
    */
-  function shuffleUpcomingPool() {
+  function shuffleUpcomingPool(isRemote = false) {
+    if (!isRemote && isInMultiplayerRoom() && !isMultiplayerHost()) {
+      return false; // Only host may reshuffle in multiplayer so cards remain identical
+    }
+
     const startIndex = GameState.currentPlayerIndex + 1;
     if (startIndex >= GameState.auctionPool.length) return false;
 
@@ -694,14 +788,215 @@
     }
 
     GameState.auctionPool.splice(startIndex, remaining.length, ...shuffledRemaining);
+    GameState.poolVersion = (GameState.poolVersion || 0) + 1;
 
     addLog({
       type: 'shuffle',
       message: `🔀 Upcoming players re-shuffled across all remaining auction sets!`
     });
 
-    emit('poolShuffled', { remainingCount: shuffledRemaining.length });
+    emit('poolShuffled', { remainingCount: shuffledRemaining.length, poolVersion: GameState.poolVersion });
     emit('stateChange', GameState);
+
+    if (!isRemote && isInMultiplayerRoom() && isMultiplayerHost()) {
+      const poolIds = GameState.auctionPool.map(p => p.id);
+      if (window.CurrentRoom) {
+        window.CurrentRoom.pool = poolIds;
+        window.CurrentRoom.poolVersion = GameState.poolVersion;
+      }
+      if (typeof StorageEngine !== 'undefined') {
+        if (typeof StorageEngine.broadcastPoolSync === 'function') {
+          StorageEngine.broadcastPoolSync(poolIds, GameState.currentPlayerIndex, GameState.poolVersion, 'manual');
+        }
+        if (window.CurrentRoom && typeof StorageEngine.saveRoom === 'function') {
+          StorageEngine.saveRoom(window.CurrentRoom);
+        }
+      }
+      if (typeof window.syncRoomLiveStateToCloud === 'function') {
+        window.syncRoomLiveStateToCloud(true);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Apply remote pool order received from Host (on manual shuffle or reconnect)
+   */
+  function applyRemotePool(poolIds, hostPlayerIndex, poolVersion) {
+    if (!Array.isArray(poolIds) || poolIds.length === 0) return false;
+    if (typeof poolVersion === 'number' && GameState.poolVersion && poolVersion < GameState.poolVersion) {
+      return false;
+    }
+
+    const orderedPool = buildPoolFromIds(poolIds);
+    if (orderedPool.length === 0) return false;
+
+    GameState.auctionPool = orderedPool;
+    if (typeof poolVersion === 'number') {
+      GameState.poolVersion = poolVersion;
+    } else {
+      GameState.poolVersion = (GameState.poolVersion || 0) + 1;
+    }
+
+    if (window.CurrentRoom) {
+      window.CurrentRoom.pool = poolIds;
+      window.CurrentRoom.poolVersion = GameState.poolVersion;
+    }
+
+    addLog({
+      type: 'shuffle',
+      message: `🔀 Host re-shuffled remaining players — card order synchronized!`
+    });
+
+    if (typeof hostPlayerIndex === 'number' && hostPlayerIndex >= 0 && hostPlayerIndex < GameState.auctionPool.length && hostPlayerIndex !== GameState.currentPlayerIndex) {
+      loadPlayer(hostPlayerIndex, { isRemote: true });
+    } else {
+      emit('poolShuffled', { remainingCount: Math.max(0, GameState.auctionPool.length - (GameState.currentPlayerIndex + 1)), poolVersion: GameState.poolVersion });
+      emit('stateChange', GameState);
+    }
+    return true;
+  }
+
+  /**
+   * Reconcile purchased team rosters from compact snapshot (late join / missed packet recovery)
+   */
+  function applyTeamPurchasesSnapshot(purchases, unsoldIds) {
+    if (!Array.isArray(purchases)) return;
+    const { players: rawPlayers } = getGlobalData();
+    const rawMap = new Map();
+    rawPlayers.forEach(p => rawMap.set(p.id, p));
+
+    let changed = false;
+    purchases.forEach(item => {
+      const team = getTeam(item.t);
+      const baseP = rawMap.get(item.id);
+      if (!team || !baseP) return;
+      if (!team.players.some(existing => existing.id === item.id)) {
+        const bought = {
+          ...baseP,
+          soldPrice: Number(item.p) || baseP.basePrice || 0.2,
+          price: Number(item.p) || baseP.basePrice || 0.2,
+          soldTo: team.id
+        };
+        team.players.push(bought);
+        team.spent = roundCr((team.spent || 0) + bought.soldPrice);
+        if (bought.overseas) {
+          team.overseas = (team.overseas || 0) + 1;
+        }
+        changed = true;
+      }
+    });
+
+    if (Array.isArray(unsoldIds)) {
+      if (!GameState.unsold) GameState.unsold = [];
+      unsoldIds.forEach(pid => {
+        const baseP = rawMap.get(pid);
+        if (baseP && !GameState.unsold.some(u => u.id === pid)) {
+          GameState.unsold.push({ ...baseP, status: 'unsold' });
+          changed = true;
+        }
+      });
+    }
+
+    if (changed) {
+      emit('stateChange', GameState);
+    }
+  }
+
+  /**
+   * Authoritative stage reconciliation on Guests (via Realtime broadcast or cloud polling)
+   */
+  function applyRemoteStageSync(stageData) {
+    if (!stageData) return false;
+    if (isMultiplayerHost()) return false;
+
+    if (Array.isArray(stageData.purchases)) {
+      applyTeamPurchasesSnapshot(stageData.purchases, stageData.unsoldIds);
+    }
+
+    // Reconcile pool if version increased or IDs differ at target player
+    if (Array.isArray(stageData.pool) && stageData.pool.length > 0) {
+      const incomingVer = typeof stageData.poolVersion === 'number' ? stageData.poolVersion : 0;
+      const curAtIdx = (GameState.auctionPool && typeof stageData.playerIndex === 'number')
+        ? GameState.auctionPool[stageData.playerIndex]?.id
+        : null;
+      const poolDiffers = (incomingVer > (GameState.poolVersion || 0))
+        || !GameState.auctionPool
+        || GameState.auctionPool.length !== stageData.pool.length
+        || (stageData.playerId && curAtIdx !== stageData.playerId);
+
+      if (poolDiffers) {
+        const rebuilt = buildPoolFromIds(stageData.pool);
+        if (rebuilt.length > 0) {
+          GameState.auctionPool = rebuilt;
+          if (incomingVer) GameState.poolVersion = incomingVer;
+          if (window.CurrentRoom) {
+            window.CurrentRoom.pool = stageData.pool;
+            window.CurrentRoom.poolVersion = GameState.poolVersion;
+          }
+          emit('poolShuffled', { remainingCount: Math.max(0, GameState.auctionPool.length - (GameState.currentPlayerIndex + 1)), poolVersion: GameState.poolVersion });
+        }
+      }
+    }
+
+    if (typeof stageData.bidDuration === 'number' && stageData.bidDuration !== GameState.bidDuration) {
+      GameState.bidDuration = stageData.bidDuration;
+    }
+
+    if (stageData.phase === 'results' && GameState.phase !== 'results') {
+      endAuction();
+      return true;
+    }
+    if (stageData.phase === 'accelerated' && GameState.phase !== 'accelerated') {
+      GameState.hasCompletedAccelerated = true;
+      GameState.phase = 'accelerated';
+      emit('acceleratedPhaseTriggered', { unsold: GameState.unsold || [] });
+      return true;
+    }
+
+    // Resolve exact target index (matching playerId if provided)
+    let targetIdx = (typeof stageData.playerIndex === 'number') ? stageData.playerIndex : GameState.currentPlayerIndex;
+    if (stageData.playerId && GameState.auctionPool[targetIdx]?.id !== stageData.playerId) {
+      const matched = GameState.auctionPool.findIndex(p => p.id === stageData.playerId);
+      if (matched !== -1) targetIdx = matched;
+    }
+
+    const curPlayer = getCurrentPlayer();
+    const mismatchPlayer = (targetIdx !== GameState.currentPlayerIndex)
+      || (stageData.playerId && curPlayer && curPlayer.id !== stageData.playerId);
+
+    if (mismatchPlayer && targetIdx >= 0 && targetIdx < GameState.auctionPool.length) {
+      GameState.phase = stageData.phase || 'auction';
+      loadPlayer(targetIdx, {
+        isRemote: true,
+        currentBid: stageData.currentBid || 0,
+        currentBidder: stageData.currentBidder || null,
+        timeLeft: typeof stageData.timeLeft === 'number' ? stageData.timeLeft : (GameState.bidDuration || 10),
+        isPaused: !!stageData.isPaused,
+        isSold: !!stageData.isSold,
+        isUnsold: !!stageData.isUnsold
+      });
+      return true;
+    }
+
+    // Already on same player: reconcile bid / pause / timer drift gently
+    let updated = false;
+    if (typeof stageData.currentBid === 'number' && stageData.currentBid > GameState.currentBid) {
+      GameState.currentBid = stageData.currentBid;
+      GameState.currentBidder = stageData.currentBidder;
+      updated = true;
+    }
+    if (typeof stageData.isPaused === 'boolean' && stageData.isPaused !== GameState.isPaused) {
+      if (stageData.isPaused) pauseGame(true);
+      else resumeGame(true);
+      updated = true;
+    }
+    if (typeof stageData.timeLeft === 'number' && Math.abs((GameState.timeLeft || 0) - stageData.timeLeft) > 2 && !GameState.isSold && !GameState.isUnsold) {
+      GameState.timeLeft = stageData.timeLeft;
+      emit('timerTick', { timeLeft: GameState.timeLeft, player: getCurrentPlayer(), currentBid: GameState.currentBid, currentBidder: GameState.currentBidder });
+    }
+    if (updated) emit('stateChange', GameState);
     return true;
   }
 
@@ -751,10 +1046,22 @@
         GameState.timer = null;
       }
 
+      if (isInMultiplayerRoom() && !isMultiplayerHost()) {
+        // Guests wait for Host's authoritative player_resolved / stage_sync broadcast
+        GameState.timeLeft = 0;
+        emit('timerTick', {
+          timeLeft: 0,
+          player: getCurrentPlayer(),
+          currentBid: GameState.currentBid,
+          currentBidder: GameState.currentBidder
+        });
+        return;
+      }
+
       if (GameState.currentBidder !== null) {
-        soldPlayer();
+        soldPlayer(false);
       } else {
-        unsoldPlayer();
+        unsoldPlayer(false);
       }
     }
   }
@@ -775,7 +1082,7 @@
   /**
    * 8. pauseGame() - Pause game preserving full state
    */
-  function pauseGame() {
+  function pauseGame(isRemote = false) {
     if (GameState.isPaused) return;
     GameState.isPaused = true;
 
@@ -800,12 +1107,21 @@
 
     emit('pause', { state: GameState });
     emit('stateChange', GameState);
+
+    if (!isRemote && isInMultiplayerRoom() && isMultiplayerHost()) {
+      if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.broadcastPauseSync === 'function') {
+        StorageEngine.broadcastPauseSync(true, GameState.timeLeft, GameState.currentPlayerIndex);
+      }
+      if (typeof window !== 'undefined' && typeof window.syncRoomLiveStateToCloud === 'function') {
+        window.syncRoomLiveStateToCloud(true);
+      }
+    }
   }
 
   /**
    * 8. resumeGame() - Resume from exact state and re-evaluate AI on current player
    */
-  function resumeGame() {
+  function resumeGame(isRemote = false) {
     if (!GameState.isPaused) return;
     GameState.isPaused = false;
 
@@ -818,14 +1134,25 @@
     emit('resume', { state: GameState });
     emit('stateChange', GameState);
 
+    if (!isRemote && isInMultiplayerRoom() && isMultiplayerHost()) {
+      if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.broadcastPauseSync === 'function') {
+        StorageEngine.broadcastPauseSync(false, GameState.timeLeft, GameState.currentPlayerIndex);
+      }
+      if (typeof window !== 'undefined' && typeof window.syncRoomLiveStateToCloud === 'function') {
+        window.syncRoomLiveStateToCloud(true);
+      }
+    }
+
     // If game was paused while transitioning to next player
     if (GameState.isSold || GameState.isUnsold || wasInTransition) {
-      const delay = Math.max(200, Math.floor(1500 / (GameState.speed || 1)));
-      transitionTimeout = setTimeout(() => {
-        transitionTimeout = null;
-        wasInTransition = false;
-        nextPlayer();
-      }, delay);
+      if (!isInMultiplayerRoom() || isMultiplayerHost()) {
+        const delay = Math.max(200, Math.floor(1500 / (GameState.speed || 1)));
+        transitionTimeout = setTimeout(() => {
+          transitionTimeout = null;
+          wasInTransition = false;
+          nextPlayer();
+        }, delay);
+      }
       return;
     }
 
@@ -833,6 +1160,15 @@
     startTimer(GameState.timeLeft);
 
     // Auto-bidding removed
+  }
+
+  function togglePause(isRemote = false) {
+    if (GameState.isPaused) {
+      resumeGame(isRemote);
+    } else {
+      pauseGame(isRemote);
+    }
+    return GameState.isPaused;
   }
 
   // ==========================================================================
@@ -928,6 +1264,9 @@
 
     // Reset countdown to allow counter-bids based on host timer
     GameState.timeLeft = GameState.bidDuration || 10;
+    if (!GameState.timer && !GameState.isPaused && GameState.phase === 'auction') {
+      startTimer(GameState.timeLeft);
+    }
 
     addLog({
       type: 'bid',
@@ -949,7 +1288,10 @@
 
     try {
       if (!isRemote && typeof StorageEngine !== 'undefined' && StorageEngine.broadcastBid) {
-        StorageEngine.broadcastBid(bidderId, nextBid, GameState.currentPlayerIndex);
+        StorageEngine.broadcastBid(bidderId, nextBid, GameState.currentPlayerIndex, player.id);
+      }
+      if (isInMultiplayerRoom() && isMultiplayerHost() && typeof window !== 'undefined' && typeof window.syncRoomLiveStateToCloud === 'function') {
+        window.syncRoomLiveStateToCloud(false);
       }
     } catch (e) {}
 
@@ -1058,7 +1400,7 @@
       GameState.timeLeft = 3;
       emit('timerTick', { timeLeft: GameState.timeLeft, player: getCurrentPlayer() });
       if (!isRemote && typeof StorageEngine !== 'undefined' && StorageEngine.broadcastPass) {
-        StorageEngine.broadcastPass();
+        StorageEngine.broadcastPass(GameState.currentPlayerIndex);
       }
     }
   }
@@ -1362,7 +1704,7 @@
     }
   }
 
-  function soldPlayer() {
+  function soldPlayer(isRemote = false, overrideData = null) {
     if (GameState.timer) {
       clearInterval(GameState.timer);
       GameState.timer = null;
@@ -1372,51 +1714,75 @@
     GameState.isUnsold = false;
 
     const player = getCurrentPlayer();
-    const winner = getTeam(GameState.currentBidder);
+    const finalBidder = overrideData?.soldTo || GameState.currentBidder;
+    const finalAmount = typeof overrideData?.soldPrice === 'number' ? overrideData.soldPrice : GameState.currentBid;
+    const winner = getTeam(finalBidder);
 
     if (player && winner) {
-      winner.spent = roundCr(winner.spent + GameState.currentBid);
-      if (player.overseas) {
-        winner.overseas = (winner.overseas || 0) + 1;
+      GameState.currentBidder = winner.id;
+      GameState.currentBid = finalAmount;
+
+      if (!winner.players.some(existing => existing.id === player.id)) {
+        winner.spent = roundCr((winner.spent || 0) + finalAmount);
+        if (player.overseas) {
+          winner.overseas = (winner.overseas || 0) + 1;
+        }
+
+        const boughtPlayer = {
+          ...player,
+          soldPrice: finalAmount,
+          price: finalAmount,
+          soldTo: winner.id
+        };
+        winner.players.push(boughtPlayer);
+
+        addLog({
+          type: 'sold',
+          message: `🔨 SOLD! ${player.name} sold to ${winner.name} for ₹${Number(finalAmount || 0).toFixed(2)} Cr!`,
+          player: boughtPlayer,
+          team: winner,
+          amount: finalAmount
+        });
+
+        emit('playerSold', {
+          player: boughtPlayer,
+          team: winner,
+          amount: finalAmount
+        });
       }
-
-      const boughtPlayer = {
-        ...player,
-        soldPrice: GameState.currentBid,
-        price: GameState.currentBid,
-        soldTo: winner.id
-      };
-      winner.players.push(boughtPlayer);
-
-      addLog({
-        type: 'sold',
-        message: `🔨 SOLD! ${player.name} sold to ${winner.name} for ₹${Number(GameState.currentBid || 0).toFixed(2)} Cr!`,
-        player: boughtPlayer,
-        team: winner,
-        amount: GameState.currentBid
-      });
-
-      emit('playerSold', {
-        player: boughtPlayer,
-        team: winner,
-        amount: GameState.currentBid
-      });
     }
 
     emit('stateChange', GameState);
 
-    // Advance to next player after brief celebration delay
-    const delay = Math.max(300, Math.floor(2500 / (GameState.speed || 1)));
-    transitionTimeout = setTimeout(() => {
-      transitionTimeout = null;
-      nextPlayer();
-    }, delay);
+    if (!isRemote && isInMultiplayerRoom() && isMultiplayerHost()) {
+      if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.broadcastPlayerResolved === 'function') {
+        StorageEngine.broadcastPlayerResolved({
+          playerIndex: GameState.currentPlayerIndex,
+          playerId: player ? player.id : null,
+          status: 'sold',
+          soldTo: winner ? winner.id : finalBidder,
+          soldPrice: finalAmount
+        });
+      }
+      if (typeof window !== 'undefined' && typeof window.syncRoomLiveStateToCloud === 'function') {
+        window.syncRoomLiveStateToCloud(true);
+      }
+    }
+
+    // Only advance independently when solo OR when Host in multiplayer
+    if (!isInMultiplayerRoom() || isMultiplayerHost()) {
+      const delay = Math.max(300, Math.floor(2500 / (GameState.speed || 1)));
+      transitionTimeout = setTimeout(() => {
+        transitionTimeout = null;
+        nextPlayer();
+      }, delay);
+    }
   }
 
   /**
    * 10. unsoldPlayer() - Handle player passing without bids
    */
-  function unsoldPlayer() {
+  function unsoldPlayer(isRemote = false) {
     if (GameState.timer) {
       clearInterval(GameState.timer);
       GameState.timer = null;
@@ -1427,6 +1793,11 @@
 
     const player = getCurrentPlayer();
     if (player) {
+      if (!GameState.unsold) GameState.unsold = [];
+      if (!GameState.unsold.some(u => u.id === player.id)) {
+        GameState.unsold.push({ ...player, status: 'unsold' });
+      }
+
       addLog({
         type: 'unsold',
         message: `❌ UNSOLD: ${player.name} goes unsold at base price ₹${Number(player.basePrice || 0).toFixed(2)} Cr.`,
@@ -1438,11 +1809,42 @@
 
     emit('stateChange', GameState);
 
-    const delay = Math.max(300, Math.floor(1800 / (GameState.speed || 1)));
-    transitionTimeout = setTimeout(() => {
-      transitionTimeout = null;
-      nextPlayer();
-    }, delay);
+    if (!isRemote && isInMultiplayerRoom() && isMultiplayerHost()) {
+      if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.broadcastPlayerResolved === 'function') {
+        StorageEngine.broadcastPlayerResolved({
+          playerIndex: GameState.currentPlayerIndex,
+          playerId: player ? player.id : null,
+          status: 'unsold'
+        });
+      }
+      if (typeof window !== 'undefined' && typeof window.syncRoomLiveStateToCloud === 'function') {
+        window.syncRoomLiveStateToCloud(true);
+      }
+    }
+
+    if (!isInMultiplayerRoom() || isMultiplayerHost()) {
+      const delay = Math.max(300, Math.floor(1800 / (GameState.speed || 1)));
+      transitionTimeout = setTimeout(() => {
+        transitionTimeout = null;
+        nextPlayer();
+      }, delay);
+    }
+  }
+
+  /**
+   * Handles Host's player_resolved broadcast on Guest devices
+   */
+  function applyRemotePlayerResolved(resolveData) {
+    if (!resolveData || isMultiplayerHost()) return false;
+    if (typeof resolveData.playerIndex === 'number' && resolveData.playerIndex !== GameState.currentPlayerIndex) {
+      loadPlayer(resolveData.playerIndex, { isRemote: true });
+    }
+    if (resolveData.status === 'sold') {
+      soldPlayer(true, { soldTo: resolveData.soldTo, soldPrice: resolveData.soldPrice });
+    } else if (resolveData.status === 'unsold') {
+      unsoldPlayer(true);
+    }
+    return true;
   }
 
   /**
@@ -1463,6 +1865,7 @@
         GameState.hasCompletedAccelerated = true;
         GameState.phase = 'accelerated';
         emit('acceleratedPhaseTriggered', { unsold: GameState.unsold });
+        syncMultiplayerStage();
         return;
       }
       endAuction();
@@ -1475,7 +1878,7 @@
   /**
    * 11. endAuction() - Finalize auction and transition to results
    */
-  function endAuction() {
+  function endAuction(isRemote = false) {
     if (GameState.timer) {
       clearInterval(GameState.timer);
       GameState.timer = null;
@@ -1489,6 +1892,10 @@
     GameState.isPaused = false;
     GameState.isSold = false;
     GameState.isUnsold = false;
+
+    if (!isRemote && isInMultiplayerRoom() && isMultiplayerHost()) {
+      syncMultiplayerStage();
+    }
 
     let results = [];
     if (typeof RatingEngine !== 'undefined' && typeof RatingEngine.rankTeams === 'function') {
@@ -2228,11 +2635,15 @@
     startTimer,
     pauseGame,
     resumeGame,
+    togglePause,
     soldPlayer,
     finalizeSaleImmediately,
     unsoldPlayer,
-    finalizeSaleImmediately,
     endAuction,
+    applyRemotePool,
+    applyRemoteStageSync,
+    applyRemotePlayerResolved,
+    syncMultiplayerStage,
 
     // Engines & Analyzers
     aiDecision,
@@ -2298,9 +2709,14 @@
     window.startTimer = startTimer;
     window.pauseGame = pauseGame;
     window.resumeGame = resumeGame;
+    window.togglePause = togglePause;
     window.soldPlayer = soldPlayer;
     window.unsoldPlayer = unsoldPlayer;
     window.endAuction = endAuction;
+    window.applyRemotePool = applyRemotePool;
+    window.applyRemoteStageSync = applyRemoteStageSync;
+    window.applyRemotePlayerResolved = applyRemotePlayerResolved;
+    window.syncMultiplayerStage = syncMultiplayerStage;
     window.aiDecision = aiDecision;
     window.getBestPlayingXI = getBestPlayingXI;
     window.rateSquad = rateSquad;

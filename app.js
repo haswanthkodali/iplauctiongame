@@ -1034,9 +1034,9 @@
   function switchTab(tabKey, force = false) {
     if (!force && isLiveMultiplayerAuction() && (tabKey === 'home' || tabKey === 'manager')) {
       if (typeof window.showBiddingRuleAlert === 'function') {
-        window.showBiddingRuleAlert("🔒 Live auction in progress! Use '🔄 Change Team' to switch franchises, or '🚪 Leave Room' to exit the auction.");
+        window.showBiddingRuleAlert("🔒 Live auction in progress! Use '🚪 Leave Room' to exit the auction.");
       } else {
-        alert("🔒 Live auction in progress! Use 'Change Team' to switch franchises, or 'Leave Room' to exit.");
+        alert("🔒 Live auction in progress! Use 'Leave Room' to exit.");
       }
       return;
     }
@@ -5558,6 +5558,14 @@
     if (arenaLeaveBtn) {
       if (inRoom) arenaLeaveBtn.classList.remove('hidden');
       else arenaLeaveBtn.classList.add('hidden');
+    }
+    // Hide Change Team button once auction has started
+    const arenaChangeBtn = document.getElementById('btnArenaChangeTeam');
+    if (arenaChangeBtn) {
+      const gs = (typeof Game !== 'undefined' && Game.getState) ? Game.getState() : null;
+      const auctionLive = gs && gs.phase === 'auction';
+      if (auctionLive) arenaChangeBtn.classList.add('hidden');
+      else arenaChangeBtn.classList.remove('hidden');
     }
     if (shuffleBtn) {
       if (isHost) shuffleBtn.classList.remove('hidden');

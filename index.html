@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=1795308000">
+  <link rel="stylesheet" href="styles.css?v=1795737000">
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@600;700;800&display=swap');
@@ -93,7 +93,7 @@
 <body class="min-h-screen flex flex-col antialiased selection:bg-yellow-500 selection:text-slate-950">
 
   <!-- 2027 SQUADS QUICK FRANCHISE BAR -->
-  <div class="bg-slate-950 border-b border-slate-800 text-[11px] py-1.5 px-4 overflow-x-auto">
+  <div id="quickSquadsBar" class="bg-slate-950 border-b border-slate-800 text-[11px] py-1.5 px-4 overflow-x-auto">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3 whitespace-nowrap">
       <div class="flex items-center gap-1.5 font-bold">
         <span class="text-amber-400 font-extrabold uppercase tracking-wider text-[10px]">2027 SQUADS:</span>
@@ -140,7 +140,7 @@
         </div>
 
         <!-- User Franchise Badge with Live Change Team Button -->
-        <div class="flex items-center gap-2">
+        <div id="headerTeamWrap" class="flex items-center gap-2">
           <div id="userTeamChip" class="hidden md:flex items-center gap-3 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60">
             <div id="userTeamLogo" class="w-8 h-8 rounded-lg flex items-center justify-center text-xl font-bold">
               👑
@@ -574,7 +574,7 @@
     <div id="tabContent-auction" class="tab-pane hidden space-y-6">
 
       <!-- AUCTION ARENA SUB-TAB NAVIGATION -->
-      <div class="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto no-scrollbar">
+      <div id="arenaSubTabNav" class="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto no-scrollbar">
         <button data-arena-tab="bidding" class="arena-tab active px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer">
           🔨 <span>Live Bidding</span>
         </button>
@@ -597,7 +597,7 @@
       <div id="arenaPane-bidding" class="arena-pane space-y-6">
 
         <!-- Progress Ribbon & Host Arena Controls -->
-        <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/80">
+        <div id="arenaProgressRibbon" class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/80">
           <div class="flex flex-wrap items-center gap-3">
             <span class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-slate-800 text-amber-400 border border-slate-700" id="currentSetName">
               Set 1: Marquee Players
@@ -633,10 +633,10 @@
         </div>
 
         <!-- Main Stage Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div id="arenaStageGrid" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           <!-- Left / Center Column (Active Player Card & Paddle Controls) -->
-          <div class="lg:col-span-8 space-y-6">
+          <div class="arena-left-col lg:col-span-8 space-y-6">
 
             <!-- ACTIVE PLAYER CARD -->
             <div class="relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 rounded-3xl border border-slate-800 p-6 shadow-2xl overflow-hidden" id="activePlayerCard">
@@ -649,7 +649,7 @@
               </div>
 
               <!-- Player Card Header -->
-              <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div id="activePlayerHeader" class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 
                 <!-- Player Portrait -->
                 <div class="relative flex-shrink-0 group">
@@ -698,7 +698,7 @@
                   </div>
 
                   <!-- Rating Sub-meters -->
-                  <div class="grid grid-cols-3 gap-2 pt-2">
+                  <div id="playerSubRatingsGrid" class="grid grid-cols-3 gap-2 pt-2">
                     <div class="bg-slate-800/60 rounded-xl p-2 text-center border border-slate-800">
                       <span class="text-[10px] uppercase text-slate-400 block font-semibold">Batting</span>
                       <span class="text-sm font-bold text-blue-400" id="playerBattingRating">97</span>
@@ -717,12 +717,12 @@
               </div>
 
               <!-- PLAYER STATS DASHBOARD -->
-              <div class="mt-6 pt-5 border-t border-slate-800/80">
+              <div id="playerCareerStatsWrap" class="mt-6 pt-5 border-t border-slate-800/80">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-xs font-bold uppercase tracking-wider text-slate-400">📊 T20 & IPL Career Statistics</span>
                   <span class="text-[11px] text-slate-500">2026/2027 Season</span>
                 </div>
-                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+                <div id="playerCareerStatsGrid" class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
                   <div class="bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/60">
                     <span class="text-[10px] text-slate-400 uppercase block font-semibold" id="lblStat1">Matches</span>
                     <span class="text-sm sm:text-base font-bold text-white" id="statMatches">--</span>
@@ -751,7 +751,7 @@
               </div>
 
               <!-- Tactical Playing XI Impact Banner -->
-              <div class="mt-4 p-3 rounded-xl bg-blue-950/40 border border-blue-800/50 flex items-center justify-between text-xs">
+              <div id="tacticalFitBanner" class="mt-4 p-3 rounded-xl bg-blue-950/40 border border-blue-800/50 flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2">
                   <span class="text-base">🎯</span>
                   <span class="text-slate-300">
@@ -765,10 +765,10 @@
             </div>
 
             <!-- LIVE BIDDING TIER & USER CONTROLS -->
-            <div class="bg-slate-900/90 rounded-3xl border border-slate-800 p-6 shadow-xl space-y-6">
+            <div id="liveBiddingCard" class="bg-slate-900/90 rounded-3xl border border-slate-800 p-6 shadow-xl space-y-6">
               
               <!-- Current Price & Leader Badge -->
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <div id="biddingPriceTierBox" class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
                 <div class="text-center sm:text-left">
                   <span class="text-xs uppercase text-slate-400 tracking-wider font-semibold block">Current Highest Bid</span>
                   <div class="text-3xl sm:text-4xl font-cricket font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-200" id="currentBidDisplay">
@@ -831,7 +831,7 @@
               </div>
 
               <!-- Quick Raise Helpers -->
-              <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
+              <div id="quickRaiseBar" class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
                 <div class="flex items-center gap-2">
                   <span class="text-slate-400">Quick Increment:</span>
                   <button class="btn-quick-raise px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium" data-add="0.20">+20L</button>
@@ -845,13 +845,13 @@
           </div>
 
           <!-- Right Column (Auctioneer Desk & Gavel + Live Bidding Log) -->
-          <div class="lg:col-span-4 space-y-6">
+          <div class="arena-right-col lg:col-span-4 space-y-6">
 
             <!-- AUCTIONEER DESK & GAVEL -->
-            <div class="bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl border border-slate-800 p-5 shadow-xl text-center relative overflow-hidden">
+            <div id="auctioneerDeskCard" class="bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl border border-slate-800 p-5 shadow-xl text-center relative overflow-hidden">
               
               <!-- Countdown Timer Ring -->
-              <div class="relative w-28 h-28 mx-auto mb-4 flex items-center justify-center">
+              <div id="timerRingWrap" class="relative w-28 h-28 mx-auto mb-4 flex items-center justify-center">
                 <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="42" fill="transparent" stroke="#1e293b" stroke-width="8"></circle>
                   <circle id="timerProgressRing" cx="50" cy="50" r="42" fill="transparent" stroke="#f59e0b" stroke-width="8" stroke-dasharray="264" stroke-dashoffset="0" stroke-linecap="round" class="transition-all duration-300"></circle>
@@ -863,7 +863,7 @@
               </div>
 
               <!-- 3D Animated Gavel Graphic -->
-              <div class="hammer-container h-24 flex items-center justify-center my-2">
+              <div id="gavelWrap" class="hammer-container h-24 flex items-center justify-center my-2">
                 <div id="gavelGraphic" class="gavel">
                   <svg width="110" height="90" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <ellipse cx="60" cy="85" rx="42" ry="10" fill="#3B1E08" stroke="#5D3A1A" stroke-width="2"/>
@@ -879,13 +879,13 @@
                 </div>
               </div>
 
-              <div class="mt-2 min-h-[30px] flex items-center justify-center">
+              <div id="calloutWrap" class="mt-2 min-h-[30px] flex items-center justify-center">
                 <span id="auctioneerCallout" class="font-cricket text-lg font-bold uppercase tracking-wider text-amber-400">
                   Bidding Open
                 </span>
               </div>
 
-              <div class="mt-4 p-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-left relative">
+              <div id="commentaryBox" class="mt-4 p-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-left relative">
                 <div class="flex items-center gap-2 mb-1.5">
                   <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                   <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider" id="auctioneerName">Richard Madley (Auctioneer)</span>
@@ -898,7 +898,7 @@
             </div>
 
             <!-- LIVE BIDDING STREAM LOG -->
-            <div class="bg-slate-900/90 rounded-3xl border border-slate-800 p-5 shadow-xl flex flex-col h-[340px]">
+            <div id="liveStreamCard" class="bg-slate-900/90 rounded-3xl border border-slate-800 p-5 shadow-xl flex flex-col h-[340px]">
               <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                   ⚡ <span>Live Bidding Stream</span>
@@ -1802,7 +1802,7 @@
   <!-- 8. Persistent Server & Supabase Storage, Relogin & Room Client -->
   <script src="storage.js?v=1795736000"></script>
   <!-- 9. Main Application Controller & UI View Bindings -->
-  <script src="app.js?v=1795736000"></script>
+  <script src="app.js?v=1795736100"></script>
 
 
   <!-- CHANGE FRANCHISE MODAL (LIVE IN-AUCTION SWITCHER) -->

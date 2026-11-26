@@ -2685,103 +2685,154 @@ body::before {
   }
 }
 
-/* 3. TABLET & MOBILE BREAKPOINT (< 768px) */
-@media (max-width: 768px) {
-  /* Prevent bulky desktop user franchise box from overflowing header */
-  #userTeamChip {
-    display: none !important;
-  }
-}
-
-/* 4. MOBILE PHONES (<= 640px) - DEDICATED APP-LIKE INTERFACE */
-@media (max-width: 640px) {
+/* 3. TABLET & MOBILE SINGLE-PAGE COMPACT BREAKPOINT (< 768px) */
+@media (max-width: 767px) {
   html {
-    font-size: 13.5px;
+    font-size: 12.5px;
   }
 
   body {
     padding: 0;
   }
 
-  /* Maximum edge-to-edge space with neat 8px gutter */
+  /* Tight edge-to-edge mobile gutter */
   .max-w-7xl {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
   }
 
-  /* --- HEADER & TOP BAR MOBILE APP OPTIMIZATION --- */
+  main {
+    padding: 0.25rem 0.35rem !important;
+  }
+
+  /* Compact 2027 Squads Quick Bar */
+  #quickSquadsBar {
+    padding: 2px 6px !important;
+  }
+
+  .btn-franchise-quick {
+    font-size: 9px !important;
+    padding: 1px 5px !important;
+  }
+
+  /* --- COMPACT HEADER & LIVE TEAM STRIP --- */
   header {
+    position: static !important;
     overflow-x: hidden;
   }
 
   header .h-16 {
     height: auto !important;
-    min-height: 52px !important;
-    padding-top: 0.4rem !important;
-    padding-bottom: 0.4rem !important;
+    min-height: 0 !important;
+    flex-wrap: wrap !important;
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+    gap: 3px !important;
   }
 
-  /* Compact Brand Logo */
   header .w-10.h-10 {
-    width: 34px !important;
-    height: 34px !important;
-    font-size: 1.15rem !important;
-    border-radius: 0.6rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 1rem !important;
+    border-radius: 0.5rem !important;
     flex-shrink: 0 !important;
   }
 
-  /* Compact Title & Mode */
   header .font-cricket.text-2xl {
-    font-size: 1.05rem !important;
-    line-height: 1.15 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.1 !important;
     white-space: nowrap !important;
   }
 
   #auctionModeBadge {
-    font-size: 8.5px !important;
-    padding: 1.5px 6px !important;
+    font-size: 7.5px !important;
+    padding: 1px 5px !important;
     letter-spacing: 0.02em !important;
     white-space: nowrap !important;
   }
 
-  /* Right Header Controls */
   header .flex.items-center.gap-2.sm\:gap-3 {
-    gap: 0.35rem !important;
+    gap: 0.25rem !important;
     flex-shrink: 0 !important;
   }
 
   #btnUserProfile {
-    padding: 0.3rem 0.5rem !important;
-    font-size: 11px !important;
-    border-radius: 0.75rem !important;
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+    border-radius: 0.6rem !important;
+    gap: 4px !important;
+  }
+
+  #userAvatarLetter {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 9px !important;
   }
 
   #headerUserName {
-    max-width: 65px !important;
-    font-size: 11px !important;
+    max-width: 56px !important;
+    font-size: 10px !important;
   }
 
-  #btnAudioToggle {
-    padding: 0.35rem 0.45rem !important;
-    border-radius: 0.65rem !important;
-  }
-
+  #btnAudioToggle,
   #btnPauseResume {
-    padding: 0.35rem 0.5rem !important;
-    font-size: 11px !important;
-    border-radius: 0.65rem !important;
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+    border-radius: 0.5rem !important;
   }
 
-  /* --- SLEEK HORIZONTAL PILL NAV TABS (APP-STYLE) --- */
+  /* Compact 1-line Mobile Franchise Purse & Squad Strip */
+  #headerTeamWrap {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 1px;
+  }
+
+  #userTeamChip {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 2px 8px !important;
+    border-radius: 0.5rem !important;
+  }
+
+  #userTeamLogo {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 0.85rem !important;
+  }
+
+  #userTeamChip > .text-xs {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex: 1 !important;
+    gap: 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  #userRoleBadgeText {
+    display: none !important;
+  }
+
+  #userTeamChip .flex.items-center.gap-3 {
+    gap: 8px !important;
+    font-size: 9.5px !important;
+  }
+
+  /* --- COMPACT PILL NAV TABS --- */
   header nav {
     display: flex !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    padding: 0.35rem 0.25rem 0.5rem 0.25rem !important;
-    gap: 0.4rem !important;
+    padding: 2px 0 4px 0 !important;
+    gap: 4px !important;
     scrollbar-width: none !important;
-    border-top: 1px solid rgba(51, 65, 85, 0.4) !important;
+    border-top: 1px solid rgba(51, 65, 85, 0.35) !important;
   }
 
   header nav::-webkit-scrollbar {
@@ -2791,8 +2842,8 @@ body::before {
   header nav .nav-tab {
     flex: 0 0 auto !important;
     white-space: nowrap !important;
-    font-size: 11px !important;
-    padding: 0.4rem 0.75rem !important;
+    font-size: 10px !important;
+    padding: 3px 8px !important;
     border-radius: 9999px !important;
     border-bottom: none !important;
     transition: all 0.2s ease !important;
@@ -2802,133 +2853,550 @@ body::before {
     background: #f59e0b !important;
     color: #020617 !important;
     font-weight: 800 !important;
-    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35) !important;
+    box-shadow: 0 1px 6px rgba(245, 158, 11, 0.3) !important;
   }
 
   header nav .nav-tab:not(.active) {
     background: rgba(30, 41, 59, 0.75) !important;
     color: #94a3b8 !important;
-    border: 1px solid rgba(51, 65, 85, 0.6) !important;
+    border: 1px solid rgba(51, 65, 85, 0.5) !important;
   }
 
-  /* 2027 Squads Quick Bar Compact */
-  .btn-franchise-quick {
+  /* Global vertical compression across all tabs */
+  .tab-pane > :not([hidden]) ~ :not([hidden]),
+  .arena-pane > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.35rem !important;
+  }
+
+  /* --- ARENA SUB-TABS & PROGRESS RIBBON --- */
+  #arenaSubTabNav {
+    padding: 2px !important;
+    gap: 3px !important;
+    border-radius: 0.65rem !important;
+  }
+
+  .arena-tab {
+    padding: 3px 7px !important;
     font-size: 9.5px !important;
+    border-radius: 0.45rem !important;
+  }
+
+  #arenaProgressRibbon {
+    padding: 4px 6px !important;
+    gap: 4px !important;
+    border-radius: 0.65rem !important;
+  }
+
+  #arenaProgressRibbon > div {
+    gap: 4px !important;
+  }
+
+  #currentSetName,
+  #btnShufflePool,
+  #btnOpenScoutModal,
+  #btnArenaLeaveRoom,
+  #btnArenaChangeTeam,
+  #arenaProgressRibbon .text-xs {
+    font-size: 9px !important;
     padding: 2px 6px !important;
+    border-radius: 0.45rem !important;
   }
 
-  /* Main Container Compact Padding */
-  main {
-    padding: 0.5rem !important;
+  #arenaProgressRibbon .text-xs {
+    padding: 0 2px !important;
   }
 
-  /* Hero Banner on Mobile */
+  #arenaHostControls {
+    width: 100%;
+    justify-content: space-between;
+    padding: 2px 6px !important;
+    gap: 3px !important;
+    border-radius: 0.5rem !important;
+  }
+
+  #arenaHostControls button,
+  #arenaHostControls span {
+    font-size: 9px !important;
+    padding: 2px 5px !important;
+  }
+
+  /* --- SINGLE-SCREEN AUCTION STAGE LAYOUT --- */
+  #arenaStageGrid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+  }
+
+  #arenaStageGrid .arena-left-col,
+  #arenaStageGrid .arena-right-col {
+    display: contents !important;
+  }
+
+  /* 1. ACTIVE PLAYER CARD (Ultra-Compact Side-by-Side Header + Horizontal Stats) */
+  #activePlayerCard {
+    order: 1;
+    margin-top: 0 !important;
+    padding: 6px 8px !important;
+    border-radius: 0.85rem !important;
+  }
+
+  #stampBadge {
+    font-size: 1.5rem !important;
+    padding: 0.35rem 1rem !important;
+  }
+
+  #activePlayerHeader {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  #activePlayerCard .group > div:first-child {
+    width: 58px !important;
+    height: 70px !important;
+    border-radius: 0.6rem !important;
+  }
+
+  #playerCountryBadge {
+    font-size: 8px !important;
+    padding: 0 3px !important;
+    top: -3px !important;
+    left: -3px !important;
+  }
+
+  #playerCountryName {
+    display: none !important;
+  }
+
+  #playerOverseasTag {
+    font-size: 7.5px !important;
+    padding: 0 5px !important;
+    bottom: -4px !important;
+  }
+
+  #activePlayerHeader > .flex-1 {
+    text-align: left !important;
+    min-width: 0 !important;
+  }
+
+  #activePlayerHeader > .flex-1 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2px !important;
+  }
+
+  #activePlayerHeader > .flex-1 > div:first-child {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    text-align: left !important;
+  }
+
+  #playerName {
+    font-size: 1.05rem !important;
+    line-height: 1.1 !important;
+  }
+
+  #playerSpeciality {
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+  }
+
+  #activePlayerHeader .bg-gradient-to-br {
+    padding: 2px 6px !important;
+    border-radius: 0.45rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  #playerOverallRating {
+    font-size: 1.05rem !important;
+    line-height: 1 !important;
+  }
+
+  #activePlayerHeader > .flex-1 > div:nth-child(2) {
+    justify-content: flex-start !important;
+    gap: 3px !important;
+    padding-top: 1px !important;
+  }
+
+  #playerRoleBadge,
+  #playerFormBadge,
+  #playerBestPosBadge {
+    font-size: 8px !important;
+    padding: 1px 5px !important;
+    border-radius: 0.35rem !important;
+  }
+
+  #playerSubRatingsGrid {
+    gap: 4px !important;
+    padding-top: 2px !important;
+  }
+
+  #playerSubRatingsGrid > div {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 2px 5px !important;
+    border-radius: 0.4rem !important;
+  }
+
+  #playerSubRatingsGrid > div span:first-child {
+    font-size: 8px !important;
+  }
+
+  #playerSubRatingsGrid > div span:last-child {
+    font-size: 10.5px !important;
+  }
+
+  #playerCareerStatsWrap {
+    margin-top: 4px !important;
+    padding-top: 4px !important;
+  }
+
+  #playerCareerStatsWrap > div:first-child {
+    margin-bottom: 2px !important;
+  }
+
+  #playerCareerStatsWrap > div:first-child span {
+    font-size: 8.5px !important;
+  }
+
+  #playerCareerStatsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+  }
+
+  #playerCareerStatsGrid > div {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 2px 5px !important;
+    border-radius: 0.4rem !important;
+    text-align: left !important;
+  }
+
+  #playerCareerStatsGrid > div span:first-child {
+    font-size: 7.5px !important;
+  }
+
+  #playerCareerStatsGrid > div span:last-child {
+    font-size: 10px !important;
+  }
+
+  #tacticalFitBanner {
+    margin-top: 4px !important;
+    padding: 3px 6px !important;
+    font-size: 9px !important;
+    border-radius: 0.45rem !important;
+  }
+
+  #tacticalFitBanner span.text-base {
+    font-size: 11px !important;
+  }
+
+  /* 2. COUNTDOWN TIMER + GAVEL + CALLOUT STRIP (Placed right above Bid Controls!) */
+  #auctioneerDeskCard {
+    order: 2;
+    margin-top: 0 !important;
+    padding: 5px 8px !important;
+    border-radius: 0.85rem !important;
+    display: grid !important;
+    grid-template-columns: 46px 32px 1fr !important;
+    grid-template-rows: auto auto !important;
+    align-items: center !important;
+    column-gap: 6px !important;
+    row-gap: 1px !important;
+    text-align: left !important;
+  }
+
+  #timerRingWrap {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 46px !important;
+    height: 46px !important;
+    margin: 0 !important;
+  }
+
+  #timerSeconds {
+    font-size: 1.05rem !important;
+    line-height: 1 !important;
+  }
+
+  #timerRingWrap span.text-\[9px\] {
+    font-size: 6.5px !important;
+    margin-top: 0 !important;
+  }
+
+  #gavelWrap {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 32px !important;
+    height: 28px !important;
+    margin: 0 !important;
+  }
+
+  #gavelGraphic svg {
+    width: 32px !important;
+    height: 26px !important;
+  }
+
+  #calloutWrap {
+    grid-column: 3;
+    grid-row: 1;
+    margin: 0 !important;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  #auctioneerCallout {
+    font-size: 11.5px !important;
+    line-height: 1.1 !important;
+  }
+
+  #commentaryBox {
+    grid-column: 3;
+    grid-row: 2;
+    margin: 0 !important;
+    padding: 2px 6px !important;
+    border-radius: 0.4rem !important;
+  }
+
+  #commentaryBox > div:first-child {
+    margin-bottom: 0 !important;
+    gap: 4px !important;
+  }
+
+  #auctioneerName {
+    font-size: 7.5px !important;
+  }
+
+  #auctioneerCommentary {
+    font-size: 8.5px !important;
+    line-height: 1.15 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* 3. LIVE BIDDING TIER & BUTTONS */
+  #liveBiddingCard {
+    order: 3;
+    margin-top: 0 !important;
+    padding: 6px 8px !important;
+    border-radius: 0.85rem !important;
+  }
+
+  #liveBiddingCard > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 5px !important;
+  }
+
+  #biddingPriceTierBox {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 8px !important;
+    border-radius: 0.6rem !important;
+  }
+
+  #biddingPriceTierBox > div:first-child {
+    text-align: left !important;
+  }
+
+  #biddingPriceTierBox > div:last-child {
+    text-align: right !important;
+  }
+
+  #biddingPriceTierBox span.text-xs {
+    font-size: 8px !important;
+  }
+
+  #currentBidDisplay {
+    font-size: 1.25rem !important;
+    line-height: 1.05 !important;
+  }
+
+  #leaderBadgeBox {
+    padding: 3px 6px !important;
+    gap: 4px !important;
+    border-radius: 0.45rem !important;
+  }
+
+  #leaderLogo {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 0.9rem !important;
+  }
+
+  #leaderName {
+    font-size: 10.5px !important;
+  }
+
+  #nextIncrementDisplay {
+    font-size: 11px !important;
+  }
+
+  #biddingRuleNotification,
+  #spectatorAuctionNotice {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+    border-radius: 0.5rem !important;
+  }
+
+  #userBiddingControlsGroup {
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+  }
+
+  #btnUserBid {
+    grid-column: span 8 / span 8 !important;
+    padding: 6px 8px !important;
+    font-size: 0.85rem !important;
+    border-radius: 0.6rem !important;
+    gap: 5px !important;
+  }
+
+  #userNextBidAmount {
+    font-size: 1rem !important;
+  }
+
+  #btnPassPlayer {
+    grid-column: span 4 / span 4 !important;
+    padding: 6px 6px !important;
+    font-size: 10.5px !important;
+    border-radius: 0.6rem !important;
+    gap: 3px !important;
+  }
+
+  #btnPowerJump {
+    grid-column: span 6 / span 6 !important;
+    padding: 4px 6px !important;
+    font-size: 9.5px !important;
+    border-radius: 0.5rem !important;
+  }
+
+  #btnFinishFast {
+    grid-column: span 6 / span 6 !important;
+    padding: 4px 6px !important;
+    font-size: 9.5px !important;
+    border-radius: 0.5rem !important;
+  }
+
+  #btnEndAuctionArena {
+    grid-column: span 12 / span 12 !important;
+    padding: 4px 6px !important;
+    font-size: 9.5px !important;
+    border-radius: 0.5rem !important;
+  }
+
+  #quickRaiseBar {
+    padding-top: 2px !important;
+    font-size: 9.5px !important;
+  }
+
+  .btn-quick-raise {
+    padding: 2px 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  /* 4. COMPACT LIVE BIDDING STREAM LOG */
+  #liveStreamCard {
+    order: 4;
+    margin-top: 0 !important;
+    padding: 5px 8px !important;
+    border-radius: 0.85rem !important;
+    height: 88px !important;
+  }
+
+  #liveStreamCard > div:first-child {
+    padding-bottom: 2px !important;
+    font-size: 9.5px !important;
+  }
+
+  #biddingLogList {
+    padding: 2px 0 !important;
+    font-size: 9.5px !important;
+  }
+
+  #biddingLogList > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2px !important;
+  }
+
+  /* --- OTHER PAGES COMPACTED FOR LESS SCROLLING --- */
   #homeHeroBanner {
-    padding: 1.25rem 1rem !important;
-    border-radius: 1.25rem !important;
+    padding: 0.85rem !important;
+    border-radius: 1rem !important;
   }
 
   #homeHeroBanner h1,
   #homeHeroBanner .text-3xl,
   #homeHeroBanner .text-4xl,
   #homeHeroBanner .text-5xl {
-    font-size: 1.45rem !important;
-    line-height: 1.2 !important;
+    font-size: 1.3rem !important;
+    line-height: 1.15 !important;
   }
 
   #homeHeroBanner p {
-    font-size: 11.5px !important;
-    line-height: 1.4 !important;
-  }
-
-  #homeHeroBanner .space-y-3 > button,
-  #homeHeroBanner .space-y-3 > div {
-    width: 100% !important;
+    font-size: 10.5px !important;
+    line-height: 1.3 !important;
   }
 
   #homeHeroBanner button,
   #homeHeroBanner a {
     width: 100% !important;
     justify-content: center !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 13px !important;
+    padding: 0.55rem 0.75rem !important;
+    font-size: 11.5px !important;
+    border-radius: 0.75rem !important;
   }
 
-  /* Room Lobby on Mobile */
-  #roomLobbySection {
-    padding: 1rem !important;
-    border-radius: 1.25rem !important;
+  #roomLobbySection,
+  #tabContent-manager .rounded-3xl,
+  #tabContent-franchises .rounded-3xl,
+  #tabContent-catalog .rounded-3xl,
+  #arenaPane-playing11 .rounded-2xl,
+  #arenaPane-ratings .rounded-3xl {
+    padding: 0.65rem !important;
+    border-radius: 0.9rem !important;
   }
 
   #roomLobbySection h2 {
-    font-size: 1.2rem !important;
+    font-size: 1.1rem !important;
   }
 
   #roomLobbySection .grid-cols-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.35rem !important;
   }
 
-  /* Playing 11 Turf 3-column layout on phone (3+3+3+2 in 4 clean rows) */
+  #managerPageTeamsGrid {
+    gap: 0.4rem !important;
+  }
+
   #playing11FieldGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 0.35rem !important;
+    gap: 0.25rem !important;
   }
 
-  /* Turf container compact height */
   .cricket-turf {
-    min-height: 400px !important;
-    padding: 0.6rem !important;
+    min-height: 310px !important;
+    padding: 0.45rem !important;
   }
 
-  /* Slot card on turf */
   #playing11FieldGrid > div {
-    padding: 0.35rem !important;
-    border-radius: 0.75rem !important;
+    padding: 0.25rem !important;
+    border-radius: 0.6rem !important;
   }
 
-  /* Active player card on mobile */
-  #activePlayerCard {
-    padding: 0.75rem !important;
-    border-radius: 1.25rem !important;
-  }
-
-  /* Player portrait spotlight on phone */
-  #activePlayerCard .group > div:first-child {
-    width: 110px !important;
-    height: 140px !important;
-  }
-
-  #playerName {
-    font-size: 1.35rem !important;
-    line-height: 1.2 !important;
-  }
-
-  #currentBidDisplay {
-    font-size: 1.75rem !important;
-  }
-
-  /* Career stats 3-column grid */
-  #activePlayerCard .grid-cols-6 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 0.35rem !important;
-  }
-
-  /* Main bid button full-width */
-  #btnUserBid {
-    padding: 0.85rem 1rem !important;
-    font-size: 1.15rem !important;
-  }
-
-  /* Modals: fit mobile viewport cleanly with scroll */
+  /* Modals: compact mobile viewport fit */
   .fixed.inset-0 > div[class*="max-w-"] {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    max-height: 90vh !important;
-    padding: 1rem !important;
-    border-radius: 1.25rem !important;
+    width: 96vw !important;
+    max-width: 96vw !important;
+    max-height: 92vh !important;
+    padding: 0.75rem !important;
+    border-radius: 1rem !important;
   }
 
-  /* Chat Drawer: 100% width on phone */
   #multiplayerChatDrawer {
     width: 100% !important;
   }

@@ -488,9 +488,15 @@
       });
     }
 
-    // Pause / Resume Toggle
+    // Pause / Resume Toggle (Host-only or solo)
     if (DOM.btnPauseResume) {
       DOM.btnPauseResume.addEventListener('click', () => {
+        if (window.CurrentRoom && window.CurrentRoom.roomId && window.CurrentRoom.roomId !== 'DEFAULT' && !isCurrentUserRoomHost(window.CurrentRoom)) {
+          if (typeof window.showBiddingRuleAlert === 'function') {
+            window.showBiddingRuleAlert('Only the Room Host can pause or resume the live multiplayer auction.');
+          }
+          return;
+        }
         const state = Game.getState();
         if (state.isPaused) {
           Game.resumeGame();
@@ -503,10 +509,13 @@
       });
     }
 
-    // Open Scout Modal Button
+    // Open Scout Modal Button (Guests inspect without pausing the multiplayer room)
     if (DOM.btnOpenScoutModal) {
       DOM.btnOpenScoutModal.addEventListener('click', () => {
-        Game.pauseGame();
+        const isGuestInRoom = !!(window.CurrentRoom && window.CurrentRoom.roomId && window.CurrentRoom.roomId !== 'DEFAULT' && !isCurrentUserRoomHost(window.CurrentRoom));
+        if (!isGuestInRoom) {
+          Game.pauseGame();
+        }
         openScoutModal();
       });
     }
@@ -1000,7 +1009,24 @@
   // VIEW SWITCHING
   // =========================================================================
 
-  function switchTab(tabKey) {
+  function isLiveMultiplayerAuction() {
+    if (!window.CurrentRoom || !window.CurrentRoom.roomId || window.CurrentRoom.roomId === 'DEFAULT') return false;
+    const isStarted = !!(window.AuctionStarted || window.CurrentRoom.status === 'started');
+    if (!isStarted) return false;
+    const phase = (typeof Game !== 'undefined' && Game.getState) ? Game.getState().phase : 'auction';
+    return phase !== 'results' && phase !== 'home';
+  }
+
+  function switchTab(tabKey, force = false) {
+    if (!force && isLiveMultiplayerAuction() && (tabKey === 'home' || tabKey === 'manager')) {
+      if (typeof window.showBiddingRuleAlert === 'function') {
+        window.showBiddingRuleAlert("🔒 Live auction in progress! Use '🔄 Change Team' to switch franchises, or '🚪 Leave Room' to exit the auction.");
+      } else {
+        alert("🔒 Live auction in progress! Use 'Change Team' to switch franchises, or 'Leave Room' to exit.");
+      }
+      return;
+    }
+
     AppState.currentTab = tabKey;
     DOM.navTabs.forEach(tab => {
       if (tab.dataset.tab === tabKey) {
@@ -1028,7 +1054,14 @@
     if (tabKey === 'franchises') renderFranchisesView();
     if (tabKey === 'catalog') renderCatalogGrid();
     if (tabKey === 'ratings') renderRatingsView();
-    if (tabKey === 'auction') updateArenaHostControlsVisibility();
+    if (tabKey === 'auction') {
+      if (typeof Game !== 'undefined' && Game.syncTimerFromWallClock) Game.syncTimerFromWallClock();
+      updateArenaHostControlsVisibility();
+      updateTopBar();
+      updateAuctionArena();
+      if (typeof Game !== 'undefined' && Game.getState) updateTimerUI(Game.getState().timeLeft);
+      if (typeof window.requestLiveSyncImmediate === 'function') window.requestLiveSyncImmediate();
+    }
     saveAppState();
   }
 
@@ -4527,7 +4560,15 @@
       }
     });
 
-    if (arenaKey === 'playing11') {
+    if (arenaKey === 'bidding') {
+      if (typeof Game !== 'undefined') {
+        if (Game.syncTimerFromWallClock) Game.syncTimerFromWallClock();
+        if (Game.getState) updateTimerUI(Game.getState().timeLeft);
+      }
+      updateTopBar();
+      updateAuctionArena();
+      if (typeof window.requestLiveSyncImmediate === 'function') window.requestLiveSyncImmediate();
+    } else if (arenaKey === 'playing11') {
       if (typeof renderPlaying11ViewInteractive === 'function') renderPlaying11ViewInteractive();
       renderArenaPlayerCatalogue();
     } else if (arenaKey === 'ratings') {
@@ -4542,18 +4583,18 @@
 
   // Intercept switchTab for 'playing11' and 'ratings' to move them inside Arena!
   const originalSwitchTab = window.switchTab || switchTab;
-  window.switchTab = function(tabKey) {
+  window.switchTab = function(tabKey, force = false) {
     if (tabKey === 'playing11') {
-      originalSwitchTab('auction');
+      originalSwitchTab('auction', force);
       switchArenaTab('playing11');
       return;
     }
     if (tabKey === 'ratings') {
-      originalSwitchTab('auction');
+      originalSwitchTab('auction', force);
       switchArenaTab('ratings');
       return;
     }
-    originalSwitchTab(tabKey);
+    originalSwitchTab(tabKey, force);
   };
 
   // Initialize Welcome Modal / Identity on Page Load
@@ -4883,13 +4924,19 @@
         }
       });
     });
+    const remMs = gs.isPaused
+      ? Math.max(0, (gs.timeLeft || 0) * 1000)
+      : (gs.lotDeadline ? Math.max(0, gs.lotDeadline - Date.now()) : Math.max(0, (gs.timeLeft || 0) * 1000));
     return {
       playerIndex: gs.currentPlayerIndex || 0,
       playerId: curP ? curP.id : null,
       currentBid: gs.currentBid || 0,
       currentBidder: gs.currentBidder || null,
       timeLeft: typeof gs.timeLeft === 'number' ? gs.timeLeft : (gs.bidDuration || 10),
+      remainingMs: remMs,
       bidDuration: gs.bidDuration || 10,
+      syncSeq: gs.syncSeq || 1,
+      bidCount: gs.bidCount || 0,
       isPaused: !!gs.isPaused,
       isSold: !!gs.isSold,
       isUnsold: !!gs.isUnsold,
@@ -4921,6 +4968,64 @@
     }
   }
   window.syncRoomLiveStateToCloud = syncRoomLiveStateToCloud;
+
+  let _lastImmediateSyncAt = 0;
+  async function requestLiveSyncImmediate() {
+    if (!window.CurrentRoom || !window.CurrentRoom.roomId || window.CurrentRoom.roomId === 'DEFAULT' || !window.AuctionStarted) return;
+    if (typeof Game !== 'undefined' && Game.syncTimerFromWallClock) {
+      Game.syncTimerFromWallClock();
+      if (Game.getState) updateTimerUI(Game.getState().timeLeft);
+    }
+    const isHost = isCurrentUserRoomHost(window.CurrentRoom);
+    if (isHost) {
+      if (typeof Game !== 'undefined' && Game.syncMultiplayerStage) Game.syncMultiplayerStage(true);
+      return;
+    }
+    const now = Date.now();
+    if (now - _lastImmediateSyncAt < 400) return;
+    _lastImmediateSyncAt = now;
+
+    // 1. Ask Host via Realtime Broadcast for exact instant remainingMs (zero clock skew)
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.broadcastRequestSync === 'function') {
+      StorageEngine.broadcastRequestSync();
+    }
+    // 2. Also fetch latest snapshot from cloud in case Host advanced while this tab was backgrounded
+    if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.fetchRoomFromServer === 'function') {
+      try {
+        const freshRoom = await StorageEngine.fetchRoomFromServer(window.CurrentRoom.roomId);
+        if (freshRoom && freshRoom.liveState && typeof Game !== 'undefined' && Game.applyRemoteStageSync) {
+          window.CurrentRoom = freshRoom;
+          Game.applyRemoteStageSync({
+            ...freshRoom.liveState,
+            pool: freshRoom.pool,
+            poolVersion: freshRoom.poolVersion || freshRoom.liveState.poolVersion
+          });
+          updateTopBar();
+          updateAuctionArena();
+          updateOnDeckPreview();
+        }
+      } catch (e) {}
+    }
+  }
+  window.requestLiveSyncImmediate = requestLiveSyncImmediate;
+
+  // Instantly resync timer & active player whenever user switches back to this browser tab or app!
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (typeof Game !== 'undefined' && Game.syncTimerFromWallClock) {
+        Game.syncTimerFromWallClock();
+        if (Game.getState) updateTimerUI(Game.getState().timeLeft);
+      }
+      requestLiveSyncImmediate();
+    }
+  });
+  window.addEventListener('focus', () => {
+    if (typeof Game !== 'undefined' && Game.syncTimerFromWallClock) {
+      Game.syncTimerFromWallClock();
+      if (Game.getState) updateTimerUI(Game.getState().timeLeft);
+    }
+    requestLiveSyncImmediate();
+  });
 
   function stopMultiplayerAuctionSync() {
     if (window._auctionSyncInterval) {
@@ -4964,14 +5069,15 @@
             alert('🚫 You have been banned from this room by the host.');
             window.CurrentRoom = null;
             window.AuctionStarted = false;
-            window.switchTab('home');
+            switchTab('home', true);
             return;
           }
 
           window.CurrentRoom = freshRoom;
           if (freshRoom.rules) {
             window.RoomRules = freshRoom.rules;
-            if (typeof Game !== 'undefined' && Game.setBidDuration && freshRoom.rules.timer) {
+            // ONLY update bid duration if it actually changed (prevents resetting countdown every 2s!)
+            if (typeof Game !== 'undefined' && Game.setBidDuration && Game.getBidDuration && freshRoom.rules.timer && freshRoom.rules.timer !== Game.getBidDuration()) {
               Game.setBidDuration(freshRoom.rules.timer);
             }
           }
@@ -5111,11 +5217,17 @@
 
   window.onRemoteStageSync = function(payload) {
     if (!payload || !window.Game || typeof window.Game.applyRemoteStageSync !== 'function') return;
-    window.Game.applyRemoteStageSync(payload);
+    window.Game.applyRemoteStageSync({ ...payload, directFromRealtime: true });
     updateTopBar();
     updateAuctionArena();
     updateOnDeckPreview();
     updateArenaHostControlsVisibility();
+  };
+
+  window.onRemoteRequestSync = function() {
+    if (window.CurrentRoom && isCurrentUserRoomHost(window.CurrentRoom) && window.Game && typeof window.Game.syncMultiplayerStage === 'function') {
+      window.Game.syncMultiplayerStage(true);
+    }
   };
 
   window.onRemotePlayerResolved = function(payload) {
@@ -5193,30 +5305,50 @@
     lobbySec.classList.remove('hidden');
     lobbySec.scrollIntoView({ behavior: 'smooth' });
 
+    // Shared Leave Room handler (used by both Lobby Leave Room and Live Arena Leave Room)
+    function executeLeaveAuctionRoom() {
+      const activeRoom = window.CurrentRoom || room;
+      if (!activeRoom || !activeRoom.roomId) {
+        switchTab('home', true);
+        return;
+      }
+      if (!confirm('Are you sure you want to leave this auction room? Your franchise will be freed up for other players.')) {
+        return;
+      }
+      if (window._lobbySyncInterval) {
+        clearInterval(window._lobbySyncInterval);
+        window._lobbySyncInterval = null;
+      }
+      stopMultiplayerAuctionSync();
+      window.AuctionStarted = false;
+      const myId = StorageEngine?.currentUser?.userId || 'me';
+      if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.leaveRoom === 'function') {
+        StorageEngine.leaveRoom(activeRoom.roomId, myId);
+      }
+      if (typeof Game !== 'undefined' && typeof Game.clearSavedState === 'function') {
+        Game.clearSavedState();
+      }
+      try {
+        const cleanUrl = window.location.pathname + window.location.hash;
+        if (window.location.search) window.history.replaceState({}, document.title, cleanUrl);
+      } catch (e) {}
+
+      window.CurrentRoom = null;
+      lobbySec.classList.add('hidden');
+      if (heroBanner) heroBanner.classList.remove('hidden');
+      if (publicRoomsSec) publicRoomsSec.classList.remove('hidden');
+      if (historySec) historySec.classList.remove('hidden');
+      switchTab('home', true);
+      updateArenaHostControlsVisibility();
+      renderPublicRoomsList();
+      renderHomeAuctionHistory();
+    }
+    window.executeLeaveAuctionRoom = executeLeaveAuctionRoom;
+
     // Wire Leave Room Button (releases team back to available!)
     const btnLeave = document.getElementById('btnLeaveRoomLobby');
     if (btnLeave) {
-      btnLeave.onclick = () => {
-        if (confirm('Are you sure you want to leave this auction room? Your franchise will be freed up for other players.')) {
-          if (window._lobbySyncInterval) {
-            clearInterval(window._lobbySyncInterval);
-            window._lobbySyncInterval = null;
-          }
-          stopMultiplayerAuctionSync();
-          window.AuctionStarted = false;
-          const myId = StorageEngine?.currentUser?.userId || 'me';
-          if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.leaveRoom === 'function') {
-            StorageEngine.leaveRoom(room.roomId, myId);
-          }
-          window.CurrentRoom = null;
-          lobbySec.classList.add('hidden');
-          if (heroBanner) heroBanner.classList.remove('hidden');
-          if (publicRoomsSec) publicRoomsSec.classList.remove('hidden');
-          if (historySec) historySec.classList.remove('hidden');
-          renderPublicRoomsList();
-          renderHomeAuctionHistory();
-        }
-      };
+      btnLeave.onclick = () => executeLeaveAuctionRoom();
     }
 
     // Update badges
@@ -5390,6 +5522,8 @@
     const shuffleBtn = document.getElementById('btnShufflePool');
     const finishFastBtn = document.getElementById('btnFinishFast');
     const endAuctionBtn = document.getElementById('btnEndAuctionArena');
+    const arenaLeaveBtn = document.getElementById('btnArenaLeaveRoom');
+    const headerPauseBtn = document.getElementById('btnPauseResume');
     const room = window.CurrentRoom;
     const inRoom = !!(room && room.roomId && room.roomId !== 'DEFAULT');
     const isHost = !inRoom || isCurrentUserRoomHost(room);
@@ -5402,6 +5536,14 @@
       } else {
         hostControls.classList.add('hidden');
       }
+    }
+    if (headerPauseBtn) {
+      if (isHost) headerPauseBtn.classList.remove('hidden');
+      else headerPauseBtn.classList.add('hidden');
+    }
+    if (arenaLeaveBtn) {
+      if (inRoom) arenaLeaveBtn.classList.remove('hidden');
+      else arenaLeaveBtn.classList.add('hidden');
     }
     if (shuffleBtn) {
       if (isHost) shuffleBtn.classList.remove('hidden');
@@ -6842,7 +6984,9 @@
     const grid = document.getElementById('changeTeamGrid');
     if (!modal || !grid) return;
 
-    const allTeams = (typeof TEAMS !== 'undefined') ? TEAMS : (Game.getTeams ? Game.getTeams() : []);
+    const allTeams = (typeof Game !== 'undefined' && Game.getTeams && Game.getTeams().length > 0)
+      ? Game.getTeams()
+      : ((typeof TEAMS !== 'undefined') ? TEAMS : []);
     const currentRoom = window.CurrentRoom || null;
     const roomPlayers = (currentRoom && currentRoom.players) ? currentRoom.players : {};
     const currentUser = (typeof StorageEngine !== 'undefined' && StorageEngine.getCurrentUser) ? StorageEngine.getCurrentUser() : null;
@@ -6867,7 +7011,7 @@
       const isCurrent = t.id === currentTeamId;
       const takenByPlayer = roomPlayers[t.id];
       const isTakenByOther = takenByPlayer && takenByPlayer.userId !== myUserId && (!myUserName || takenByPlayer.userName !== myUserName);
-      const purseLeft = t.purse || (t.budget ? (t.budget - (t.spent || 0)) : 120);
+      const purseLeft = Math.max(0, (t.purse !== undefined ? t.purse : (t.budget || 120)) - (t.spent || 0));
       const squadCount = (t.players || []).length;
 
       let badgeHtml = '';
@@ -7070,15 +7214,19 @@
   window.executeLiveTeamChange = executeLiveTeamChange;
 
   function wireAdditionalButtons() {
-    // Live Change Team Buttons
+    // Live Change Team & Arena Leave Room Buttons
     const btnHdrChange = document.getElementById('btnHeaderChangeTeam');
     const btnArChange = document.getElementById('btnArenaChangeTeam');
+    const btnArLeave = document.getElementById('btnArenaLeaveRoom');
     const modalChange = document.getElementById('changeTeamModal');
     const btnCloseChange = document.getElementById('btnCloseChangeTeamModal');
     const btnCancelChange = document.getElementById('btnCancelChangeTeam');
 
     if (btnHdrChange) btnHdrChange.onclick = () => openChangeTeamModal();
     if (btnArChange) btnArChange.onclick = () => openChangeTeamModal();
+    if (btnArLeave) btnArLeave.onclick = () => {
+      if (typeof window.executeLeaveAuctionRoom === 'function') window.executeLeaveAuctionRoom();
+    };
     if (btnCloseChange && modalChange) btnCloseChange.onclick = () => modalChange.classList.add('hidden');
     if (btnCancelChange && modalChange) btnCancelChange.onclick = () => modalChange.classList.add('hidden');
 

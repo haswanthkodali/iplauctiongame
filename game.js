@@ -150,8 +150,12 @@
     unsold: [],               // unsold players for accelerated round
     hasCompletedAccelerated: false,
     poolVersion: 0,           // monotonically increments whenever pool order is shuffled
+    bidDuration: 10,          // configured countdown duration (5 or 10)
+    lotDeadline: 0,           // wall-clock epoch ms when active lot expires
+    syncSeq: 0,               // monotonic sequence per lot transition/bid/pass/pause
+    bidCount: 0,              // bids placed on current lot
     timer: null,              // interval id
-    timeLeft: 15,             // countdown seconds
+    timeLeft: 10,             // countdown seconds
     isPaused: false,
     isSold: false,
     isUnsold: false,
@@ -391,6 +395,9 @@
     GameState.unsold = [];
     GameState.hasCompletedAccelerated = false;
     GameState.poolVersion = 0;
+    GameState.lotDeadline = 0;
+    GameState.syncSeq = 0;
+    GameState.bidCount = 0;
     GameState.auctionLog = [];
     GameState.speed = Math.max(1, Math.min(3, config.speed || 1));
     const defaultMode = ((typeof window !== 'undefined' && window.AppState && window.AppState.auctionMode) ? window.AppState.auctionMode : 'MINI');
@@ -597,6 +604,8 @@
     GameState.phase = 'auction';
     GameState.currentPlayerIndex = startIdx;
     GameState.isPaused = false;
+    GameState.syncSeq = (liveSnapshot && typeof liveSnapshot.syncSeq === 'number') ? liveSnapshot.syncSeq : 1;
+    GameState.bidCount = (liveSnapshot && typeof liveSnapshot.bidCount === 'number') ? liveSnapshot.bidCount : 0;
 
     addLog({
       type: 'startAuction',
@@ -605,11 +614,17 @@
 
     emit('auctionStart', { state: GameState });
     const isGuestRemote = isInMultiplayerRoom() && !isMultiplayerHost();
+    const initialRemainingSec = (liveSnapshot && typeof liveSnapshot.remainingMs === 'number')
+      ? Math.max(0, Math.ceil(liveSnapshot.remainingMs / 1000))
+      : liveSnapshot?.timeLeft;
     loadPlayer(startIdx, {
       isRemote: !!customPoolIds || isGuestRemote,
       currentBid: liveSnapshot?.currentBid,
       currentBidder: liveSnapshot?.currentBidder,
-      timeLeft: liveSnapshot?.timeLeft,
+      timeLeft: initialRemainingSec,
+      remainingMs: liveSnapshot?.remainingMs,
+      bidCount: liveSnapshot?.bidCount,
+      syncSeq: liveSnapshot?.syncSeq,
       isPaused: liveSnapshot?.isPaused,
       isSold: liveSnapshot?.isSold,
       isUnsold: liveSnapshot?.isUnsold
@@ -628,15 +643,22 @@
       window.CurrentRoom.pool = poolIds;
       window.CurrentRoom.poolVersion = GameState.poolVersion || 1;
     }
+    const remainingMs = GameState.isPaused
+      ? Math.max(0, (GameState.timeLeft || 0) * 1000)
+      : (GameState.lotDeadline ? Math.max(0, GameState.lotDeadline - Date.now()) : Math.max(0, (GameState.timeLeft || 0) * 1000));
+
     if (typeof StorageEngine !== 'undefined' && typeof StorageEngine.broadcastStageSync === 'function') {
       StorageEngine.broadcastStageSync({
         playerIndex: GameState.currentPlayerIndex,
         playerId: player ? player.id : null,
         pool: poolIds,
         poolVersion: GameState.poolVersion || 1,
+        syncSeq: GameState.syncSeq || 1,
+        bidCount: GameState.bidCount || 0,
         currentBid: GameState.currentBid || 0,
         currentBidder: GameState.currentBidder || null,
         timeLeft: GameState.timeLeft,
+        remainingMs,
         bidDuration: GameState.bidDuration || 10,
         isPaused: !!GameState.isPaused,
         isSold: !!GameState.isSold,
@@ -727,10 +749,23 @@
     GameState.currentBidder = (options.isRemote && options.currentBidder !== undefined) ? options.currentBidder : null;
     GameState.isSold = (options.isRemote && typeof options.isSold === 'boolean') ? options.isSold : false;
     GameState.isUnsold = (options.isRemote && typeof options.isUnsold === 'boolean') ? options.isUnsold : false;
+    GameState.bidCount = (options.isRemote && typeof options.bidCount === 'number') ? options.bidCount : 0;
     GameState.timeLeft = (options.isRemote && typeof options.timeLeft === 'number') ? options.timeLeft : (GameState.bidDuration || 10);
+    if (options.isRemote && typeof options.syncSeq === 'number') {
+      GameState.syncSeq = Math.max(GameState.syncSeq || 0, options.syncSeq);
+    } else if (!options.isRemote) {
+      GameState.syncSeq = (GameState.syncSeq || 0) + 1;
+    }
     if (options.isRemote && typeof options.isPaused === 'boolean') {
       GameState.isPaused = options.isPaused;
     }
+
+    // Set wall-clock deadline cleanly before broadcasting stage_sync so remainingMs is accurate
+    const durMs = (options.isRemote && typeof options.remainingMs === 'number')
+      ? Math.max(0, options.remainingMs)
+      : (Math.max(0, GameState.timeLeft) * 1000);
+    const effSpeed = isInMultiplayerRoom() ? 1 : (GameState.speed || 1);
+    GameState.lotDeadline = Date.now() + Math.round(durMs / effSpeed);
 
     addLog({
       type: 'newPlayer',
@@ -751,7 +786,7 @@
     }
 
     if (!GameState.isPaused && !GameState.isSold && !GameState.isUnsold) {
-      startTimer(GameState.timeLeft);
+      startTimer(durMs / 1000);
     }
   }
 
@@ -968,11 +1003,17 @@
 
     if (mismatchPlayer && targetIdx >= 0 && targetIdx < GameState.auctionPool.length) {
       GameState.phase = stageData.phase || 'auction';
+      const secFromRem = (typeof stageData.remainingMs === 'number')
+        ? Math.max(0, Math.ceil(stageData.remainingMs / 1000))
+        : (typeof stageData.timeLeft === 'number' ? stageData.timeLeft : (GameState.bidDuration || 10));
       loadPlayer(targetIdx, {
         isRemote: true,
         currentBid: stageData.currentBid || 0,
         currentBidder: stageData.currentBidder || null,
-        timeLeft: typeof stageData.timeLeft === 'number' ? stageData.timeLeft : (GameState.bidDuration || 10),
+        timeLeft: secFromRem,
+        remainingMs: stageData.remainingMs,
+        bidCount: stageData.bidCount,
+        syncSeq: stageData.syncSeq,
         isPaused: !!stageData.isPaused,
         isSold: !!stageData.isSold,
         isUnsold: !!stageData.isUnsold
@@ -980,11 +1021,22 @@
       return true;
     }
 
-    // Already on same player: reconcile bid / pause / timer drift gently
+    // Already on same player: check if this stageData has a strictly newer syncSeq (Realtime push / new event)
     let updated = false;
+    const incomingSeq = (typeof stageData.syncSeq === 'number') ? stageData.syncSeq : 0;
+    const isNewerSeq = incomingSeq > (GameState.syncSeq || 0);
+
     if (typeof stageData.currentBid === 'number' && stageData.currentBid > GameState.currentBid) {
       GameState.currentBid = stageData.currentBid;
       GameState.currentBidder = stageData.currentBidder;
+      if (typeof stageData.bidCount === 'number') GameState.bidCount = stageData.bidCount;
+      // Only reset timer if newer event or missed bid!
+      if (!GameState.isPaused && !GameState.isSold && !GameState.isUnsold) {
+        const remSec = (typeof stageData.remainingMs === 'number')
+          ? Math.max(0, stageData.remainingMs / 1000)
+          : (GameState.bidDuration || 10);
+        startTimer(remSec);
+      }
       updated = true;
     }
     if (typeof stageData.isPaused === 'boolean' && stageData.isPaused !== GameState.isPaused) {
@@ -992,20 +1044,30 @@
       else resumeGame(true);
       updated = true;
     }
-    if (typeof stageData.timeLeft === 'number' && Math.abs((GameState.timeLeft || 0) - stageData.timeLeft) > 2 && !GameState.isSold && !GameState.isUnsold) {
-      GameState.timeLeft = stageData.timeLeft;
-      emit('timerTick', { timeLeft: GameState.timeLeft, player: getCurrentPlayer(), currentBid: GameState.currentBid, currentBidder: GameState.currentBidder });
+    // NEVER fluctuate countdown from repeated 2s cloud polls of the SAME syncSeq!
+    // Only resync timer from explicit fresh Realtime stage_sync (directFromRealtime) or strictly newer syncSeq (e.g., pass/resume)
+    if ((isNewerSeq || stageData.directFromRealtime) && !GameState.isPaused && !GameState.isSold && !GameState.isUnsold) {
+      if (incomingSeq > (GameState.syncSeq || 0)) {
+        GameState.syncSeq = incomingSeq;
+      }
+      if (typeof stageData.remainingMs === 'number') {
+        const targetSec = Math.max(0, stageData.remainingMs / 1000);
+        const curRemMs = Math.max(0, (GameState.lotDeadline || Date.now()) - Date.now());
+        if (stageData.directFromRealtime || Math.abs(curRemMs - stageData.remainingMs) > 1500) {
+          startTimer(targetSec);
+        }
+      }
     }
     if (updated) emit('stateChange', GameState);
     return true;
   }
 
   // ==========================================================================
-  // 9. TIMER & SPEED CONTROL
+  // 9. TIMER & SPEED CONTROL (WALL-CLOCK SYNCHRONIZED — ZERO TAB THROTTLE DRIFT)
   // ==========================================================================
 
   /**
-   * 7. startTimer(seconds) - Start countdown timer with speed scaling
+   * 7. startTimer(seconds) - Start countdown timer anchored to wall-clock deadline
    */
   function startTimer(seconds) {
     if (GameState.timer) {
@@ -1013,23 +1075,15 @@
       GameState.timer = null;
     }
 
-    if (typeof seconds === 'number') {
-      GameState.timeLeft = seconds;
-    } else if (typeof GameState.timeLeft !== 'number' || GameState.timeLeft <= 0) {
-      GameState.timeLeft = GameState.bidDuration || 10;
-    }
+    const durSec = (typeof seconds === 'number')
+      ? Math.max(0, seconds)
+      : ((typeof GameState.timeLeft === 'number' && GameState.timeLeft > 0) ? GameState.timeLeft : (GameState.bidDuration || 10));
 
-    const intervalMs = Math.max(80, Math.floor(1000 / (GameState.speed || 1)));
+    GameState.timeLeft = Math.ceil(durSec);
+    const effSpeed = isInMultiplayerRoom() ? 1 : (GameState.speed || 1);
+    GameState.lotDeadline = Date.now() + Math.round((durSec * 1000) / effSpeed);
 
-    GameState.timer = setInterval(() => {
-      timerTick();
-    }, intervalMs);
-  }
-
-  function timerTick() {
-    if (GameState.isPaused) return;
-
-    GameState.timeLeft--;
+    // Emit initial tick immediately so ring/seconds update right away
     emit('timerTick', {
       timeLeft: GameState.timeLeft,
       player: getCurrentPlayer(),
@@ -1037,39 +1091,78 @@
       currentBidder: GameState.currentBidder
     });
 
-    // Auto-bidding removed: Only manual bids from human or multiplayer accepted
-
-    // Timer elapsed
     if (GameState.timeLeft <= 0) {
-      if (GameState.timer) {
-        clearInterval(GameState.timer);
-        GameState.timer = null;
-      }
+      handleTimerExpired();
+      return;
+    }
 
-      if (isInMultiplayerRoom() && !isMultiplayerHost()) {
-        // Guests wait for Host's authoritative player_resolved / stage_sync broadcast
-        GameState.timeLeft = 0;
-        emit('timerTick', {
-          timeLeft: 0,
-          player: getCurrentPlayer(),
-          currentBid: GameState.currentBid,
-          currentBidder: GameState.currentBidder
-        });
-        return;
-      }
+    // Check every 200ms against Date.now() so integer seconds never jitter or drift on tab switch
+    GameState.timer = setInterval(() => {
+      timerTick();
+    }, 200);
+  }
 
-      if (GameState.currentBidder !== null) {
-        soldPlayer(false);
-      } else {
-        unsoldPlayer(false);
-      }
+  function handleTimerExpired() {
+    if (GameState.timer) {
+      clearInterval(GameState.timer);
+      GameState.timer = null;
+    }
+
+    if (isInMultiplayerRoom() && !isMultiplayerHost()) {
+      // Guests wait for Host's authoritative player_resolved / stage_sync broadcast
+      GameState.timeLeft = 0;
+      emit('timerTick', {
+        timeLeft: 0,
+        player: getCurrentPlayer(),
+        currentBid: GameState.currentBid,
+        currentBidder: GameState.currentBidder
+      });
+      return;
+    }
+
+    if (GameState.currentBidder !== null) {
+      soldPlayer(false);
+    } else {
+      unsoldPlayer(false);
     }
   }
 
+  function timerTick() {
+    if (GameState.isPaused || GameState.phase !== 'auction' || GameState.isSold || GameState.isUnsold) return;
+
+    const effSpeed = isInMultiplayerRoom() ? 1 : (GameState.speed || 1);
+    const msLeft = GameState.lotDeadline ? Math.max(0, GameState.lotDeadline - Date.now()) : (Math.max(0, GameState.timeLeft) * 1000);
+    const nextSec = Math.max(0, Math.ceil((msLeft * effSpeed) / 1000));
+
+    if (nextSec !== GameState.timeLeft) {
+      GameState.timeLeft = nextSec;
+      emit('timerTick', {
+        timeLeft: GameState.timeLeft,
+        player: getCurrentPlayer(),
+        currentBid: GameState.currentBid,
+        currentBidder: GameState.currentBidder
+      });
+    }
+
+    // Timer elapsed
+    if (GameState.timeLeft <= 0 || msLeft <= 0) {
+      handleTimerExpired();
+    }
+  }
+
+  function syncTimerFromWallClock() {
+    if (GameState.phase !== 'auction' || GameState.isPaused || GameState.isSold || GameState.isUnsold) return;
+    timerTick();
+  }
+
   function setSpeed(speedMultiplier) {
-    GameState.speed = Math.max(1, Math.min(3, speedMultiplier));
+    const newSpeed = Math.max(1, Math.min(3, speedMultiplier));
+    if (GameState.speed === newSpeed) return;
+    const remMs = GameState.lotDeadline ? Math.max(0, GameState.lotDeadline - Date.now()) : (GameState.timeLeft * 1000);
+    const remUnscaledSec = (remMs * (GameState.speed || 1)) / 1000;
+    GameState.speed = newSpeed;
     if (GameState.timer && !GameState.isPaused) {
-      startTimer(GameState.timeLeft);
+      startTimer(remUnscaledSec);
     }
     emit('speedChange', { speed: GameState.speed });
     emit('stateChange', GameState);
@@ -1085,6 +1178,7 @@
   function pauseGame(isRemote = false) {
     if (GameState.isPaused) return;
     GameState.isPaused = true;
+    GameState.syncSeq = (GameState.syncSeq || 0) + 1;
 
     // Clear interval timer
     if (GameState.timer) {
@@ -1124,6 +1218,7 @@
   function resumeGame(isRemote = false) {
     if (!GameState.isPaused) return;
     GameState.isPaused = false;
+    GameState.syncSeq = (GameState.syncSeq || 0) + 1;
 
     const player = getCurrentPlayer();
     addLog({
@@ -1261,10 +1356,12 @@
     // Update auction state
     GameState.currentBid = nextBid;
     GameState.currentBidder = bidderId;
+    GameState.bidCount = (GameState.bidCount || 0) + 1;
+    GameState.syncSeq = (GameState.syncSeq || 0) + 1;
 
-    // Reset countdown to allow counter-bids based on host timer
+    // Reset wall-clock countdown cleanly from exact bid moment
     GameState.timeLeft = GameState.bidDuration || 10;
-    if (!GameState.timer && !GameState.isPaused && GameState.phase === 'auction') {
+    if (!GameState.isPaused && GameState.phase === 'auction') {
       startTimer(GameState.timeLeft);
     }
 
@@ -1397,10 +1494,13 @@
   function passPlayer(isRemote = false) {
     // Accelerates countdown if user decides not to bid
     if (GameState.phase === 'auction' && !GameState.isPaused && GameState.timeLeft > 3) {
-      GameState.timeLeft = 3;
-      emit('timerTick', { timeLeft: GameState.timeLeft, player: getCurrentPlayer() });
+      GameState.syncSeq = (GameState.syncSeq || 0) + 1;
+      startTimer(3);
       if (!isRemote && typeof StorageEngine !== 'undefined' && StorageEngine.broadcastPass) {
         StorageEngine.broadcastPass(GameState.currentPlayerIndex);
+      }
+      if (!isRemote && isInMultiplayerRoom() && isMultiplayerHost() && typeof window !== 'undefined' && typeof window.syncRoomLiveStateToCloud === 'function') {
+        window.syncRoomLiveStateToCloud(true);
       }
     }
   }
@@ -2547,8 +2647,17 @@
 
   
   function setBidDuration(seconds) {
-    GameState.bidDuration = Math.max(5, Math.min(60, Number(seconds) || 10));
-    GameState.timeLeft = GameState.bidDuration;
+    const newDur = Math.max(5, Math.min(60, Number(seconds) || 10));
+    if (GameState.bidDuration === newDur) return;
+    GameState.bidDuration = newDur;
+    if (GameState.phase !== 'auction') {
+      GameState.timeLeft = newDur;
+    } else if (!GameState.isPaused && !GameState.isSold && !GameState.isUnsold) {
+      // During live auction, update remaining cap cleanly without jarring reset if lower
+      const nextT = Math.min(GameState.timeLeft || newDur, newDur);
+      GameState.syncSeq = (GameState.syncSeq || 0) + 1;
+      startTimer(nextT);
+    }
     emit('bidDurationChange', { duration: GameState.bidDuration });
   }
 
@@ -2633,6 +2742,7 @@
     placeBid,
     getBidIncrement,
     startTimer,
+    syncTimerFromWallClock,
     pauseGame,
     resumeGame,
     togglePause,
@@ -2707,6 +2817,7 @@
     window.placeBid = placeBid;
     window.getBidIncrement = getBidIncrement;
     window.startTimer = startTimer;
+    window.syncTimerFromWallClock = syncTimerFromWallClock;
     window.pauseGame = pauseGame;
     window.resumeGame = resumeGame;
     window.togglePause = togglePause;

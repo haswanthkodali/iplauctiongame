@@ -1405,6 +1405,11 @@
               window.onRemotePauseSync(payload.payload);
             }
           })
+          .on('broadcast', { event: 'request_sync' }, payload => {
+            if (typeof window !== 'undefined' && window.onRemoteRequestSync) {
+              window.onRemoteRequestSync(payload?.payload);
+            }
+          })
           .subscribe((status) => {
             console.log('[Supabase Realtime] Room channel ' + channelName + ' status:', status);
           });
@@ -1519,6 +1524,19 @@
         console.warn('[Realtime Broadcast] pass error:', e);
       }
     }
+
+    broadcastRequestSync() {
+      if (!this.supabaseChannel) return;
+      try {
+        this.supabaseChannel.send({
+          type: 'broadcast',
+          event: 'request_sync',
+          payload: { userId: this.currentUser?.userId || null, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('[Realtime Broadcast] request_sync error:', e);
+      }
+    }
   }
 
   function jsonStringify(obj) {
@@ -1554,6 +1572,7 @@
     if (typeof global.StorageEngine.broadcastPauseSync === 'function') global.StorageEngine.broadcastPauseSync = global.StorageEngine.broadcastPauseSync.bind(global.StorageEngine);
     if (typeof global.StorageEngine.broadcastBid === 'function') global.StorageEngine.broadcastBid = global.StorageEngine.broadcastBid.bind(global.StorageEngine);
     if (typeof global.StorageEngine.broadcastPass === 'function') global.StorageEngine.broadcastPass = global.StorageEngine.broadcastPass.bind(global.StorageEngine);
+    if (typeof global.StorageEngine.broadcastRequestSync === 'function') global.StorageEngine.broadcastRequestSync = global.StorageEngine.broadcastRequestSync.bind(global.StorageEngine);
   }
 
 })(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));
